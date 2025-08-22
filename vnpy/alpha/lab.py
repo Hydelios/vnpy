@@ -29,6 +29,12 @@ class AlphaLab:
         self.minute_path: Path = self.lab_path.joinpath("minute")
         self.component_path: Path = self.lab_path.joinpath("component")
 
+        # 为不同分钟级别创建子文件夹
+        self.minute_1m_path: Path = self.minute_path.joinpath("1m")
+        self.minute_10m_path: Path = self.minute_path.joinpath("10m")
+        self.minute_30m_path: Path = self.minute_path.joinpath("30m")
+        self.minute_60m_path: Path = self.minute_path.joinpath("60m")
+
         self.dataset_path: Path = self.lab_path.joinpath("dataset")
         self.model_path: Path = self.lab_path.joinpath("model")
         self.signal_path: Path = self.lab_path.joinpath("signal")
@@ -40,6 +46,10 @@ class AlphaLab:
             self.lab_path,
             self.daily_path,
             self.minute_path,
+            self.minute_1m_path,
+            self.minute_10m_path,
+            self.minute_30m_path,
+            self.minute_60m_path,
             self.component_path,
             self.dataset_path,
             self.model_path,
@@ -48,8 +58,29 @@ class AlphaLab:
             if not path.exists():
                 path.mkdir(parents=True)
 
-    def save_bar_data(self, bars: list[BarData]) -> None:
-        """Save bar data"""
+    def get_minute_folder_path(self, interval: Interval, interval_value: str = None) -> Path:
+        """获取分钟级别数据的文件夹路径"""
+        if interval == Interval.MINUTE:
+            # 1分钟线，如果有特定的interval_value则使用对应文件夹
+            if interval_value == "10m":
+                return self.minute_10m_path
+            elif interval_value == "30m":
+                return self.minute_30m_path
+            else:
+                return self.minute_1m_path
+        elif interval == Interval.HOUR:
+            # 60分钟线
+            return self.minute_60m_path
+        else:
+            return self.minute_path
+
+    def save_bar_data(self, bars: list[BarData], interval_value: str = None) -> None:
+        """Save bar data
+        
+        Args:
+            bars: K线数据列表
+            interval_value: 可选的周期标识（如"10m", "30m"），用于区分不同的分钟级别
+        """
         if not bars:
             return
 
@@ -59,7 +90,12 @@ class AlphaLab:
         if bar.interval == Interval.DAILY:
             file_path: Path = self.daily_path.joinpath(f"{bar.vt_symbol}.parquet")
         elif bar.interval == Interval.MINUTE:
-            file_path = self.minute_path.joinpath(f"{bar.vt_symbol}.parquet")
+            # 根据interval_value选择正确的文件夹
+            folder_path = self.get_minute_folder_path(bar.interval, interval_value)
+            file_path = folder_path.joinpath(f"{bar.vt_symbol}.parquet")
+        elif bar.interval == Interval.HOUR:
+            # 60分钟线保存到60m文件夹
+            file_path = self.minute_60m_path.joinpath(f"{bar.vt_symbol}.parquet")
         elif bar.interval:
             logger.error(f"Unsupported interval {bar.interval.value}")
             return
@@ -98,9 +134,18 @@ class AlphaLab:
         vt_symbol: str,
         interval: Interval | str,
         start: datetime | str,
-        end: datetime | str
+        end: datetime | str,
+        interval_value: str = None
     ) -> list[BarData]:
-        """Load bar data"""
+        """Load bar data
+        
+        Args:
+            vt_symbol: 合约代码
+            interval: K线周期
+            start: 开始时间
+            end: 结束时间
+            interval_value: 可选的周期标识（如"10m", "30m"）
+        """
         # Convert types
         if isinstance(interval, str):
             interval = Interval(interval)
@@ -112,7 +157,10 @@ class AlphaLab:
         if interval == Interval.DAILY:
             folder_path: Path = self.daily_path
         elif interval == Interval.MINUTE:
-            folder_path = self.minute_path
+            folder_path = self.get_minute_folder_path(interval, interval_value)
+        elif interval == Interval.HOUR:
+            # 60分钟线从60m文件夹读取
+            folder_path = self.minute_60m_path
         else:
             logger.error(f"Unsupported interval {interval.value}")
             return []
@@ -159,9 +207,19 @@ class AlphaLab:
         interval: Interval | str,
         start: datetime | str,
         end: datetime | str,
-        extended_days: int
+        extended_days: int,
+        interval_value: str = None
     ) -> pl.DataFrame | None:
-        """Load bar data as DataFrame"""
+        """Load bar data as DataFrame
+        
+        Args:
+            vt_symbols: 股票代码列表
+            interval: K线周期
+            start: 开始时间
+            end: 结束时间
+            extended_days: 扩展天数
+            interval_value: 可选的周期标识（如"10m", "30m"），用于区分不同的分钟级别
+        """
         if not vt_symbols:
             return None
 
@@ -172,11 +230,23 @@ class AlphaLab:
         start = to_datetime(start) - timedelta(days=extended_days)
         end = to_datetime(end) + timedelta(days=extended_days // 10)
 
-        # Get folder path
+        # Get folder path - 支持多种分钟周期
         if interval == Interval.DAILY:
             folder_path: Path = self.daily_path
         elif interval == Interval.MINUTE:
-            folder_path = self.minute_path
+            # 根据 interval_value 选择正确的子文件夹
+            if interval_value == "10m":
+                folder_path = self.minute_10m_path
+            elif interval_value == "30m":
+                folder_path = self.minute_30m_path
+            elif interval_value == "1m":
+                folder_path = self.minute_1m_path
+            else:
+                # 默认使用 1m 文件夹
+                folder_path = self.minute_1m_path
+        elif interval == Interval.HOUR:
+            # 60分钟线从 60m 文件夹读取
+            folder_path = self.minute_60m_path
         else:
             logger.error(f"Unsupported interval {interval.value}")
             return None
@@ -393,9 +463,18 @@ class AlphaLab:
         with open(file_path, mode="wb") as f:
             pickle.dump(dataset, f)
 
-    def load_dataset(self, name: str) -> AlphaDataset | None:
-        """Load dataset"""
-        file_path: Path = self.dataset_path.joinpath(f"{name}.pkl")
+    def load_dataset(self, name: str, interval: str | None = None) -> AlphaDataset | None:
+        """Load dataset with optional interval tag"""
+        # 构建文件名
+        if interval:
+            file_path: Path = self.dataset_path.joinpath(f"{name}_{interval}.pkl")
+        else:
+            file_path: Path = self.dataset_path.joinpath(f"{name}.pkl")
+        
+        # 如果带 interval 的文件不存在，尝试不带 interval 的文件（向后兼容）
+        if not file_path.exists() and interval:
+            file_path = self.dataset_path.joinpath(f"{name}.pkl")
+        
         if not file_path.exists():
             logger.error(f"Dataset file {name} does not exist")
             return None
@@ -418,16 +497,29 @@ class AlphaLab:
         """List all datasets"""
         return [file.stem for file in self.dataset_path.glob("*.pkl")]
 
-    def save_model(self, name: str, model: AlphaModel) -> None:
-        """Save model"""
-        file_path: Path = self.model_path.joinpath(f"{name}.pkl")
+    def save_model(self, name: str, model: AlphaModel, interval: str | None = None) -> None:
+        """Save model with optional interval tag"""
+        # 构建文件名
+        if interval:
+            file_path: Path = self.model_path.joinpath(f"{name}_{interval}.pkl")
+        else:
+            file_path: Path = self.model_path.joinpath(f"{name}.pkl")
 
         with open(file_path, mode="wb") as f:
             pickle.dump(model, f)
 
-    def load_model(self, name: str) -> AlphaModel | None:
-        """Load model"""
-        file_path: Path = self.model_path.joinpath(f"{name}.pkl")
+    def load_model(self, name: str, interval: str | None = None) -> AlphaModel | None:
+        """Load model with optional interval tag"""
+        # 构建文件名
+        if interval:
+            file_path: Path = self.model_path.joinpath(f"{name}_{interval}.pkl")
+        else:
+            file_path: Path = self.model_path.joinpath(f"{name}.pkl")
+        
+        # 如果带 interval 的文件不存在，尝试不带 interval 的文件（向后兼容）
+        if not file_path.exists() and interval:
+            file_path = self.model_path.joinpath(f"{name}.pkl")
+        
         if not file_path.exists():
             logger.error(f"Model file {name} does not exist")
             return None
@@ -450,15 +542,28 @@ class AlphaLab:
         """List all models"""
         return [file.stem for file in self.model_path.glob("*.pkl")]
 
-    def save_signal(self, name: str, signal: pl.DataFrame) -> None:
-        """Save signal"""
-        file_path: Path = self.signal_path.joinpath(f"{name}.parquet")
+    def save_signal(self, name: str, signal: pl.DataFrame, interval: str | None = None) -> None:
+        """Save signal with optional interval tag"""
+        # 构建文件名
+        if interval:
+            file_path: Path = self.signal_path.joinpath(f"{name}_{interval}.parquet")
+        else:
+            file_path: Path = self.signal_path.joinpath(f"{name}.parquet")
 
         signal.write_parquet(file_path)
 
-    def load_signal(self, name: str) -> pl.DataFrame | None:
-        """Load signal"""
-        file_path: Path = self.signal_path.joinpath(f"{name}.parquet")
+    def load_signal(self, name: str, interval: str | None = None) -> pl.DataFrame | None:
+        """Load signal with optional interval tag"""
+        # 构建文件名
+        if interval:
+            file_path: Path = self.signal_path.joinpath(f"{name}_{interval}.parquet")
+        else:
+            file_path: Path = self.signal_path.joinpath(f"{name}.parquet")
+        
+        # 如果带 interval 的文件不存在，尝试不带 interval 的文件（向后兼容）
+        if not file_path.exists() and interval:
+            file_path = self.signal_path.joinpath(f"{name}.parquet")
+        
         if not file_path.exists():
             logger.error(f"Signal file {name} does not exist")
             return None

@@ -1,5 +1,6 @@
 from .template import AlphaDataset
 from .utility import Segment, to_datetime
+from .cache_manager import FactorCacheManager
 from .processor import (
     process_drop_na,
     process_fill_na,
@@ -11,6 +12,7 @@ from .processor import (
 
 __all__ = [
     "AlphaDataset",
+    "FactorCacheManager",
     "Segment",
     "to_datetime",
     "process_drop_na",

@@ -11,7 +11,10 @@ class Alpha158(AlphaDataset):
         df: pl.DataFrame,
         train_period: tuple[str, str],
         valid_period: tuple[str, str],
-        test_period: tuple[str, str]
+        test_period: tuple[str, str],
+        interval: str = "1d",
+        enable_cache: bool = False,
+        cache_dir: str | None = None
     ) -> None:
         """Constructor"""
         super().__init__(
@@ -19,6 +22,9 @@ class Alpha158(AlphaDataset):
             train_period=train_period,
             valid_period=valid_period,
             test_period=test_period,
+            interval=interval,
+            enable_cache=enable_cache,
+            cache_dir=cache_dir
         )
 
         # Candlestick pattern features

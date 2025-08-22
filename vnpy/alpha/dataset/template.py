@@ -18,6 +18,7 @@ from .utility import (
     calculate_by_expression,
     calculate_by_polars
 )
+from .cache_manager import FactorCacheManager
 
 
 class AlphaDataset:
@@ -29,10 +30,14 @@ class AlphaDataset:
         train_period: tuple[str, str],
         valid_period: tuple[str, str],
         test_period: tuple[str, str],
-        process_type: str = "append"
+        interval: str = "1d",
+        process_type: str = "append",
+        enable_cache: bool = False,
+        cache_dir: str | None = None
     ) -> None:
         """Constructor"""
         self.df: pl.DataFrame = df
+        self.interval: str = interval  # 数据频率标识: 1d, 1m, 10m, 30m, 60m
 
         # DataFrames for processed data
         self.result_df: pl.DataFrame
@@ -54,6 +59,14 @@ class AlphaDataset:
         self.process_type: str = process_type
         self.infer_processors: list = []
         self.learn_processors: list = []
+        
+        # Cache configuration
+        self.enable_cache: bool = enable_cache
+        if enable_cache:
+            # 传递interval到缓存管理器
+            self.cache_manager = FactorCacheManager(cache_dir, interval)
+        else:
+            self.cache_manager = None
 
     def add_feature(
         self,
@@ -94,28 +107,53 @@ class AlphaDataset:
         # List for feature data results
         results: list = []
 
-        # Iterate through expressions for calculation
-        expressions: list[tuple[str, str | pl.expr.expr.Expr]] = list(self.feature_expressions.items())
+        if self.enable_cache and self.cache_manager:
+            # 使用缓存管理器进行计算
+            logger.info("使用缓存管理器进行因子计算")
+            
+            # 获取多进程上下文
+            context = get_context("spawn") if max_workers and max_workers > 1 else None
+            n_jobs = max_workers if max_workers else 1
+            
+            # 使用缓存管理器计算所有因子
+            self.result_df = self.cache_manager.calculate_factors_with_cache(
+                df=self.df,
+                expressions=self.feature_expressions,
+                n_jobs=n_jobs,
+                context=context
+            )
+            
+            # 如果有标签表达式，单独计算
+            if self.label_expression:
+                if isinstance(self.label_expression, pl.expr.expr.Expr):
+                    label_result = calculate_by_polars(self.result_df, self.label_expression)["data"].alias("label")
+                else:
+                    label_result = calculate_by_expression(self.result_df, self.label_expression)["data"].alias("label")
+                self.result_df = self.result_df.with_columns(label_result)
+        else:
+            # 原有逻辑
+            # Iterate through expressions for calculation
+            expressions: list[tuple[str, str | pl.expr.expr.Expr]] = list(self.feature_expressions.items())
 
-        if self.label_expression:
-            expressions.append(("label", self.label_expression))
+            if self.label_expression:
+                expressions.append(("label", self.label_expression))
 
-        # Create process pool
-        logger.info("开始计算表达式因子特征")
+            # Create process pool
+            logger.info("开始计算表达式因子特征")
 
-        args: list[tuple] = [(self.df, name, expression) for name, expression in expressions]
+            args: list[tuple] = [(self.df, name, expression) for name, expression in expressions]
 
-        context: BaseContext = get_context("spawn")
+            context: BaseContext = get_context("spawn")
 
-        with context.Pool(processes=max_workers) as pool:
-            # Calculate all expressions in parallel
-            it = pool.imap(calculate_feature, args)
+            with context.Pool(processes=max_workers) as pool:
+                # Calculate all expressions in parallel
+                it = pool.imap(calculate_feature, args)
 
-            # Collect results
-            for result in tqdm(it, total=len(args)):
-                results.append(result)
+                # Collect results
+                for result in tqdm(it, total=len(args)):
+                    results.append(result)
 
-        self.result_df = self.df.with_columns(results)
+            self.result_df = self.df.with_columns(results)
 
         # Merge result data factor features
         logger.info("开始合并结果数据因子特征")
