@@ -1,0 +1,92 @@
+字段,释义、备注
+revenue,营业总收入：公司经营所取得的收入总额 金融类公司不公布营业总收入，因此 revenue 指标只能使用类似的一个指标-operating_revenue 来参考 :mba
+operating_revenue,营业收入：公司经营主要业务所取得的收入总额 :mba
+net_interest_income,利息净收入
+net_commission_income,手续费及佣金净收入
+commission_income,其中:手续费及佣金收入
+commission_expense,其中:手续费及佣金支出
+net_proxy_security_income,其中:代理买卖证券业务净收入
+sub_issue_security_income,其中:证券承销业务净收入
+net_trust_income,其中:受托客户资产管理业务净收入
+earned_premiums,已赚保费
+premiums_income,保险业务收入
+reinsurance_income,其中:分保费收入
+reinsurance,减:分出保费
+unearned_premium_reserve,提取未到期责任准备金
+total_expense,营业总成本
+operating_expense,营业支出(金融类企业披露)
+refunded_premiums,退保金
+compensation_expense,赔付支出
+amortization_expense,减:摊回赔付支出
+premium_reserve,提取保险责任准备金
+amortization_premium_reserve,减:摊回保险责任准备金
+policy_dividend_payout,保单红利支出
+reinsurance_cost,分保费用
+other_operating_revenue,其他经营收入
+other_operating_cost,其他经营成本
+r_n_d,研发费用
+other_net_income,非经营性净收益
+net_open_hedge_income,净敞口套期收益
+other_revenue,其他收益
+credit_asset_impairment,信用资产减值损失
+o_n_a_expense,业务及管理费用
+amortization_reinsurance_cost,减:摊回分保费用
+insurance_commission_expense,保险手续费及佣金支出
+disposal_income_on_asset,资产处置收益
+cost_of_goods_sold,营业成本(非金融类企业披露)：公司经营主要业务产生的实际成本 :mba
+sales_tax,营业税 :mba
+gross_profit,主营业务利润 :investopedia
+selling_expense,销售费用：指企业在销售产品、自制半成品和工业性劳务等过程中发生的各项费用 :mba
+ga_expense,管理费用：指企业的行政管理部门为管理和组织经营而发生的各项费用 :mba
+financing_expense,财务费用： 指企业为筹集生产经营所需资金等而发生的费用，包括利息支出（减利息收入）、汇兑损失（减汇兑收益）以及相关的手续费等 :mba
+financing_interest_income,利息收入（财务费用），财务费用科目下进一步细分的子会计科目
+financing_interest_expense,利息支出（财务费用），财务费用科目下进一步细分的子会计科目
+exchange_gains_or_losses,兑汇损益：发生外币交易后期末账户因此调整时，由于采用不同货币，或同一货币不同比价的汇率核算时产生的、按记账本位币折算的差额 :mba
+profit_from_operation,营业利润： 企业在其全部销售业务中实现的利润，又称营业利润、经营利润，它包含主营业务利润 :mba
+invest_income_associates,对联营合营企业的投资收益
+fair_value_change_income,公允价值变动净收益
+investment_income,投资收益：指企业进行投资所获得的经济利益 :mba
+asset_impairment,资产减值损失
+interest_income,利息收入
+interest_expense,利息支出
+non_operating_revenue,营业外收入：指企业发生的与其生产经营无直接关系的各项收入，包括固定资产盘盈、非货币性交易收益、出售无形资产收益等 :mba
+non_operating_expense,营业外支出：企业发生的与其生产经营无直接关系的各项支出，如固定资产盘亏、债务重组损失、罚款支出、捐赠支出、非常损失等 :mba
+disposal_loss_on_asset,非流动资产处置净损失：包括固定资产处置损失和无形资产出售损失 :mba
+other_effecting_total_profits_items,影响利润总额的其他科目
+profit_before_tax,利润总额： 指税前利润，也就是企业在所得税前一定时期内经营活动的总成果 :mba
+income_tax,所得税：以纳税人的所得额为课税对象的各种税收的统称 :mba
+unrealised_investment_loss,未确认的投资损失： 因母公司和子公司确认子公司损益方式不同而在合并报表中使用的一个调节性科目
+other_effecting_net_profits_items,影响净利润的其他科目
+net_profit,净利润（收益）是指在利润总额中按规定交纳了所得税以后公司的利润留存，一般也称为税后利润或净收入 :mba
+non_recurring_pnl,非经常性损益
+net_profit_deduct_non_recurring_pnl,扣除非经常性损益后的净利润
+classified_by_continuity_operation,(一)按经营持续性分类
+continuous_operation_net_profit,持续经营净利润
+discontinued_operation_net_profit,终止经营净利润
+classified_by_ownership,(二)按所有权归属分类
+net_profit_parent_company,归属母公司净利润： 反映在企业合并净利润中，归属于母公司股东（所有者）所有的那部分净利润 :others
+minority_profit,少数股东损益
+other_income,其他综合收益：指企业根据企业会计准则规定未在损益中确认的各项利得和损失扣除所得税影响后的净额 :mba
+other_income_unclassified_income_statement,(一)以后不能重分类进损益表的其他综合收益
+remearsured_other_income,1.1 重新计量设定收益计划净负债或净资产的变动
+other_income_equity_unclassified_income_statement,1.2 权益法下在被投资单位不能重分类进损益表的其他综合收益中享有的份额
+other_equity_instruments_change,1.3 其他权益工具投资公允价值变动
+corporate_credit_risk_change,1.4 企业自身信用风险公允价值变动
+other_income_classified_income_statement,(二)以后能重分类进损益表的其他综合收益
+other_income_equity_classified_income_statement,2.1 权益法下在被投资单位能重分类进损益表的其他综合收益中享有的份额
+financial_asset_available_for_sale_change,2.2 可供出售金融资产公允价值变动损益
+financial_asset_hold_to_maturity_change,2.3 持有至到期投资重分类为可供出售金融资产损益
+cash_flow_hedging_effective_portion,2.4 现金流量套期损益的有效部分
+foreign_currency_statement_converted_difference,2.5 外币财务报表分析折算差额
+others,2.6 其他
+other_debt_investment_change,2.7 其他债权投资公允价值变动
+assets_reclassified_other_income,2.8 金融资产重分类计入其他综合收益的金额
+other_debt_investment_reserve,2.9 其他债权投资信用减值准备
+other_income_minority,归属于少数股东的其他综合收益总额
+total_income,综合收益总额：反映企业净利润与其他综合收益的合计金额 :mba
+total_income_parent_company,归属于母公司所有者的综合收益总额
+total_income_minority,归属于少数股东的综合收益总额
+basic_earnings_per_share,基本每股收益：本每股收益是指企业应当按照属于普通股股东的当期净利润，除以发行在外普通股的加权平均数从而计算出的每股收益 :mba
+fully_diluted_earnings_per_share,稀释每股收益
+adjust_asset_impairment,资产减值损失：根据财政部发布的《关于修订印发 2019 年度一般企业财务报表格式的通知》格式，“资产减值损失”不隶属于营业总成本部分。因企业披露不一致性，经研究，从 2020.07.08 披露的 2020 年半年报开始，字段数值按照原文披露展示，历史报告期维持原有规则。
+adjust_credit_asset_impairment,信用减值损失：根据财政部发布的《关于修订印发 2019 年度一般企业财务报表格式的通知》格式，“信用减值损失”不隶属于营业总成本部分。因企业披露不一致性，经研究，从 2020.07.08 披露的 2020 年半年报开始，字段数值按照原文披露展示，历史报告期维持原有规则。

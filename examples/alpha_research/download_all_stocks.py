@@ -17,8 +17,8 @@
 """
 
 import sys
-sys.path.append('F:\\git\\vnpy_hub\\vnpy')
-sys.path.append('F:\\git\\vnpy_hub\\vnpy_rqdata')
+sys.path.append('/home/hyd/research/vnpy_hub/vnpy')
+sys.path.append('/home/hyd/research/vnpy_hub/vnpy_rqdata')
 
 import argparse
 from datetime import datetime, timedelta
@@ -304,7 +304,7 @@ def verify_data(lab: AlphaLab, sample_symbols: List[str], start: datetime, end: 
     print("\n数据验证...")
     
     for symbol in sample_symbols[:3]:  # 验证前3只股票
-        bars = lab.load_bar_data(symbol, start, end, Interval.DAILY)
+        bars = lab.load_bar_data(symbol, Interval.DAILY, start, end)
         if bars:
             print(f"  - {symbol}: 成功加载 {len(bars)} 条数据")
         else:

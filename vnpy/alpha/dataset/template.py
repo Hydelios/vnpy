@@ -60,6 +60,9 @@ class AlphaDataset:
         self.infer_processors: list = []
         self.learn_processors: list = []
         
+        # 用户自定义的运行参数（从JSON传入）；默认None，保存/加载时可挂载
+        self.params: dict | None = None
+
         # Cache configuration
         self.enable_cache: bool = enable_cache
         if enable_cache:
@@ -138,19 +141,25 @@ class AlphaDataset:
             if self.label_expression:
                 expressions.append(("label", self.label_expression))
 
-            # Create process pool
+            # Create process pool or use single process
             logger.info("开始计算表达式因子特征")
 
             args: list[tuple] = [(self.df, name, expression) for name, expression in expressions]
 
-            context: BaseContext = get_context("spawn")
+            if max_workers and max_workers > 0:
+                context: BaseContext = get_context("spawn")
+                
+                with context.Pool(processes=max_workers) as pool:
+                    # Calculate all expressions in parallel
+                    it = pool.imap(calculate_feature, args)
 
-            with context.Pool(processes=max_workers) as pool:
-                # Calculate all expressions in parallel
-                it = pool.imap(calculate_feature, args)
-
-                # Collect results
-                for result in tqdm(it, total=len(args)):
+                    # Collect results
+                    for result in tqdm(it, total=len(args)):
+                        results.append(result)
+            else:
+                # Single process calculation
+                for arg in tqdm(args):
+                    result = calculate_feature(arg)
                     results.append(result)
 
             self.result_df = self.df.with_columns(results)

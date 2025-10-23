@@ -17,8 +17,8 @@
 """
 
 import sys
-sys.path.append('F:\\git\\vnpy_hub\\vnpy')
-sys.path.append('F:\\git\\vnpy_hub\\vnpy_rqdata')
+sys.path.append('/home/hyd/research/vnpy_hub/vnpy')
+sys.path.append('/home/hyd/research/vnpy_hub/vnpy_rqdata')
 
 import argparse
 from datetime import datetime, timedelta

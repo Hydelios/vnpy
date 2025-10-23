@@ -1,0 +1,157 @@
+字段,释义、备注
+financial_asset_held_for_trading,企业为了近期内出售而持有的金融资产。通常情况下，以赚取差价为目的从二级市场购入的股票、债券和基金会分类为交易性金融资产 :mba :wikipedia
+cash_equivalent,货币资金
+client_deposits,其中:客户资金存款
+bill_receivable,应收票据：指企业持有的还没有到期、尚未兑现的票据:mba
+dividend_receivable,应收股利： 指企业因股权投资而应收取的现金股利以及应收其他单位的利润，不包括应收的股票股利 :mba
+bill_accts_receivable,应收票据及应收账款
+interest_receivable,应收利息：短期债券投资实际支付的价款中包含的已到付息期但尚未领取的债券利息 :mba
+bad_debt_reserve,坏账准备：指对应收账款预提的，对不能收回或回收可能性极低的应收账款用来抵销，是应收账款的备抵账户 :mba
+net_accts_receivable,应收账款净额
+contract_assets,合同资产
+prepayment,预付账款：企业因购货和接受劳务，按照合同规定预付给供应单位的款项 :mba
+financial_receivable,应收款项融资
+financial_lease_receivable,应收融资租赁款
+other_equity_investment,其他权益工具投资
+other_illiquidy_financial_assets,其他非流动金融资产
+non_current_asset_due_one_year,一年内到期的非流动资产
+other_receivables_interest_dividend,其他应收款(含利息和股利)
+inventory,存货: 指企业在日常活动中持有的以备出售的产成品或商品、处在生产过程中的在产品、在生产过程或提供劳务过程中耗用的材料和物料等 :mba
+consumable_biological_assets,消耗性生物资产
+deferred_expense,待摊费用： 指支出先发生，费用归属后发生的事项，按照时间长短分为短期待摊费用和长期待摊费用 :mba
+assets_hold_for_sale,划分为持有待售的资产
+contract_work,工程施工： 工程施工是指按照设计图纸和相关文件的要求，在建设场地上将设计意图付诸实现的测量、作业、检验，形成工程实体建成最终产品的活动 :mba
+other_current_assets,其他流动资产： 指除货币资金、短期投资、应收票据、应收账款、其他应收款、存货等流动资产以外的流动资产 :mba
+current_assets,流动资产合计： 指企业可以在一年内或者超过一年的一个营业周期内变现或者耗用的资产 :mba
+financial_asset_available_for_sale,可供出售金融资产： 指初始确认时即被指定为可供出售的非衍生金融资产，以及贷款和应收款项、持有至到期投资、交易性金融资产之外的非衍生金融资产 :mba
+non_current_liability_due_one_year,一年内到期的非流动负债
+debt_investment,债权投资
+other_debt_investment,其他债权投资
+financial_asset_hold_to_maturity,持有至到期投资： 指企业有明确意图并有能力持有至到期，到期日固定、回收金额固定或可确定的非衍生金融资产 :mba
+real_estate_investment,投资性房地产： 指为赚取租金或资本增值，或两者兼有而持有的房地产 :mba
+long_term_receivables,长期应收款： 长期应收款是根据长期应收款的账户余额减去未确认融资收益还有一年内到期的长期应收款 :mba
+net_long_term_equity_investment,长期股权投资净额
+accumulated_depreciation,"累计折旧： ""累计折旧""账户属于资产类的备抵调整账户，其结构与一般资产账户的结构刚好相反，贷方登记增加，借方登记减少，余额在贷方 :mba"
+depreciation_reserve,固定资产减值准备： 指由于固定资产市价持续下跌，或技术陈旧、损坏、长期闲置等原因导致其可收回金额低于账面价值的，应当将可收回金额低于其账面价值的差额作为固定资产减值准备 :mba
+net_fixed_assets,固定资产净额： 固定资产原值减累计折旧再减减值准备后的差额 :mba
+total_fixed_assets,固定资产合计
+engineer_material,工程物资： 指用于固定资产建造的建筑材料，如钢材、水泥、玻璃等。在资产负债表中并入在建工程项目 :mba
+construction_in_progress,在建工程： 指企业固定资产的新建、改建、扩建，或技术改造、设备更新和大修理工程等尚未完工的工程支出 :mba
+total_construction_in_progress,在建工程合计
+fixed_asset_to_be_disposed,固定资产清理： 指企业因出售、报废和毁损等原因转入清理的固定资产价值及其在清理过程中所发生的清理费用和清理收入等 :mba
+capitalized_biological_assets,生产性生物资产： 指为产出农产品、提供劳务或出租等目的而持有的生物资产，包括经济林、薪炭林、产畜和役畜等 :mba
+oil_and_gas_assets,油气资产： 指油气开采企业所拥有或控制的井及相关设施和矿区权益。油气资产属于递耗资产 :mba
+intangible_assets,无形资产： 指企业拥有或者控制的没有实物形态的可辨认非货币性资产 :mba
+seat_costs,交易席位费
+impairment_intangible_assets,开发支出： 反映企业开发无形资产过程中能够资本化形成无形资产成本的支出部分 :mba
+use_right_assets,使用权资产
+goodwill,商誉： 指能在未来期间为企业经营带来超额利润的潜在经济价值，或一家企业预期的获利能力超过可辨认资产正常获利能力（如社会平均投资回报率）的资本化价值 :mba
+long_term_deferred_expenses,长期待摊费用： 指企业已经支出，但摊销期限在 1 年以上(不含 1 年)的各项费用 :mba
+deferred_income_tax_assets,递延所得税资产： 指对于可抵扣暂时性差异，以未来期间很可能取得用来抵扣可抵扣暂时性差异的应纳税所得额为限确认的一项资产 :mba
+other_non_current_assets,其他非流动资产： 指除资产负债表上所列非流动资产项目以外的其他周转期超过 1 年的长期资产 :mba
+non_current_assets,非流动资产合计
+loan_account_receivables,投资-贷款及应收款项(应收款项类投资)
+fund_providing,融出资金
+reinsurance_reserve_receivable,应收分保合同准备金
+settlement_provision,结算备付金
+client_provision,客户备付金
+interbank_deposits,存放同业款项
+precious_metals,贵金属
+lend_capital,拆出资金
+derivative_financial_assets,衍生金融资产
+resale_financial_assets,买入返售金融资产
+loans_advances_to_customers,发放贷款和垫款
+insurance_receivable,应收保费
+subrogation_fee_receivable,应收代位追偿款
+reinsurance_receivable,应收分保账款
+unearned_reserve_receivable,应收分保未到期责任准备金
+unclaimed_reserve_receivable,应收分保未决赔款准备金
+life_reserve_receivable,应收分保寿险责任准备金
+health_reserve_receivable,应收分保长期健康险责任准备金
+insurer_mortgage_loan,保户质押贷款
+fixed_deposits,定期存款
+refundable_deposits,存出保证金
+refundable_capital_deposits,存出资本保证金
+independent_account_assets,独立账户资产
+other_assets,其他资产
+other_accts_receivable,其他应收款(原值)：是企业除应收票据、应收账款和预付账款以外的各种应收暂付款项
+total_assets,总资产： 指企业拥有或可控制的能以货币计量的经济资源，包括各种财产、债权和其他权利 :mba
+mortgaged_loan,质押借款
+short_term_loans,短期借款： 还款期一年以下，企业用来维持正常的生产经营所需的资金或为抵偿某项债务而向银行或其他金融机构等外单位借入的资金 :mba
+financial_liabilities,交易性金融负债： 交易性金融负债，指企业采用短期获利模式进行融资所形成的负债，比如应付短期债券 :others
+notes_payable,"应付票据： 应付票据是指企业购买材料、商品和接受劳务供应等而开出、承兑的商业汇票，包括商业承兑汇票和银行承兑汇票。在我国应收票据、应付票据仅指""商业汇票""，包括""银行承兑汇票""和""商业承兑汇票""两种，属于远期票据，付款期一般在 1 个月以上，6 个月以内 :mba"
+accts_payable,应付账款： 应付帐款是指企业因购买材料、物资和接受劳务供应等而付给供货单位的帐款 :mba
+bill_accts_payable,应付票据及应付账款
+contract_liabilities,合同负债
+advance_from_customers,预收账款： 预收账款指买卖双方协议商定，由购货方预先支付一部分货款给供应方而发生的一项负债 :mba
+payroll_payable,应付职工薪酬： 应付职工薪酬是指企业为获得职工提供的服务而给予各种形式的报酬以及其他相关支出 :mba
+dividend_payable,应付股利： 应付股利是指企业根据年度利润分配方案，确定分配的股利 :mba
+tax_payable,应交税费： 应交税费是指企业根据在一定时期内取得的营业收入、实现的利润等，按照现行税法规定，采用一定的计税方法计提的应交纳的各种税费 :mba
+interest_payable,应付利息： 应付利息，是指金融企业根据存款或债券金额及其存续期限和规定的利率，按期计提应支付给单位和个人的利息 :investopedia
+other_fees_payable,其他应交款： 指企业需要向国家缴纳的各项款项中除了税金以外的各种应交款项，主要包括教育附加费、车辆购置附加费等。 :others
+other_payable,其他应付款： 该科目只核算企业应付其他单位或个人的零星款项，如应付经营租入固定资产和包装物的租金、存入保证金等 :mba
+other_payable_interest_dividend,其他应付款（含利息和股利）
+short_term_debt,应付短期债券： 应付短期债券是企业筹资发行一年以下期限的债券，属于流动负债 :others
+accrued_expense,预提费用： 预提费用是指企业按规定预先提取但尚未实际支付的各项费用。 就是企业还没支付，但应该要支付的，要记入负债 :others
+liabilities_hold_for_sale,划分为持有待售的负债
+estimated_liabilities,预计负债： 预计负债是因或有事项可能产生的负债 :mba
+deferred_income,递延收益： 递延收益是指尚待确认的收入或收益，也可以说是暂时未确认的收益，它是权责发生制在收益确认上的运用 :mba
+long_term_liabilities_due_one_year,一年内到期的长期负债： 一年内到期的长期负债是指反映企业长期负债中自编表日起一年内到期的长期负债 :others【该数据来自旧会计准则】
+other_current_liabilities,其他流动负债： 指不能归属于短期借款，应付短期债券券，应付票据，应付帐款，应付所得税，其他应付款，预收账款这七款项目的流动负债。但以上各款流动负债，其金额未超过流动负债合计金额百分之五者，得并入其他流动负债内 :others
+current_liabilities,流动负债合计： 流动负债合计是指企业在一年内或超过一年的一个营业周期内需要偿还的债务 :mba
+long_term_loans,长期借款： 长期借款是指企业从银行或其他金融机构借入的期限在一年以上(不含一年)的借款 :mba
+bond_payable,应付债券： 公司为筹集长期资金而实际发行的债券及应付的利息 :mba
+preference_shares,优先股
+perpetual_bond,永续债（应付债券）
+long_term_payable,长期应付款： 指企业除了长期借款和应付债券以外的长期负债，包括应付引进设备款、应付融资租入固定资产的租赁费等 :mba
+accrued_staff_costs,长期应付职工薪酬
+grants_received,专项应付款： 企业接受国家作为企业所有者拨入的具有专门用途的款项所形成的不需要以资产或增加其他负债偿还的负债 :others
+housing_revolving_funds,住房周转金： 房周转金是指企业从各种规定来源取得的、用于职工住房各方面开支的，除公益金、住房折旧和住房公积金以外的住房基金 :mba
+deferred_income_tax_liabilities,递延所得税负债： 指根据应纳税暂时性差异计算的未来期间应付所得税的金额 :mba
+lease_liabilities,租赁负债
+financial_lease_payable,应付融资租赁款
+other_non_current_liabilities,其他非流动负债： 反映企业除长期借款、应付债券等项目以外的其他非流动负债 :mba
+non_current_liabilities,非流动负债合计： 指偿还期在一年或者超过一年的一个营业周期以上的债务。非流动负债的主要项目有长期借款和应付债券 :mba
+borrowings_from_central_banks,向中央银行借款
+deposits_of_interbank,同业及其他金融机构存放款项
+borrowings_capital,拆入资金
+derivative_financial_liabilities,衍生金融负债
+buy_back_security_proceeds,卖出回购金融资产款
+deposits,吸收存款
+proxy_security_proceeds,代理买卖证券款
+sub_issue_security_proceeds,代理承销证券款
+security_deposits_received,存入保证金
+advance_insurance,预收保费
+comission_payable,应付手续费及佣金
+reinsurance_payable,应付分保账款
+compensation_payable,应付赔付款
+policy_dividend_payable,应付保单红利
+deposits_from_interbank,吸收存款及同业存款
+insurance_contract_reserve,保险合同准备金
+insurer_deposit_investment,保户储金及投资款
+uncertained_premium_reserve,未到期责任准备金
+unclaimed_indemnity_reserve,未决赔款准备金
+life_insurance_reserve,寿险责任准备金
+health_insurance_reserve,长期健康险责任准备金
+independent_account_liabilities,独立账户负债
+other_liabilities,其他负债
+deferred_revenue,递延收益(长期负债)： 递延收益是指尚待确认的收入或收益，也可以说是暂时未确认的收益，它是权责发生制在收益确认上的运用 :mba
+total_liabilities,负债合计： 指企业所承担的能以货币计量，将以资产或劳务偿还的债务 :mba
+paid_in_capital,实收资本(或股本)： 指企业的投资者按照企业章程或合同、协议的约定，实际投入企业的资本 :mba
+other_equity_instruments,其他权益工具
+equity_preferred_stock,权益部分的优先股
+perpetual_equity_debt,永续债（其他权益工具）
+capital_reserve,资本公积金： 企业收到的投资者的超出其在企业注册资本所占份额，以及直接计入所有者权益的利得和损失等 :mba【该数据来自旧会计准则】
+surplus_reserve,盈余公积： 指企业从税后利润中提取形成的、存留于企业内部、具有特定用途的收益积累 :others
+undistributed_profit,未分配利润： 未分配利润是企业未作分配的利润。它在以后年度可继续进行分配，在未进行分配之前，属于所有者权益的组成部分 :others
+treasury_stock,减:库存股
+equity_parent_company,归属于母公司所有者权益合计： 母公司股东权益反映的是母公司所持股份部分的所有者权益数 :others
+total_equity,股东权益合计： 所有者权益合计是指企业投资人对企业净资产的所有权 :others
+general_reserve,一般风险准备
+trade_risk_allowances,交易风险准备
+foreign_currency_converted_difference,外币报表折算差额
+uncertained_impairment_losses,未确认投资损失
+other_reserves,其他储备(公允价值变动储备)
+specific_reserve,专项储备
+minority_interest,少数股东权益： 少数股东损益是一个流量概念，是指公司合并报表的子公司其它非控股股东享有的损益 :mba
+total_equity_and_liabilities,负债和股东权益总计

@@ -1,0 +1,23 @@
+{
+  "name": "300_mlp",
+  "index_symbol": "000300.SSE",
+  "start": "2017-01-01",
+  "end": "2025-08-01",
+  "interval": "1d",
+  "extended_days": 100,
+  "train_period": ["2017-01-01", "2021-12-31"],
+  "valid_period": ["2022-01-01", "2022-12-31"],
+  "test_period": ["2023-01-01", "2025-08-01"],
+  "mlp": {
+    "input_size": 158,
+    "hidden_sizes": [256],
+    "lr": 0.002,
+    "optimizer": "adam",
+    "n_epochs": 8000,
+    "batch_size": 8192,
+    "weight_decay": 0.0002,
+    "seed": 42,
+    "device": "cpu"
+  }
+}
+
