@@ -1,0 +1,28 @@
+{
+  "_comments": "本文件为JSON，不支持//注释。命令行参数优先级高于此配置。",
+  "_help": {
+    "start_date": "开始日期，YYYY-MM-DD；省略则默认 2007-01-01",
+    "end_date": "结束日期，YYYY-MM-DD；省略则默认 昨天",
+    "interval": "K线周期：1d(日线)、1m、10m、30m、60m",
+    "task_name": "任务名称/数据保存目录名，例如 all_stocks",
+    "mode": "下载模式：incremental(增量，重复最后一天) 或 full(全量)",
+    "full": "布尔值；true 时强制全量下载（高于 mode）",
+    "verify": "布尔值；是否在下载完成后进行抽样验证",
+    "no_verify": "布尔值；与 verify 互斥，命令行 --no-verify 优先",
+    "set_contract": "布尔值；是否写入回测参数",
+    "no_contract": "布尔值；与 set_contract 互斥，命令行 --no-contract 优先",
+    "examples": [
+      "python download_all_stocks.py",
+      "python download_all_stocks.py --config ./data_download.json",
+      "python download_all_stocks.py --full"
+    ]
+  },
+
+  "task_name": "all_stocks",
+  "interval": "1m",
+  "start_date": "2007-01-01",
+  "end_date": "2099-12-31",
+  "verify": true,
+  "set_contract": true,
+  "mode": "incremental"
+}

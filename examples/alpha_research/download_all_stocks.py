@@ -21,12 +21,16 @@ sys.path.append('/home/hyd/research/vnpy_hub/vnpy')
 sys.path.append('/home/hyd/research/vnpy_hub/vnpy_rqdata')
 
 import argparse
+import json
+import configparser
 from datetime import datetime, timedelta
 from typing import List, Optional
 
 from tqdm import tqdm
 import rqdatac as rq
 import pandas as pd
+import polars as pl
+from pathlib import Path
 
 from vnpy.trader.database import DB_TZ
 from vnpy.trader.datafeed import get_datafeed
@@ -65,8 +69,80 @@ def get_all_stocks() -> List[str]:
         return []
 
 
+def _load_config_file(path: str | Path) -> dict:
+    """读取配置文件（优先JSON，回退INI）。文件不存在则返回空dict。"""
+    p = Path(path)
+    if not p.exists():
+        return {}
+    # try JSON first
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    # fallback to INI
+    cfg = configparser.ConfigParser()
+    try:
+        cfg.read(p, encoding="utf-8")
+        # 优先使用名为 download 的 section，否则合并所有节
+        data: dict = {}
+        if "download" in cfg:
+            data = dict(cfg["download"])
+        else:
+            for sec in cfg.sections():
+                data.update(cfg[sec])
+        # 规范化布尔/字符串
+        def to_bool(v: str) -> bool:
+            return str(v).strip().lower() in {"1", "true", "yes", "on"}
+        for k in list(data.keys()):
+            v = data[k]
+            if k in {"no_contract", "no_verify", "full", "incremental", "verify", "set_contract"}:
+                data[k] = to_bool(v)
+        return data
+    except Exception:
+        return {}
+
+
+def get_incremental_start(
+    lab: AlphaLab,
+    vt_symbol: str,
+    interval: Interval,
+    interval_value: Optional[str],
+    default_start: datetime,
+) -> datetime:
+    """
+    计算单个标的的增量起点：重复“最后一天”。
+    - 若本地无文件，返回 default_start。
+    - 若存在文件：读取最大 datetime，将起点设为该日00:00（带DB_TZ）。
+    """
+    # 定位 parquet 路径
+    if interval == Interval.DAILY:
+        file_path: Path = lab.daily_path.joinpath(f"{vt_symbol}.parquet")
+    elif interval == Interval.HOUR:
+        file_path = lab.minute_60m_path.joinpath(f"{vt_symbol}.parquet")
+    elif interval == Interval.MINUTE:
+        folder = lab.get_minute_folder_path(interval, interval_value)
+        file_path = folder.joinpath(f"{vt_symbol}.parquet")
+    else:
+        return default_start
+
+    if not file_path.exists():
+        return default_start
+
+    try:
+        df = pl.read_parquet(file_path, columns=["datetime"])  # 仅读时间列
+        if df.is_empty():
+            return default_start
+        last_dt = df.select(pl.max("datetime")).to_series()[0]
+        # 归零到当日 00:00，并加回DB_TZ
+        inc_start = last_dt.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=DB_TZ)
+        # 防止配置的 default_start 晚于本地数据
+        return max(inc_start, default_start)
+    except Exception:
+        return default_start
+
+
 def download_bar_data_extended(lab: AlphaLab, symbols: List[str], start: datetime, end: datetime, 
-                              interval_str: str) -> List[str]:
+                              interval_str: str, full_mode: bool = False) -> List[str]:
     """
     下载扩展周期的K线数据（10分钟、30分钟等）
     直接调用米筐API支持非标准周期
@@ -135,11 +211,26 @@ def download_bar_data_extended(lab: AlphaLab, symbols: List[str], start: datetim
                 adjust_type = "none"
             
             # 调用米筐API
+            # 计算增量起点（重复最后一天）
+            inc_start = start if full_mode else get_incremental_start(
+                lab, vt_symbol, save_interval, interval_str, start
+            )
+
+            if inc_start >= end:
+                # 已最新，跳过
+                if not full_mode:
+                    tqdm.write(f"[增量] {vt_symbol} 已最新，跳过")
+                continue
+
+            if not full_mode:
+                fmt = "%Y-%m-%d %H:%M"
+                tqdm.write(f"[增量] {vt_symbol}：{inc_start.strftime(fmt)} -> {end.strftime(fmt)} ({rq_frequency})")
+
             df: DataFrame = get_price(
                 rq_symbol,
                 frequency=rq_frequency,
                 fields=fields,
-                start_date=start,
+                start_date=inc_start,
                 end_date=get_next_trading_date(end),
                 adjust_type=adjust_type
             )
@@ -174,6 +265,8 @@ def download_bar_data_extended(lab: AlphaLab, symbols: List[str], start: datetim
                 
                 if bars:
                     lab.save_bar_data(bars, interval_value=rq_frequency)
+                    if not full_mode:
+                        tqdm.write(f"[增量] {vt_symbol} 新增 {len(bars)} 条")
                 else:
                     logger.error(f"下载{vt_symbol}数据失败：无有效数据")
                     failed_symbols.append(vt_symbol)
@@ -189,7 +282,8 @@ def download_bar_data_extended(lab: AlphaLab, symbols: List[str], start: datetim
 
 
 def download_bar_data(lab: AlphaLab, symbols: List[str], start: datetime, end: datetime, 
-                     interval: Interval = Interval.DAILY, interval_value: str = None) -> List[str]:
+                     interval: Interval = Interval.DAILY, interval_value: str = None,
+                     full_mode: bool = False) -> List[str]:
     """
     下载K线数据（标准周期）
     
@@ -215,11 +309,25 @@ def download_bar_data(lab: AlphaLab, symbols: List[str], start: datetime, end: d
     for vt_symbol in tqdm(symbols, desc="下载进度"):
         try:
             symbol, exchange_str = vt_symbol.split(".")
-            
+            # 增量起点（重复最后一天），全量模式则使用传入的start
+            req_start = start if full_mode else get_incremental_start(
+                lab, vt_symbol, interval, interval_value, start
+            )
+
+            if req_start >= end:
+                # 已最新，跳过
+                if not full_mode:
+                    tqdm.write(f"[增量] {vt_symbol} 已最新，跳过")
+                continue
+
+            if not full_mode:
+                fmt = "%Y-%m-%d" if interval == Interval.DAILY else "%Y-%m-%d %H:%M"
+                tqdm.write(f"[增量] {vt_symbol}：{req_start.strftime(fmt)} -> {end.strftime(fmt)}")
+
             req = HistoryRequest(
                 symbol=symbol, 
                 exchange=Exchange(exchange_str), 
-                start=start, 
+                start=req_start, 
                 end=end, 
                 interval=interval
             )
@@ -228,6 +336,8 @@ def download_bar_data(lab: AlphaLab, symbols: List[str], start: datetime, end: d
             
             if bars:
                 lab.save_bar_data(bars, interval_value=interval_value)
+                if not full_mode:
+                    tqdm.write(f"[增量] {vt_symbol} 新增 {len(bars)} 条")
             else:
                 logger.error(f"下载{vt_symbol}数据失败：无数据返回")
                 failed_symbols.append(vt_symbol)
@@ -327,34 +437,31 @@ def parse_arguments():
         """
     )
     
-    # 获取昨天的日期作为默认结束日期
-    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-    
     parser.add_argument(
         'start_date', 
         nargs='?', 
-        default='2007-01-01',
-        help='开始日期，格式：YYYY-MM-DD（默认：2007-01-01）'
+        default=None,
+        help='开始日期，格式：YYYY-MM-DD（若未提供，将从配置或默认2007-01-01读取）'
     )
     
     parser.add_argument(
         'end_date', 
         nargs='?', 
-        default=yesterday,
-        help=f'结束日期，格式：YYYY-MM-DD（默认：昨天 {yesterday}）'
+        default=None,
+        help='结束日期，格式：YYYY-MM-DD（若未提供，将从配置或默认昨天读取）'
     )
     
     parser.add_argument(
         '--task-name', 
-        default='all_stocks',
-        help='任务名称，用于创建数据文件夹（默认：all_stocks）'
+        default=None,
+        help='任务名称，用于创建数据文件夹（可由配置覆盖，默认：all_stocks）'
     )
     
     parser.add_argument(
         '--interval', 
-        default='1d',
+        default=None,
         choices=['1d', '1m', '10m', '30m', '60m'],
-        help='K线周期：1d(日线), 1m(1分钟), 10m(10分钟), 30m(30分钟), 60m(60分钟)（默认：1d）'
+        help='K线周期：1d(日线), 1m(1分钟), 10m(10分钟), 30m(30分钟), 60m(60分钟)（可由配置覆盖，默认：1d）'
     )
     
     parser.add_argument(
@@ -368,16 +475,21 @@ def parse_arguments():
         action='store_true',
         help='不验证下载的数据'
     )
+
+    parser.add_argument(
+        '--full',
+        action='store_true',
+        help='强制全量下载（默认进行增量下载，重复最后一天）'
+    )
+
+    parser.add_argument(
+        '--config',
+        default='data_download.json',
+        help='下载参数配置文件路径（JSON或INI），默认：data_download.json'
+    )
     
     args = parser.parse_args()
-    
-    # 验证日期格式
-    try:
-        datetime.strptime(args.start_date, '%Y-%m-%d')
-        datetime.strptime(args.end_date, '%Y-%m-%d')
-    except ValueError as e:
-        parser.error(f"日期格式错误：{e}")
-    
+
     return args
 
 
@@ -386,15 +498,79 @@ def main():
     
     # ========== 解析命令行参数 ==========
     args = parse_arguments()
+
+    # ========== 读取配置文件并合并参数 ==========
+    cfg = _load_config_file(args.config)
+
+    # 调试输出：配置文件读取情况与关键参数
+    try:
+        cfg_exists = Path(args.config).exists()
+        print(f"[配置] 文件: {args.config} ({'已找到' if cfg_exists else '未找到'})")
+        if cfg:
+            print(
+                f"[配置] interval={cfg.get('interval')}, start_date={cfg.get('start_date')}, end_date={cfg.get('end_date')}, "
+                f"task_name={cfg.get('task_name')}, mode={cfg.get('mode')}, full={cfg.get('full')}"
+            )
+        else:
+            print("[配置] 配置为空或解析失败，使用默认/命令行参数")
+    except Exception:
+        pass
+
+    # 计算默认日期
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+
+    # 合并参数：CLI > 配置 > 默认
+    start_date = args.start_date or cfg.get('start_date') or '2007-01-01'
+    end_date = args.end_date or cfg.get('end_date') or yesterday
+    task_name = args.task_name or cfg.get('task_name') or 'all_stocks'
+    interval_arg = args.interval or cfg.get('interval') or '1d'
+
+    # 增量/全量：默认增量。支持配置字段 full 或 mode='full'
+    cfg_full = False
+    mode = str(cfg.get('mode', '')).lower()
+    if cfg.get('full') is True or mode == 'full':
+        cfg_full = True
+    full_mode = args.full or cfg_full
+
+    # 合同/校验布尔参数：CLI 的 no_* 优先，其次配置 set_contract/verify/no_*
+    if args.no_contract:
+        set_contract_params = False
+    else:
+        if 'no_contract' in cfg:
+            set_contract_params = not bool(cfg['no_contract'])
+        elif 'set_contract' in cfg:
+            set_contract_params = bool(cfg['set_contract'])
+        else:
+            set_contract_params = True
+
+    if args.no_verify:
+        verify_download = False
+    else:
+        if 'no_verify' in cfg:
+            verify_download = not bool(cfg['no_verify'])
+        elif 'verify' in cfg:
+            verify_download = bool(cfg['verify'])
+        else:
+            verify_download = True
+
+    # 生效参数调试打印
+    try:
+        print(
+            f"[生效] interval={interval_arg}, start_date={start_date}, end_date={end_date}, "
+            f"task_name={task_name}, mode={'full' if full_mode else 'incremental'}"
+        )
+    except Exception:
+        pass
+
+    # 验证日期格式
+    try:
+        datetime.strptime(start_date, '%Y-%m-%d')
+        datetime.strptime(end_date, '%Y-%m-%d')
+    except ValueError as e:
+        print(f"日期格式错误：{e}")
+        return
     
     # ========== 配置参数 ==========
-    
-    # 任务名称（用于创建数据文件夹）
-    task_name = args.task_name
-    
-    # 时间范围设置
-    start_date = args.start_date
-    end_date = args.end_date
     
     # K线周期映射
     interval_map = {
@@ -403,7 +579,7 @@ def main():
         '60m': Interval.HOUR,
         # 10m和30m会使用扩展函数处理
     }
-    interval = interval_map.get(args.interval, Interval.MINUTE)
+    interval = interval_map.get(interval_arg, Interval.MINUTE)
     
     # 回测参数配置
     contract_settings = {
@@ -413,11 +589,7 @@ def main():
         "pricetick": 0.0001,      # 最小价格变动
     }
     
-    # 是否设置回测参数
-    set_contract_params = not args.no_contract
-    
-    # 是否验证数据
-    verify_download = not args.no_verify
+    # full_mode, set_contract_params, verify_download 已在上方合并
     
     # ========== 初始化环境 ==========
     
@@ -427,7 +599,8 @@ def main():
     print(f"\n下载参数：")
     print(f"  - 开始日期：{start_date}")
     print(f"  - 结束日期：{end_date}")
-    print(f"  - K线周期：{args.interval}")
+    print(f"  - K线周期：{interval_arg}")
+    print(f"  - 下载模式：{'全量' if full_mode else '增量(重复最后一天)'}")
     print(f"  - 任务名称：{task_name}")
     print(f"  - 设置回测参数：{'是' if set_contract_params else '否'}")
     print(f"  - 验证数据：{'是' if verify_download else '否'}")
@@ -459,14 +632,14 @@ def main():
     # ========== 下载数据 ==========
     
     # 根据不同的周期类型选择下载函数
-    if args.interval in ['10m', '30m']:
+    if interval_arg in ['10m', '30m']:
         # 使用扩展下载函数处理10分钟、30分钟
-        failed_symbols = download_bar_data_extended(lab, all_symbols, start, end, args.interval)
+        failed_symbols = download_bar_data_extended(lab, all_symbols, start, end, interval_arg, full_mode=full_mode)
     else:
         # 使用标准下载函数处理日线、1分钟、60分钟
         # 对于分钟级数据，传递interval_value以便保存到正确的子文件夹
-        interval_value = args.interval if args.interval in ['1m', '60m'] else None
-        failed_symbols = download_bar_data(lab, all_symbols, start, end, interval, interval_value)
+        interval_value = interval_arg if interval_arg in ['1m', '60m'] else None
+        failed_symbols = download_bar_data(lab, all_symbols, start, end, interval, interval_value, full_mode=full_mode)
     
     # 输出统计信息
     print(f"\n下载完成！")
