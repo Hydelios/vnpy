@@ -283,21 +283,27 @@ def calculate_by_expression(df: pl.DataFrame, expression: str) -> pl.DataFrame:
     )
     from .ta_function import (              # noqa
         ta_rsi,
-        ta_atr
+        ta_atr,
+        ta_sma,
+        ta_linearreg_slope,
     )
     # Extra operators (time-series and cross-section)
     from .extra_function import (           # noqa
         ts_decay_linear,
         ts_cov,
         ts_prod,
+        ts_delta,
         ts_ema,
         ts_ewm,
         ts_sign,
         ts_where,
+        cs_where,
         ts_clip,
         ts_winsor,
         cs_pct_rank,
         cs_scale,
+        ts_highday,
+        ts_lowday,
     )
     from .neutralize_function import (      # noqa
         cs_demean,
@@ -307,8 +313,12 @@ def calculate_by_expression(df: pl.DataFrame, expression: str) -> pl.DataFrame:
         cs_neutralize_ols1,
     )
 
-    # Extract feature objects to local space
+    # Backward-compatibility aliases for expression strings
+    # 一些历史模板中使用 log(...)，这里兼容为 ts_log
     d: dict = locals()
+    d["log"] = ts_log  # type: ignore
+
+    # Extract feature objects to local space
 
     for column in df.columns:
         # Filter index columns

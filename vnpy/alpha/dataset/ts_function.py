@@ -50,8 +50,11 @@ def ts_sum(feature: DataProxy, window: int) -> DataProxy:
     return DataProxy(df)
 
 
-def ts_corr(feature1: DataProxy, feature2: DataProxy, window: int) -> DataProxy:
+def ts_corr(feature1: DataProxy, feature2: DataProxy, window: int | float) -> DataProxy:
     """Calculate the correlation between two features over a rolling window"""
+    # 兼容浮点窗口：四舍五入为整数
+    window = int(round(float(window)))
+    window = max(1, window)
     df_merged: pl.DataFrame = feature1.df.join(feature2.df, on=["datetime", "vt_symbol"])
 
     df: pl.DataFrame = df_merged.select(
@@ -173,7 +176,7 @@ def ts_std(feature: DataProxy, window: int) -> DataProxy:
     df: pl.DataFrame = feature.df.select(
         pl.col("datetime"),
         pl.col("vt_symbol"),
-        pl.col("data").rolling_std(window_size=window, min_periods=1, ddof=0).over("vt_symbol").alias("data")
+        pl.col("data").rolling_std(window_size=window, min_periods=1, ddof=1).over("vt_symbol").alias("data")
     )
     return DataProxy(df)
 
@@ -270,11 +273,14 @@ def ts_resi(feature: DataProxy, window: int) -> DataProxy:
 
 # 未优化的部分
 
-def ts_argmax(feature: DataProxy, window: int) -> DataProxy:
+def ts_argmax(feature: DataProxy, window: int | float) -> DataProxy:
     """Return the index of the maximum value over a rolling window
     
     保持原实现：需要特殊逻辑处理 NaN
     """
+    # 兼容浮点窗口：四舍五入为整数
+    window = int(round(float(window)))
+    window = max(1, window)
     df: pl.DataFrame = feature.df.select(
         pl.col("datetime"),
         pl.col("vt_symbol"),
@@ -283,11 +289,14 @@ def ts_argmax(feature: DataProxy, window: int) -> DataProxy:
     return DataProxy(df)
 
 
-def ts_argmin(feature: DataProxy, window: int) -> DataProxy:
+def ts_argmin(feature: DataProxy, window: int | float) -> DataProxy:
     """Return the index of the minimum value over a rolling window
     
     保持原实现：需要特殊逻辑处理 NaN
     """
+    # 兼容浮点窗口：四舍五入为整数
+    window = int(round(float(window)))
+    window = max(1, window)
     df: pl.DataFrame = feature.df.select(
         pl.col("datetime"),
         pl.col("vt_symbol"),
@@ -296,14 +305,33 @@ def ts_argmin(feature: DataProxy, window: int) -> DataProxy:
     return DataProxy(df)
 
 
-def ts_rank(feature: DataProxy, window: int) -> DataProxy:
+def ts_rank(feature: DataProxy, window: int | float) -> DataProxy:
     """Calculate the percentile rank of the current value within the window
     
     保持原实现：scipy.percentileofscore 有特殊的计算逻辑
     """
+    # 兼容浮点窗口：四舍五入为整数
+    window = int(round(float(window)))
+    window = max(1, window)
     df: pl.DataFrame = feature.df.select(
         pl.col("datetime"),
         pl.col("vt_symbol"),
         pl.col("data").rolling_map(lambda s: stats.percentileofscore(s, s[-1]) / 100, window).over("vt_symbol")
     )
     return DataProxy(df)
+
+# # 优化后的 ts_rank (无需 scipy，纯 Rust 速度)
+# def ts_rank(feature: DataProxy, window: int) -> DataProxy:
+#     # window 内非 NaN 数量，用于归一化
+#     # 注意：这里简化处理，假设 window 满了。严谨处理可用 rolling_count
+    
+#     # 方法 A: 简单近似 (Rank / Window)
+#     # 注意：Polars 的 rolling_rank 默认升序，返回 1 到 window_size
+#     # 如果需要精确对齐 scipy 的 weak/strict 逻辑可能需要微调，但因子挖掘通常不需要那么精确
+    
+#     df: pl.DataFrame = feature.df.select(
+#         pl.col("datetime"),
+#         pl.col("vt_symbol"),
+#         (pl.col("data").rolling_rank(window).over("vt_symbol") / window).alias("data")
+#     )
+#     return DataProxy(df)

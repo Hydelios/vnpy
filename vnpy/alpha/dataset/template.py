@@ -227,38 +227,59 @@ class AlphaDataset:
         start, end = self.data_periods[segment]
         return query_by_time(self.learn_df, start, end)
 
-    def show_feature_performance(self, name: str) -> None:
+    def show_feature_performance(
+        self,
+        name: str,
+        *,
+        quantiles: int | None = None,
+        periods: tuple[int, ...] | list[int] | None = None,
+        max_loss: float | None = None,
+        bins: list[float] | None = None,
+        long_short: bool | None = None,
+        group_neutral: bool | None = None,
+        by_group: bool | None = None,
+        allow_fallback: bool | None = None,
+        quantile_order: str | None = None,  # "asc" 或 "desc"
+        plots: dict | None = None,
+    ) -> None:
         """
-        Perform performance analysis for a feature
+        单因子绩效分析：简化为调用 analysis.alphalens_backend 封装。
+
+        - Notebook 调用保持简单：dataset.show_feature_performance("alpha101_003")。
+        - 可选参数若传入，则覆盖 params["factors_analysis"] 中对应项。
+        - 具体的 Alphalens 清洗/绘图/保存逻辑均在 wrapper 中实现。
         """
-        starts: list[datetime] = []
-        ends: list[datetime] = []
+        # 组装配置：以 self.params.factors_analysis 为基，叠加调用方覆盖
+        fa_cfg: dict = {}
+        if isinstance(self.params, dict):
+            fa_cfg = cast(dict, self.params.get("factors_analysis", {})).copy()
 
-        for period in self.data_periods.values():
-            starts.append(to_datetime(period[0]))
-            ends.append(to_datetime(period[1]))
+        # 调用参数覆盖（仅处理与 Alphalens 相关的项）
+        if periods is not None:
+            fa_cfg["alphalens_periods"] = list(periods)
+        if quantiles is not None:
+            fa_cfg["alphalens_quantiles"] = int(quantiles)
+        if bins is not None:
+            fa_cfg["alphalens_bins"] = list(bins)
+        if max_loss is not None:
+            fa_cfg["alphalens_max_loss"] = float(max_loss)
+        if quantile_order is not None:
+            fa_cfg["alphalens_quantile_order"] = str(quantile_order)
 
-        start: datetime = min(starts)
-        end: datetime = max(ends)
+        # 交由 analysis 包处理
+        from ..analysis.alphalens_backend import run_factor_analysis
 
-        # Select range
-        df: pl.DataFrame = query_by_time(self.result_df, start, end)
-
-        # Extract feature
-        feature_df: pd.DataFrame = df.select(["datetime", "vt_symbol", name]).to_pandas()
-        feature_df.set_index(["datetime", "vt_symbol"], inplace=True)
-
-        feature_s: pd.Series = feature_df[name]
-
-        # Extract price
-        price_df: pd.DataFrame = df.select(["datetime", "vt_symbol", "close"]).to_pandas()
-        price_df = price_df.pivot(index="datetime", columns="vt_symbol", values="close")
-
-        # Merge data
-        clean_data: pd.DataFrame = get_clean_factor_and_forward_returns(feature_s, price_df, quantiles=10)
-
-        # Perform analysis
-        create_full_tear_sheet(clean_data)
+        run_factor_analysis(
+            self,
+            name,
+            cfg=fa_cfg,
+            interval=getattr(self, "interval", "1d"),
+            display=True,
+            long_short=long_short,
+            group_neutral=group_neutral,
+            by_group=by_group,
+            plots=plots,
+        )
 
     def show_signal_performance(self, signal: pl.DataFrame) -> None:
         """
@@ -315,10 +336,17 @@ def calculate_feature(args: tuple[pl.DataFrame, str, str | pl.expr.expr.Expr]) -
 
     df, name, expression = args
 
-    if isinstance(expression, pl.expr.expr.Expr):
-        result = calculate_by_polars(df, expression)["data"].alias(name)
-    else:
-        result = calculate_by_expression(df, expression)["data"].alias(name)
+    try:
+        if isinstance(expression, pl.expr.expr.Expr):
+            result = calculate_by_polars(df, expression)["data"].alias(name)
+        else:
+            result = calculate_by_expression(df, expression)["data"].alias(name)
+    except Exception as e:
+        # 打印出错因子的名称与表达式，便于快速定位
+        expr_text = str(expression)
+        print(f"[FeatureError] name={name} | expr={expr_text} | err={e}")
+        # 同时将表达式附加到异常信息中抛出
+        raise RuntimeError(f"Error calculating feature '{name}' with expression: {expr_text}") from e
 
     end = time.time()
     print(f"Feature calculation {name} took: {end - start} seconds | {expression}")

@@ -16,11 +16,14 @@ from .utility import DataProxy
 
 # -------------------- Time-series extras --------------------
 
-def ts_decay_linear(feature: DataProxy, window: int) -> DataProxy:
+def ts_decay_linear(feature: DataProxy, window: int | float) -> DataProxy:
     """Linear weighted moving average over a rolling window.
 
     Weights: 1..window (recent heavier). First window-1 positions are null.
     """
+    # 兼容浮点窗口：四舍五入为整数
+    window = int(round(float(window)))
+    window = max(1, window)
     weights = np.arange(1, window + 1, dtype=float)
     sum_w = float(weights.sum())
 
@@ -61,17 +64,17 @@ def ts_cov(feature1: DataProxy, feature2: DataProxy, window: int) -> DataProxy:
     )
     return DataProxy(df)
 
-# 补充ts_corr,协方差衡量的是，是否一起变动，ts_corr是在协方差的基础上做了标准化，把feature1和feature2的量纲统一
+# # 补充ts_corr,协方差衡量的是，是否一起变动，ts_corr是在协方差的基础上做了标准化，把feature1和feature2的量纲统一，这个算子泄漏了未来数据
 
-def ts_corr(feature1: DataProxy, feature2: DataProxy, window: int) -> DataProxy:
-    df = feature1.data.join(feature2.data, on=["datetime", "vt_symbol"], how="inner")
-    df = df.with_columns([
-        pl.pearson_corr(
-            pl.col("value_left"), 
-            pl.col("value_right")
-        ).over("vt_symbol").alias("value")
-    ])
-    return DataProxy(df.select(["datetime", "vt_symbol", "value"]))
+# def ts_corr(feature1: DataProxy, feature2: DataProxy, window: int) -> DataProxy:
+#     df = feature1.data.join(feature2.data, on=["datetime", "vt_symbol"], how="inner")
+#     df = df.with_columns([
+#         pl.pearson_corr(
+#             pl.col("value_left"), 
+#             pl.col("value_right")
+#         ).over("vt_symbol").alias("value")
+#     ])
+#     return DataProxy(df.select(["datetime", "vt_symbol", "value"]))
 
 
 def ts_prod(feature: DataProxy, window: int) -> DataProxy:
@@ -83,6 +86,70 @@ def ts_prod(feature: DataProxy, window: int) -> DataProxy:
             lambda s: float(np.prod(s.to_numpy())),
             window
         ).over("vt_symbol")
+    )
+    return DataProxy(df)
+
+
+def ts_highday(feature: DataProxy, window: int) -> DataProxy:
+    """Rolling 'highday' over window: len(window) - argmax(window).
+
+    返回值范围 1..window：
+    - 若最高值出现在当前（窗口末尾），返回 1；
+    - 若出现在窗口起点，返回 window；
+    - 若窗口内全 NaN，返回 NaN。
+    """
+    def _highday(s: pl.Series) -> float:
+        a = s.to_numpy()
+        # 处理全 NaN 的情况
+        if np.isnan(a).all():
+            return np.nan
+        # nanargmax 会忽略 NaN
+        idx = int(np.nanargmax(a))
+        return float(len(a) - idx)
+
+    df: pl.DataFrame = feature.df.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        pl.col("data").cast(pl.Float32).rolling_map(_highday, window).over("vt_symbol").alias("data")
+    )
+    return DataProxy(df)
+
+
+def ts_lowday(feature: DataProxy, window: int) -> DataProxy:
+    """Rolling 'lowday' over window: len(window) - argmin(window).
+
+    返回值范围 1..window：
+    - 若最低值出现在当前（窗口末尾），返回 1；
+    - 若出现在窗口起点，返回 window；
+    - 若窗口内全 NaN，返回 NaN。
+    """
+    def _lowday(s: pl.Series) -> float:
+        a = s.to_numpy()
+        if np.isnan(a).all():
+            return np.nan
+        idx = int(np.nanargmin(a))
+        return float(len(a) - idx)
+
+    df: pl.DataFrame = feature.df.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        pl.col("data").cast(pl.Float32).rolling_map(_lowday, window).over("vt_symbol").alias("data")
+    )
+    return DataProxy(df)
+
+
+def ts_delta(feature: DataProxy, window: int) -> DataProxy:
+    """Time-series delta: x_t - x_{t-window}.
+
+    - 与表达式中的 delta(x, n) 语义一致（滚动差分）。
+    - 注意 window 必须为正整数。
+    """
+    from .ts_function import ts_delay  # 局部导入避免循环
+    delayed = ts_delay(feature, window)
+    df = feature.df.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        (pl.col("data") - delayed.df["data"]).alias("data")
     )
     return DataProxy(df)
 
@@ -272,6 +339,11 @@ def ts_where(cond: DataProxy, x: Union[DataProxy, float, int], y: Union[DataProx
     return DataProxy(df)
 
 
+def cs_where(cond: DataProxy, x: Union[DataProxy, float, int], y: Union[DataProxy, float, int]) -> DataProxy:
+    """Cross-section where: 语义等同于 ts_where（按行条件选择）。"""
+    return ts_where(cond, x, y)
+
+
 def ts_clip(feature: DataProxy, lower: float | None = None, upper: float | None = None) -> DataProxy:
     """Clip values into [lower, upper].
 
@@ -397,4 +469,3 @@ def cs_scale(feature: DataProxy, k: float = 1.0) -> DataProxy:
         pl.when(pl.col("sum_abs") > 0).then(pl.lit(float(k)) * pl.col("data") / pl.col("sum_abs")).otherwise(0.0).alias("data")
     )
     return DataProxy(df)
-
