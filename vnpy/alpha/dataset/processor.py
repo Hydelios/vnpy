@@ -12,9 +12,14 @@ def process_drop_na(df: pl.DataFrame, names: list[str] | None = None) -> pl.Data
         names = df.columns[2:-1]
 
     for name in names:
+        # 统一将 NaN/Inf 视为缺失，便于后续 drop_nulls 清理
         df = df.with_columns(
-            pl.col(name).fill_nan(None)
+            pl.when(pl.col(name).is_infinite())
+            .then(None)
+            .otherwise(pl.col(name))
+            .alias(name)
         )
+        df = df.with_columns(pl.col(name).fill_nan(None))
     df = df.drop_nulls(subset=names)
     return df
 

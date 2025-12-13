@@ -464,6 +464,7 @@ class AlphaLab:
         interval: str | None = None,
         format: str = "parquet",
         params: dict | None = None,
+        save_views: bool = True,
     ) -> None:
         """Save dataset
 
@@ -493,13 +494,16 @@ class AlphaLab:
         base_dir: Path = self.dataset_path.joinpath(dir_name)
         base_dir.mkdir(parents=True, exist_ok=True)
 
-        # 写入各视图（存在即写）
+        # 写入各视图（存在即写）；支持仅保存 result_df
         frames = {
-            "raw": getattr(dataset, "raw_df", None),
-            "infer": getattr(dataset, "infer_df", None),
-            "learn": getattr(dataset, "learn_df", None),
             "result": getattr(dataset, "result_df", None),
         }
+        if save_views:
+            frames.update({
+                "raw": getattr(dataset, "raw_df", None),
+                "infer": getattr(dataset, "infer_df", None),
+                "learn": getattr(dataset, "learn_df", None),
+            })
         for frame_name, df in frames.items():
             if df is None:
                 continue
@@ -522,6 +526,22 @@ class AlphaLab:
         derived: dict = {
             "interval": getattr(dataset, "interval", "1d"),
         }
+        # 兼容“特征/标签自由拼接”：保存列元数据，便于 load_dataset 后仍能 rebuild_views/过滤
+        try:
+            key_cols = getattr(dataset, "key_columns", None)
+            if isinstance(key_cols, list) and key_cols:
+                derived["key_columns"] = list(key_cols)
+            feature_cols = getattr(dataset, "feature_columns", None)
+            if isinstance(feature_cols, list) and feature_cols:
+                derived["feature_columns"] = list(feature_cols)
+            label_cols = getattr(dataset, "label_columns", None)
+            if isinstance(label_cols, list) and label_cols:
+                derived["label_columns"] = list(label_cols)
+            base_cols = getattr(dataset, "base_columns", None)
+            if isinstance(base_cols, list) and base_cols:
+                derived["base_columns"] = list(base_cols)
+        except Exception:
+            pass
         try:
             dp = getattr(dataset, "data_periods", {})
             if dp:
@@ -534,6 +554,36 @@ class AlphaLab:
             pass
 
         params_obj = params if params is not None else getattr(dataset, "params", None)
+
+        # 持久化因子 definitions（若存在）：序列化为 factor_definitions 放入 params
+        try:
+            defs = getattr(dataset, "definitions", None)
+            if defs:
+                def_rows: list[dict] = []
+                for d in defs:
+                    try:
+                        row = d.to_row()  # type: ignore[attr-defined]
+                    except Exception:
+                        # 兜底序列化，尽量保留关键信息
+                        row = {
+                            "factor_name": getattr(d, "name", None),
+                            "base_name": getattr(d, "base_name", None),
+                            "category": getattr(d, "category", None),
+                            "sub_category": getattr(d, "sub_category", None),
+                            "agg_method": getattr(d, "agg_method", None),
+                            "params": getattr(d, "params_json", None) or getattr(d, "params", None),
+                            "expression": getattr(d, "expression", None),
+                        }
+                    def_rows.append(row)
+
+                if isinstance(params_obj, dict):
+                    params_obj = dict(params_obj)
+                    params_obj["factor_definitions"] = def_rows
+                else:
+                    params_obj = {"factor_definitions": def_rows}
+        except Exception:
+            # definitions 序列化失败时忽略，不影响主流程
+            pass
         final_params = dict(derived)
         if isinstance(params_obj, dict):
             # 用户/对象参数覆盖推导值
@@ -659,6 +709,60 @@ class AlphaLab:
                             setattr(dataset, "params", params_obj)
                         except Exception:
                             pass
+
+                    # 回填列元数据（若存在）：支持 load 后再拼接/再过滤
+                    try:
+                        if isinstance(params_obj, dict):
+                            kc = params_obj.get("key_columns")
+                            if isinstance(kc, list) and kc:
+                                setattr(dataset, "key_columns", kc)
+                            fc = params_obj.get("feature_columns")
+                            if isinstance(fc, list) and fc:
+                                setattr(dataset, "feature_columns", fc)
+                            lc = params_obj.get("label_columns")
+                            if isinstance(lc, list) and lc:
+                                setattr(dataset, "label_columns", lc)
+                            bc = params_obj.get("base_columns")
+                            if isinstance(bc, list) and bc:
+                                setattr(dataset, "base_columns", bc)
+                    except Exception:
+                        pass
+
+                    # 回填因子定义（便于加载后直接使用 dataset.definitions）
+                    try:
+                        info = None
+                        if isinstance(params_obj, dict):
+                            info = params_obj.get("factor_definitions")
+                        if isinstance(info, list) and info:
+                            try:
+                                # 优先尝试构造 FactorDef 对象
+                                from .dataset.datasets.factors_templates.baseAlphaStrategy import FactorDef  # type: ignore
+                                defs = []
+                                for row in info:
+                                    p = row.get("params")
+                                    if isinstance(p, str):
+                                        try:
+                                            p = json.loads(p)
+                                        except Exception:
+                                            p = {}
+                                    defs.append(
+                                        FactorDef(
+                                            name=row.get("factor_name"),
+                                            base_name=row.get("base_name", row.get("factor_name")),
+                                            expression=row.get("expression", ""),
+                                            category=row.get("category", ""),
+                                            sub_category=row.get("sub_category", ""),
+                                            params=p or {},
+                                            agg_method=row.get("agg_method"),
+                                        )
+                                    )
+                                setattr(dataset, "definitions", defs)
+                            except Exception:
+                                # 退化为原始字典形式
+                                setattr(dataset, "definitions_raw", info)
+                    except Exception:
+                        # 安全兜底，不影响主流程
+                        pass
 
                     return dataset
 

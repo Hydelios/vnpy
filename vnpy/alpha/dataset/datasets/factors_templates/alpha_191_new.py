@@ -40,20 +40,6 @@ class Alpha191NEW(AlphaDataset):
             enable_cache=enable_cache,
             cache_dir=cache_dir,
         )
-        # 兼容字段：若源数据未提供成交额 amount，则用 vwap*volume 近似（若无 vwap 则退化为 close*volume）
-        try:
-            # 仅当存在 turnover 时，显式提供 amount=turnover；否则不做近似填充
-            if "amount" not in self.df.columns and "turnover" in self.df.columns:
-                self.df = self.df.with_columns(pl.col("turnover").alias("amount"))
-        except Exception:
-            # 保守吞异常，避免影响后续流程；缺失将继续在表达式阶段暴露
-            pass
-        # Label 先沿用 Alpha101 的定义（未来3天相对1天的收益）
-        try:
-            self.set_label("ts_delay(close, -3) / ts_delay(close, -1) - 1")
-        except Exception:
-            pass
-
     DEFAULT_WINDOWS: list[int] = [5, 10, 20, 30]
 
     # ========= 工具：多参数展开 =========
@@ -1336,10 +1322,10 @@ class Alpha191NEW(AlphaDataset):
             param_grid={"w_win": [20]},
         )
 
-        # 070: STD(AMOUNT,6)
+        # 070: STD(turnover,6)
         self._add_parametric_feature(
             base_name="alpha191_070",
-            expr_tpl="ts_std(amount, {w_win})",
+            expr_tpl="ts_std(turnover, {w_win})",
             param_grid={"w_win": [6]},
         )
 
@@ -1799,10 +1785,10 @@ class Alpha191NEW(AlphaDataset):
             param_grid={"w_win": [30]},
         )
 
-        # 095: STD(AMOUNT,20)
+        # 095: STD(turnover,20)
         self._add_parametric_feature(
             base_name="alpha191_095",
-            expr_tpl="ts_std(amount, {w_win})",
+            expr_tpl="ts_std(turnover, {w_win})",
             param_grid={"w_win": [20]},
         )
 
@@ -2424,10 +2410,10 @@ class Alpha191NEW(AlphaDataset):
             param_grid={"w_d": [1], "w_mv": [50], "w_corr": [18], "w_tsr": [18]},
         )
 
-        # 132: MEAN(AMOUNT,20)
+        # 132: MEAN(turnover,20)
         self._add_parametric_feature(
             base_name="alpha191_132",
-            expr_tpl="ts_mean(amount,{w_win})",
+            expr_tpl="ts_mean(turnover,{w_win})",
             param_grid={"w_win": [20]},
         )
 
@@ -2549,8 +2535,8 @@ class Alpha191NEW(AlphaDataset):
         )
 
         # 144: SUMIF(val,20, C<DELAY(C,1)) / COUNT(C<DELAY(C,1),20)
-        # val = ABS(C/DELAY(C,1)-1)/AMOUNT
-        val144 = "abs(close/(ts_delay(close,1)+1e-12)-1)/(amount+1e-12)"
+        # val = ABS(C/DELAY(C,1)-1)/turnover
+        val144 = "abs(close/(ts_delay(close,1)+1e-12)-1)/(turnover+1e-12)"
         self._add_parametric_feature(
             base_name="alpha191_144",
             expr_tpl=(

@@ -103,108 +103,183 @@ class AlphaDataset:
         else:
             self.learn_processors.append(processor)
 
-    def prepare_data(self, filters: dict | None = None, max_workers: int | None = None) -> None:
+    def calculate_features(self, max_workers: int | None = None) -> None:
         """
-        Generate required data
+        仅计算特征（不计算标签、不构建视图）。
+
+        - 支持缓存加速（enable_cache=True）。
+        - 计算结果写入 self.result_df（包含原始 self.df 与新增特征列）。
         """
-        # List for feature data results
         results: list = []
 
         if self.enable_cache and self.cache_manager:
-            # 使用缓存管理器进行计算
             logger.info("使用缓存管理器进行因子计算")
-            
-            # 获取多进程上下文
+
             context = get_context("spawn") if max_workers and max_workers > 1 else None
             n_jobs = max_workers if max_workers else 1
-            
-            # 使用缓存管理器计算所有因子
+
             self.result_df = self.cache_manager.calculate_factors_with_cache(
                 df=self.df,
                 expressions=self.feature_expressions,
                 n_jobs=n_jobs,
-                context=context
+                context=context,
             )
-            
-            # 如果有标签表达式，单独计算
-            if self.label_expression:
-                if isinstance(self.label_expression, pl.expr.expr.Expr):
-                    label_result = calculate_by_polars(self.result_df, self.label_expression)["data"].alias("label")
-                else:
-                    label_result = calculate_by_expression(self.result_df, self.label_expression)["data"].alias("label")
-                self.result_df = self.result_df.with_columns(label_result)
         else:
-            # 原有逻辑
-            # Iterate through expressions for calculation
+            # 表达式特征（不含 label）
             expressions: list[tuple[str, str | pl.expr.expr.Expr]] = list(self.feature_expressions.items())
 
-            if self.label_expression:
-                expressions.append(("label", self.label_expression))
-
-            # Create process pool or use single process
             logger.info("开始计算表达式因子特征")
 
             args: list[tuple] = [(self.df, name, expression) for name, expression in expressions]
 
             if max_workers and max_workers > 0:
                 context: BaseContext = get_context("spawn")
-                
                 with context.Pool(processes=max_workers) as pool:
-                    # Calculate all expressions in parallel
                     it = pool.imap(calculate_feature, args)
-
-                    # Collect results
                     for result in tqdm(it, total=len(args)):
                         results.append(result)
             else:
-                # Single process calculation
                 for arg in tqdm(args):
                     result = calculate_feature(arg)
                     results.append(result)
 
             self.result_df = self.df.with_columns(results)
 
-        # Merge result data factor features
-        logger.info("开始合并结果数据因子特征")
+    def attach_label(self) -> None:
+        """
+        在 self.result_df 上按 label_expression 计算并附加标签列 "label"。
+        若未设置 label_expression 则无操作。
+        """
+        if not self.label_expression:
+            return
 
+        if isinstance(self.label_expression, pl.expr.expr.Expr):
+            label_result = calculate_by_polars(self.result_df, self.label_expression)["data"].alias("label")
+        else:
+            label_result = calculate_by_expression(self.result_df, self.label_expression)["data"].alias("label")
+        self.result_df = self.result_df.with_columns(label_result)
+
+    def merge_feature_results(self) -> None:
+        """
+        合并外部特征结果（feature_results）到 self.result_df。
+        """
+        if not self.feature_results:
+            return
+        logger.info("开始合并结果数据因子特征")
         for name, result in tqdm(self.feature_results.items()):
             result = result.rename({"data": name})
             self.result_df = self.result_df.join(result, on=["datetime", "vt_symbol"], how="inner")
 
-        # Generate raw data
-        raw_df = self.result_df.fill_null(float("nan"))
+    def build_raw(self, filters) -> None:
+        """
+        基于 self.result_df 生成 self.raw_df（可选过滤），并仅保留键与特征/标签列。
+        """
+        # rebuild_views(filters=...) 的常见诉求是：基于已存在的 raw_df 做成分股区间过滤，
+        # 而不是每次都从宽表 result_df 重新过滤（会非常慢，且在加载 parquet 后 df.width 不一定可靠）。
+        raw_df = self.raw_df.fill_null(float("nan"))
 
         if filters:
             logger.info("开始筛选成分股数据")
+            # 先按 vt_symbol 粗过滤，减少后续分组开销
+            symbols = list(filters.keys())
+            if symbols:
+                raw_df = raw_df.filter(pl.col("vt_symbol").is_in(symbols))
 
-            filtered_df = pl.DataFrame()
+            # 将 DataFrame 按 vt_symbol 分组成多个小表，避免“每个 symbol 都扫全表”的 O(N_symbols*N_rows) 开销
+            # 注意：Polars 的 partition_by(as_dict=True) 键通常是 tuple（即使只分一列也可能是 (value,)），
+            # 因此这里显式用 ["vt_symbol"] 并按 (vt_symbol,) 取值，避免全量 miss 导致结果为空。
+            grouped = raw_df.partition_by(["vt_symbol"], as_dict=True)
 
+            parts: list[pl.DataFrame] = []
             for vt_symbol, ranges in tqdm(filters.items(), total=len(filters)):
+                if not ranges:
+                    continue
+                df_symbol = grouped.get((vt_symbol,))
+                if df_symbol is None or df_symbol.is_empty():
+                    continue
+
+                # 同一标的的多段区间合并为一个布尔表达式
+                expr = None
                 for start, end in ranges:
-                    temp_df = raw_df.filter(
-                        (pl.col("vt_symbol") == vt_symbol) & (pl.col("datetime") >= pl.lit(start)) & (pl.col("datetime") <= pl.lit(end))
-                    )
-                    filtered_df = pl.concat([filtered_df, temp_df])
+                    rng = (pl.col("datetime") >= pl.lit(start)) & (pl.col("datetime") <= pl.lit(end))
+                    expr = rng if expr is None else (expr | rng)
 
-            raw_df = filtered_df
+                if expr is None:
+                    continue
 
-        # Only keep feature columns
-        select_columns: list[str] = ["datetime", "vt_symbol"] + raw_df.columns[self.df.width:]
-        self.raw_df = raw_df.select(select_columns).sort(["datetime", "vt_symbol"])
+                parts.append(df_symbol.filter(expr))
 
-        # Generate inference data
+            raw_df = pl.concat(parts) if parts else raw_df.head(0)
+
+        self.raw_df = raw_df.sort(["datetime", "vt_symbol"])
+
+    def build_infer(self) -> None:
+        """
+        基于 self.raw_df 生成 self.infer_df 并应用 infer_processors。
+        """
         self.infer_df = self.raw_df
         for processor in self.infer_processors:
             self.infer_df = processor(df=self.infer_df)
 
-        # Generate learning data
+    def build_learn(self) -> None:
+        """
+        基于 self.raw_df/self.infer_df 生成 self.learn_df 并应用 learn_processors。
+        - process_type == "append" 时，以 infer_df 为基（允许此前清洗改变样本集合）。
+        - 否则，以 raw_df 为基。
+        """
         if self.process_type == "append":
             self.learn_df = self.infer_df
         else:
             self.learn_df = self.raw_df
-
         for processor in self.learn_processors:
             self.learn_df = processor(df=self.learn_df)
+
+    def rebuild_views(self, filters: dict | None = None) -> None:
+        """
+        仅基于现有 self.result_df 重新构建视图：raw/infer/learn。
+        适用于滚动回测时重复改 period/处理器，而不重复计算特征。
+        """
+        self.build_raw(filters=filters)
+        self.build_infer()
+        self.build_learn()
+
+    def clear_processors(self, task: str | None = None) -> None:
+        """
+        清空处理器：task=None 清空全部；"infer" 仅清空推理处理器；其他清空学习处理器。
+        """
+        if task is None:
+            self.infer_processors = []
+            self.learn_processors = []
+        elif task == "infer":
+            self.infer_processors = []
+        else:
+            self.learn_processors = []
+
+    def set_periods(
+        self,
+        train_period: tuple[str, str] | None = None,
+        valid_period: tuple[str, str] | None = None,
+        test_period: tuple[str, str] | None = None,
+    ) -> None:
+        """
+        动态更新数据分段（便于滚动回测窗口推进）。
+        """
+        if train_period is not None:
+            self.data_periods[Segment.TRAIN] = train_period
+        if valid_period is not None:
+            self.data_periods[Segment.VALID] = valid_period
+        if test_period is not None:
+            self.data_periods[Segment.TEST] = test_period
+
+    def prepare_data(self, filters: dict | None = None, max_workers: int | None = None) -> None:
+        """
+        计算特征 →（可选）附加标签 → 合并外部结果 → 构建 raw/infer/learn 视图。
+        保持向后兼容的一站式入口。
+        """
+        self.calculate_features(max_workers=max_workers)
+        self.attach_label()
+        self.merge_feature_results()
+        self.rebuild_views(filters=filters)
 
     def fetch_raw(self, segment: Segment) -> pl.DataFrame:
         """

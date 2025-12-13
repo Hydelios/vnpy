@@ -3,20 +3,26 @@ from itertools import product
 from typing import Any, Callable, Iterable
 import json
 import polars as pl
-from vnpy.alpha.dataset import AlphaDataset # 引用原生基类
+from vnpy.alpha.dataset import AlphaDataset  # 引用原生基类
 
 # --- DTO 定义放这里 ---
 @dataclass
 class FactorDef:
+    """
+    因子定义元数据对象
+    - 这里仅做字段承载，不做任何规则推断。
+    - 聚合方法 agg_method 为可选，若为空将由 Synthesizer 在执行阶段映射默认规则。
+    """
     name: str
     base_name: str
     expression: str
     category: str
     sub_category: str
     params: dict[str, Any]
+    agg_method: str | list[str] | None = None  # 聚合方法：可为单个方法或方法列表；为空则由 Synthesizer 映射
     params_json: str = field(init=False)
-    
-    def __post_init__(self):
+
+    def __post_init__(self) -> None:
         self.params_json = json.dumps(self.params, sort_keys=True)
 
     def to_row(self) -> dict:
@@ -25,8 +31,9 @@ class FactorDef:
             "base_name": self.base_name,
             "category": self.category,
             "sub_category": self.sub_category,
+            "agg_method": self.agg_method,
             "params": self.params_json,
-            "expression": self.expression
+            "expression": self.expression,
         }
 
 # --- 中间层基类 ---
@@ -61,8 +68,29 @@ class BaseAlphaStrategy(AlphaDataset):
                 parts.append(f"{k}{v_str}")
         return f"{base}_{'_'.join(parts)}"
 
-    def _register_meta(self, name, base_name, expr, cat, sub_cat, params):
-        factor_def = FactorDef(name, base_name, expr, cat, sub_cat, params)
+    def _register_meta(
+        self,
+        name: str,
+        base_name: str,
+        expr: str,
+        cat: str,
+        sub_cat: str,
+        params: dict[str, Any],
+        agg_method: str | None = None,
+    ) -> None:
+        """
+        注册单个因子元数据。
+        仅保存 agg_method，不做默认规则推断；默认映射在 Synthesizer 阶段完成。
+        """
+        factor_def = FactorDef(
+            name=name,
+            base_name=base_name,
+            expression=expr,
+            category=cat,
+            sub_category=sub_cat,
+            params=params,
+            agg_method=agg_method,
+        )
         self.definitions.append(factor_def)
 
     def add_parametric_feature(  # 去掉下划线，作为公开 API
@@ -73,6 +101,7 @@ class BaseAlphaStrategy(AlphaDataset):
         *,
         category: str = "General",
         sub_category: str = "",
+        agg_method: str | None = None,
         predicate: Callable[[dict], bool] | None = None,
         dedup: bool = True,
     ) -> None:
@@ -81,7 +110,15 @@ class BaseAlphaStrategy(AlphaDataset):
         """
         if not param_grid:
             self.add_feature(base_name, expr_tpl)
-            self._register_meta(base_name, base_name, expr_tpl, category, sub_category, {})
+            self._register_meta(
+                base_name,
+                base_name,
+                expr_tpl,
+                category,
+                sub_category,
+                {},
+                agg_method,
+            )
             return
 
         grids = [param_grid] if isinstance(param_grid, dict) else param_grid
@@ -101,7 +138,15 @@ class BaseAlphaStrategy(AlphaDataset):
                     expr = expr_tpl.format(**params)
                     self.add_feature(name, expr)
                     seen.add(name)
-                    self._register_meta(name, base_name, expr, category, sub_category, params)
+                    self._register_meta(
+                        name,
+                        base_name,
+                        expr,
+                        category,
+                        sub_category,
+                        params,
+                        agg_method,
+                    )
                 except KeyError as e:
                     raise ValueError(f"Param missing: {e}")
 

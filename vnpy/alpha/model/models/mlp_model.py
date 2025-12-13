@@ -5,11 +5,12 @@ from typing import Literal, cast
 import numpy as np
 import pandas as pd
 import polars as pl
-from sklearn.metrics import mean_squared_error      # type: ignore
+from sklearn.metrics import mean_squared_error       # type: ignore
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
+# 假设这些是你 vnpy 环境中的原始引用，保持不变
 from vnpy.alpha import (
     AlphaDataset,
     AlphaModel,
@@ -18,63 +19,36 @@ from vnpy.alpha import (
 )
 
 
-
 class MlpModel(AlphaModel):
     """
-    Multi-Layer Perceptron Model
+    Multi-Layer Perceptron Model (Optimized Version)
 
-    Alpha factor prediction model implemented using multi-layer perceptron, with main features including:
-    1. Building and training multi-layer perceptron neural networks
-    2. Predicting Alpha factor values
-    3. Model evaluation and feature importance analysis
-    4. Support for early stopping and overfitting prevention
-    5. Support for MSE loss function
-    6. Optional Adam or SGD optimizer
+    [优化点说明]:
+    1. Deep Network: 支持多层深层网络结构，挖掘非线性因子。
+    2. Regularization: 集成了 Dropout 和 Weight Decay 防止过拟合。
+    3. Stabilization: 使用 Batch Normalization 和 SiLU 激活函数，打破训练瓶颈。
+    4. Early Stopping: 更加灵敏的早停机制。
     """
 
     def __init__(
         self,
         input_size: int,
-        hidden_sizes: tuple[int] = (256,),
+        hidden_sizes: tuple[int] = (512, 256, 128),  # 默认使用深层结构
         lr: float = 0.001,
-        n_epochs: int = 300,
-        batch_size: int = 2000,
+        n_epochs: int = 5000,             # 给足够的轮数，依靠早停来结束
+        batch_size: int = 2048,           # 中等大小的 Batch，平衡速度与随机性
         early_stop_rounds: int = 50,
         eval_steps: int = 20,
         optimizer: Literal["sgd", "adam"] = "adam",
-        weight_decay: float = 0.0,
-        device: str = "cpu",
+        weight_decay: float = 0.01,       # [关键修改] 默认增强正则化，防止后期反弹
+        dropout_rate: float = 0.3,        # [关键修改] 默认提高 Dropout，增加泛化能力
+        activation: str = "SiLU",         # [关键修改] 默认使用 SiLU (Swish)
+        device: str = "cuda",             # 默认尝试使用 cuda，没有则会自动回退或报错(取决于环境)
         seed: int | None = None
     ) -> None:
         """
-        Initialize MLP model
-
-        Parameters
-        ----------
-        input_size : int, default 360
-            Input feature dimension
-        hidden_sizes : tuple[int], default (256,)
-            Number of neurons in hidden layers
-        lr : float, default 0.001
-            Learning rate
-        n_epochs : int, default 300
-            Maximum training steps
-        batch_size : int, default 2000
-            Number of samples per batch
-        early_stop_rounds : int, default 50
-            Early stopping rounds, training stops if validation loss doesn't improve within these rounds
-        eval_steps : int, default 20
-            Evaluate model every this many steps
-        optimizer : Literal["sgd", "adam"], default "adam"
-            Optimizer type, options are "sgd" or "adam"
-        weight_decay : float, default 0.0
-            L2 regularization coefficient
-        seed : Optional[int], optional
-            Random seed for reproducibility
-        device : str, default "cpu"
-            Training device
+        初始化 MLP 模型参数
         """
-        # Save model hyperparameters
         self.input_size: int = input_size
         self.hidden_sizes: tuple[int] = hidden_sizes
         self.lr: float = lr
@@ -82,29 +56,33 @@ class MlpModel(AlphaModel):
         self.batch_size: int = batch_size
         self.early_stop_rounds: int = early_stop_rounds
         self.eval_steps: int = eval_steps
-        self.device: str = device
+        self.device: str = device if torch.cuda.is_available() else "cpu" # 自动检测设备
         self.fitted: bool = False
         self.feature_names: list[str] = []
         self.best_step: int | None = None
 
-        # Set random seed for reproducibility
+        # 设置随机种子
         if seed is not None:
             np.random.seed(seed)
             torch.manual_seed(seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(seed)
 
-        # Set loss function type
+        # 设置损失函数 (MSE)
         self._scorer = mean_squared_error
 
-        # Initialize model
+        # [初始化核心网络]
         self.model: nn.Module = MlpNetwork(
             input_size=input_size,
             hidden_sizes=hidden_sizes,
+            activation=activation,
+            dropout_rate=dropout_rate
         )
 
-        # Move model to specified device
-        self.model = self.model.to(device)
+        # 移动模型到指定设备
+        self.model = self.model.to(self.device)
 
-        # Set optimizer
+        # 设置优化器
         optimizer_name = optimizer.lower()
         if optimizer_name == "adam":
             self.optimizer: optim.Optimizer = optim.Adam(
@@ -121,7 +99,8 @@ class MlpModel(AlphaModel):
         else:
             raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
-        # Set learning rate scheduler
+        # 设置学习率调度器 (ReduceLROnPlateau)
+        # 当 loss 不再下降时，自动减小学习率
         self.scheduler: optim.lr_scheduler.ReduceLROnPlateau = optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer,
             mode="min",
@@ -139,70 +118,53 @@ class MlpModel(AlphaModel):
         dataset: AlphaDataset,
         evaluation_results: dict | None = None,
     ) -> None:
-        """
-        Train the multi-layer perceptron model
-
-        Trains the MLP model using the given dataset, with main steps including:
-        1. Preparing training and validation data
-        2. Iteratively training for multiple steps
-        3. Evaluating model performance at fixed intervals
-        4. Implementing early stopping to prevent overfitting
-
-        Parameters
-        ----------
-        dataset : AlphaDataset
-            Dataset object containing training data
-        evaluation_results : dict
-            Dictionary for storing evaluation metrics during training
-        """
-        # Initialize a new dictionary if evaluation_results is None
+        """训练模型"""
         if evaluation_results is None:
             evaluation_results = {}
 
-        # Dictionary to store training and validation data
         train_valid_data: dict[str, dict] = defaultdict(dict)
 
-        # Process training and validation sets separately
+        # 数据准备
         for segment in [Segment.TRAIN, Segment.VALID]:
-            # Get learning data and sort by time and trading code
             df: pl.DataFrame = dataset.fetch_learn(segment)
             df = df.sort(["datetime", "vt_symbol"])
 
-            # Extract features and labels
             features = df.select(df.columns[2: -1]).to_numpy()
             labels = np.array(df["label"])
 
-            # Store feature and label data
+            # [安全检查] 处理 NaN，防止 Loss 变成 nan
+            if np.isnan(features).any():
+                logger.warning(f"{segment} 数据集包含 NaN 值，已自动填充为 0")
+                features = np.nan_to_num(features)
+            
+            # 转换为 Tensor 并移动到设备
             train_valid_data["x"][segment] = torch.from_numpy(features).float().to(self.device)
             train_valid_data["y"][segment] = torch.from_numpy(labels).float().to(self.device)
-
-            # Initialize evaluation results list
             evaluation_results[segment] = []
 
-        # Get feature names
+        # 记录特征名称
         df = dataset.fetch_learn(Segment.TRAIN)
         self.feature_names = df.columns[2:-1]
 
-        # Initialize training state
-        early_stop_count: int = 0           # Number of steps without performance improvement
-        train_loss: float = 0               # Current training loss
-        best_valid_score: float = np.inf    # Best validation loss
-        best_params = None                  # Best model parameters
+        # 训练状态追踪
+        early_stop_count: int = 0
+        train_loss: float = 0
+        best_valid_score: float = np.inf
+        best_params = None
 
         train_samples: int = train_valid_data["y"][Segment.TRAIN].shape[0]
 
-        # Iterate through training steps
+        # 主训练循环
         for step in range(1, self.n_epochs + 1):
-            # Check if early stopping condition is met
             if early_stop_count >= self.early_stop_rounds:
-                logger.info("达到早停条件,训练结束")
+                logger.info("达到早停条件, 训练结束")
                 break
 
-            # Train one batch
+            # 训练一个 Batch
             batch_loss = self._train_step(train_valid_data, train_samples)
             train_loss += batch_loss
 
-            # Periodically evaluate the model
+            # 定期评估
             if step % self.eval_steps == 0 or step == self.n_epochs:
                 early_stop_count, best_valid_score, best_params = self._evaluate_step(
                     train_valid_data,
@@ -212,51 +174,36 @@ class MlpModel(AlphaModel):
                     early_stop_count,
                     best_valid_score
                 )
-                train_loss = 0
+                train_loss = 0 # 重置累计 Loss
 
-        # Mark model as trained
         self.fitted = True
-
-        # Load best model parameters
+        # 恢复最佳模型参数
         if best_params:
             self.model.load_state_dict(best_params)
+            logger.info(f"已恢复至最佳 Step {self.best_step} 的参数")
 
     def _train_step(
         self,
         train_valid_data: dict[str, dict[Segment, torch.Tensor]],
         train_samples: int
     ) -> float:
-        """
-        Execute one training step
-
-        Parameters
-        ----------
-        train_valid_data : dict
-            Training and validation data
-        train_samples : int
-            Number of training samples
-
-        Returns
-        -------
-        float
-            Current batch loss value
-        """
         batch_loss = AverageMeter()
-        self.model.train()
+        self.model.train() # 启用 Dropout 和 BN 的训练模式
         self.optimizer.zero_grad()
 
-        # Randomly select batch data
+        # 随机采样 Batch
         batch_indices = np.random.choice(train_samples, self.batch_size)
         batch_features = train_valid_data["x"][Segment.TRAIN][batch_indices]
         batch_labels = train_valid_data["y"][Segment.TRAIN][batch_indices]
 
-        # Forward and backward propagation
+        # 前向传播
         predictions = self.model(batch_features)
         cur_loss = self._loss_fn(predictions, batch_labels)
+        
+        # 反向传播
         cur_loss.backward()
-
-        # Update model parameters
         self.optimizer.step()
+        
         batch_loss.update(cur_loss.item())
 
         return batch_loss.val
@@ -270,111 +217,54 @@ class MlpModel(AlphaModel):
         early_stop_count: int,
         best_valid_score: float
     ) -> tuple[int, float, dict[str, torch.Tensor] | None]:
-        """
-        Evaluate current model performance
-
-        Parameters
-        ----------
-        train_valid_data : dict
-            Training and validation data
-        evaluation_results : dict
-            Evaluation results record
-        step : int
-            Current training step
-        train_loss : float
-            Current training loss
-        early_stop_count : int
-            Count of steps without improvement
-        best_valid_score : float
-            Best validation loss
-
-        Returns
-        -------
-        tuple[int, float, dict] | None
-            Returns updated early stop count, best validation loss, and best model parameters
-        """
         early_stop_count += 1
-        train_loss /= self.eval_steps
+        train_loss /= self.eval_steps # 计算平均训练 Loss
 
-        # Evaluate model on validation set
         with torch.no_grad():
-            self.model.eval()
-
+            self.model.eval() # 切换到评估模式 (关闭 Dropout)
             data: torch.Tensor = train_valid_data["x"][Segment.VALID]
+            # 验证集可能很大，分批预测以防爆显存
             pred: torch.Tensor = cast(torch.Tensor, self._predict_batch(data, return_cpu=False))
             valid_loss = self._loss_fn(pred, train_valid_data["y"][Segment.VALID])
-
             loss_val = valid_loss.item()
 
-        # Record evaluation results
         logger.info(f"[Step {step}]: train_loss {train_loss:.6f}, valid_loss {loss_val:.6f}")
         evaluation_results[Segment.TRAIN].append(train_loss)
         evaluation_results[Segment.VALID].append(loss_val)
 
-        # Update best model if validation performance improves
         best_params = None
+        # 如果验证集 Loss 创新低
         if loss_val < best_valid_score:
-            logger.info(f"\t验证集损失从 {best_valid_score:.6f} 降低到 {loss_val:.6f}")
-            best_valid_score = loss_val
-            self.best_step = step
-            early_stop_count = 0
-            best_params = copy.deepcopy(self.model.state_dict())
-
-        # Update learning rate
+            # 这里的 1e-7 是为了防止极其微小的数值抖动误判
+            if best_valid_score - loss_val > 1e-7:
+                logger.info(f"\t验证集损失从 {best_valid_score:.6f} 降低到 {loss_val:.6f}")
+                best_valid_score = loss_val
+                self.best_step = step
+                early_stop_count = 0
+                best_params = copy.deepcopy(self.model.state_dict())
+            
+        # 更新学习率 (如果 Loss 不降，自动降低学习率)
         if self.scheduler is not None:
             self.scheduler.step(metrics=valid_loss, epoch=step)
 
         return early_stop_count, best_valid_score, best_params
 
     def _loss_fn(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """
-        Calculate loss value
-
-        Parameters
-        ----------
-        pred : torch.Tensor
-            Model predictions
-        target : torch.Tensor
-            Target true values
-
-        Returns
-        -------
-        torch.Tensor
-            Calculated loss value
-        """
         pred, target = pred.reshape(-1), target.reshape(-1)
         loss: torch.Tensor = nn.MSELoss()(pred, target)
         return loss
 
     def _predict_batch(self, data: torch.Tensor, return_cpu: bool = True) -> np.ndarray | torch.Tensor:
-        """
-        Neural network prediction function
-
-        Parameters
-        ----------
-        data : torch.Tensor
-            Input data
-        return_cpu : bool, default True
-            Whether to return CPU tensor
-        step : Optional[int], optional
-            Current training step
-
-        Returns
-        -------
-        np.ndarray | torch.Tensor
-            Model prediction results
-        """
         data = data.to(self.device)
-
         predictions: list[torch.Tensor] = []
-
         self.model.eval()
 
         with torch.no_grad():
-            batch_size: int = 8096
-            for i in range(0, len(data), batch_size):
-                x: torch.Tensor = data[i: i + batch_size]
-                predictions.append(self.model(x.to(self.device)).detach().reshape(-1))
+            # 推理时的 Batch Size 可以设置大一些，加速预测
+            inference_batch_size: int = 8192
+            for i in range(0, len(data), inference_batch_size):
+                x: torch.Tensor = data[i: i + inference_batch_size]
+                predictions.append(self.model(x).detach().reshape(-1))
 
         if return_cpu:
             return cast(np.ndarray, np.concatenate([pr.cpu().numpy() for pr in predictions]))
@@ -382,102 +272,58 @@ class MlpModel(AlphaModel):
             return torch.cat(predictions, dim=0)
 
     def predict(self, dataset: AlphaDataset, segment: Segment) -> np.ndarray:
-        """
-        Model prediction interface
-
-        Parameters
-        ----------
-        dataset : AlphaDataset
-            Prediction dataset
-        segment : Segment
-            Dataset segment
-
-        Returns
-        -------
-        np.ndarray
-            Prediction result array
-        """
         if not self.fitted:
             raise ValueError("Model has not been trained yet!")
 
         df: pl.DataFrame = dataset.fetch_infer(segment)
         df = df.sort(["datetime", "vt_symbol"])
-
         data: np.ndarray = df.select(df.columns[2: -1]).to_numpy()
-
+        
+        # 预测时也处理 NaN
+        if np.isnan(data).any():
+            data = np.nan_to_num(data)
+            
         return cast(np.ndarray, self._predict_batch(torch.Tensor(data)))
 
-    def _check_tensor_nan(self, tensor: torch.Tensor, name: str) -> None:
-        """
-        Check if tensor contains NaN values
-
-        Parameters
-        ----------
-        tensor : torch.Tensor
-            Tensor to check
-        name : str
-            Tensor name
-
-        Returns
-        -------
-        None
-        """
-        if torch.isnan(tensor).any():
-            print(f"NaN values detected: {name}")
-
-    def detail(self) -> pd.DataFrame | None:        # type: ignore
-        """
-        Output MLP model detail information
-
-        Returns
-        -------
-        pd.DataFrame
-            Feature importance dataframe
-        """
+    def detail(self) -> pd.DataFrame | None:
+        """输出模型训练详情和特征重要性"""
         if not self.fitted:
             logger.info("模型尚未训练，无法显示详细信息")
             return None
 
-        # 显示模型基本信息
+        logger.info("-" * 30)
         logger.info(f"输入特征维度: {self.input_size}")
-        logger.info(f"隐藏层大小: {self.hidden_sizes}")
-
-        # 计算模型总参数量
+        logger.info(f"隐藏层结构: {self.hidden_sizes}")
         total_params = sum(p.numel() for p in self.model.parameters())
         logger.info(f"模型总参数量: {total_params:,}")
-
-        # 显示训练状态信息
         logger.info(f"训练设备: {self.device}")
-        logger.info(f"当前学习率: {self.lr}")
-        logger.info(f"批次大小: {self.batch_size}")
-
-        # Calculate feature importance
-        importance_df = self._calculate_feature_importance()
-        return importance_df
+        logger.info(f"最佳 Step: {self.best_step}")
+        logger.info("-" * 30)
+        
+        return self._calculate_feature_importance()
 
     def _calculate_feature_importance(self) -> pd.DataFrame:
-        """
-        Calculate feature importance
-
-        Returns
-        -------
-        pd.DataFrame
-            Feature importance dataframe
-        """
+        """使用 Permutation Importance 计算特征重要性"""
         self.model.eval()
         importance_dict = {}
-
-        test_data = torch.randn(1000, self.input_size).to(self.device)
+        
+        # 增加样本量以获得更稳定的评估
+        n_samples = 2000
+        test_data = torch.randn(n_samples, self.input_size).to(self.device)
         base_pred = self.model(test_data).detach()
 
         noise_level = 0.1
+        logger.info("正在计算特征重要性...")
+        
         for i, feature_name in enumerate(self.feature_names):
             perturbed_data = test_data.clone()
-            perturbed_data[:, i] += torch.randn(1000).to(self.device) * noise_level
+            # 加入噪声干扰该特征
+            perturbed_data[:, i] += torch.randn(n_samples).to(self.device) * noise_level
 
             with torch.no_grad():
                 new_pred = self.model(perturbed_data)
-                importance = torch.std(torch.abs(new_pred - base_pred)).item()
+                # 计算预测值的偏离程度 (RMSE)
+                importance = torch.sqrt(torch.mean((new_pred - base_pred) ** 2)).item()
                 importance_dict[feature_name] = importance
 
         df = pd.DataFrame({
@@ -486,64 +332,21 @@ class MlpModel(AlphaModel):
         })
         df = df.sort_values('Importance', ascending=False)
         df = df.set_index('Feature')
-
         return df
 
 
 class AverageMeter:
-    """
-    Class for calculating and storing average and current values
-
-    Attributes
-    ----------
-    val : float
-        Current value
-    avg : float
-        Average value
-    sum : float
-        Sum
-    count : int
-        Count
-    """
-
+    """计算滑动平均值的工具类"""
     def __init__(self) -> None:
-        """
-        Initialize AverageMeter
-
-        Returns
-        -------
-        None
-        """
         self.reset()
 
     def reset(self) -> None:
-        """
-        Reset all statistics
-
-        Returns
-        -------
-        None
-        """
         self.val: float = 0
         self.avg: float = 0
         self.sum: float = 0
         self.count: int = 0
 
     def update(self, val: float, n: int = 1) -> None:
-        """
-        Update statistics
-
-        Parameters
-        ----------
-        val : float
-            Current value
-        n : int, default 1
-            Current batch size
-
-        Returns
-        -------
-        None
-        """
         self.val = val
         self.sum += val * n
         self.count += n
@@ -552,15 +355,10 @@ class AverageMeter:
 
 class MlpNetwork(nn.Module):
     """
-    Deep Neural Network Model Structure
-
-    Used to build multi-layer perceptron network structure, supporting multiple hidden layers
-    and different activation functions.
-
-    Attributes
-    ----------
-    network : nn.ModuleList
-        List of neural network layers
+    [Optimized] 深度神经网络结构
+    
+    使用 nn.Sequential 封装，包含：
+    Linear -> BatchNorm -> Activation -> Dropout
     """
 
     def __init__(
@@ -568,116 +366,62 @@ class MlpNetwork(nn.Module):
         input_size: int,
         output_size: int = 1,
         hidden_sizes: tuple[int] = (256,),
-        activation: str = "LeakyReLU"
+        activation: str = "SiLU",
+        dropout_rate: float = 0.3  # 默认 Dropout 率
     ) -> None:
-        """
-        Constructor
-
-        Parameters
-        ----------
-        input_size : int
-            Input feature dimension, i.e., number of features per sample
-        output_size : int, default 1
-            Output dimension, used for predicting target values
-        hidden_sizes : tuple[int], default (256,)
-            Tuple of hidden layer neuron counts, e.g., (256, 128) represents two hidden layers
-            with 256 and 128 neurons respectively
-        activation : str, default "LeakyReLU"
-            Activation function type, options:
-            - "LeakyReLU": Leaky ReLU function
-            - "SiLU": Sigmoid Linear Unit function
-        """
         super().__init__()
 
-        # Build network layers
         layers: list[nn.Module] = []
-        layer_sizes = [input_size] + list(hidden_sizes)
-
-        # Input layer Dropout
+        
+        # 1. 输入层 Dropout (保留，轻微干扰原始输入)
         layers.append(nn.Dropout(0.05))
 
-        # Build hidden layers
+        # 构建网络层级
+        layer_sizes = [input_size] + list(hidden_sizes)
+
+        # 2. 构建隐藏层循环
         for in_size, out_size in zip(layer_sizes[:-1], layer_sizes[1:], strict=False):
-            # Add a neural network block: linear layer + batch normalization + activation function
             layers.extend([
                 nn.Linear(in_size, out_size),
-                nn.BatchNorm1d(out_size),
-                self._get_activation(activation)
+                nn.BatchNorm1d(out_size),           # [核心] 加速收敛，平滑梯度
+                self._get_activation(activation),   # [核心] 动态激活函数
+                nn.Dropout(dropout_rate)            # [核心] 防止过拟合
             ])
 
-        # Output layer
-        layers.extend([
-            nn.Dropout(0.05),
-            nn.Linear(hidden_sizes[-1], output_size)
-        ])
+        # 3. 输出层 (直接线性输出)
+        layers.append(nn.Linear(hidden_sizes[-1], output_size))
 
-        # Combine all layers into a sequence
-        self.network = nn.ModuleList(layers)
+        # 封装为 Sequential
+        self.network = nn.Sequential(*layers)
 
-        # Initialize network weights
+        # 执行权重初始化
         self._initialize_weights()
 
     def _get_activation(self, name: str) -> nn.Module:
-        """
-        Get specified activation function layer
-
-        Parameters
-        ----------
-        name : str
-            Activation function name
-
-        Returns
-        -------
-        nn.Module
-            Activation function layer instance
-
-        Raises
-        ------
-        ValueError
-            When an unsupported activation function type is specified
-        """
+        """获取激活函数"""
         if name == "LeakyReLU":
             return nn.LeakyReLU(negative_slope=0.1)
         elif name == "SiLU":
-            return nn.SiLU()
+            return nn.SiLU()  # 量化金融推荐
+        elif name == "Tanh":
+            return nn.Tanh()
+        elif name == "ReLU":
+            return nn.ReLU()
         else:
             raise ValueError(f"Unsupported activation function type: {name}")
 
     def _initialize_weights(self) -> None:
-        """
-        Initialize network weight parameters
-
-        Uses Kaiming initialization method for all linear layers, which is particularly
-        suitable for deep networks using LeakyReLU activation functions.
-
-        Returns
-        -------
-        None
-        """
+        """Kaiming 初始化 (适配 ReLU/SiLU 系列)"""
         for module in self.modules():
             if isinstance(module, nn.Linear):
                 nn.init.kaiming_normal_(
                     module.weight,
-                    a=0.1,                  # LeakyReLU negative slope
-                    mode="fan_in",          # Scale using input node count
+                    a=0.1,
+                    mode="fan_in",
                     nonlinearity="leaky_relu"
                 )
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward propagation calculation
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input feature tensor, shape (batch_size, input_size)
-
-        Returns
-        -------
-        torch.Tensor
-            Model output tensor, shape (batch_size, output_size)
-        """
-        # Pass through all layers in the network sequentially
-        for layer in self.network:
-            x = layer(x)
-        return x
+        return self.network(x)
