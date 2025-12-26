@@ -34,24 +34,37 @@ class LgbModel(AlphaModel):
         reg_alpha: float = 0.1,             # [新增] L1 正则化
         reg_lambda: float = 0.1,            # [新增] L2 正则化
         log_evaluation_period: int = 20,
-        seed: int = 42
+        seed: int = 42,
+        use_gpu: bool = True  # 默认尝试开启 GPU
     ):
         self.params: dict[str, Any] = {
-            "objective": "regression",      # 或者 "regression_l1" (MAE) 抗异常值
-            "metric": ["mse", "mae"],       # 同时监控 MSE 和 MAE
+            "objective": "regression",
+            "metric": ["mse", "mae"],
             "boosting_type": "gbdt",
             "learning_rate": learning_rate,
             "num_leaves": num_leaves,
             "max_depth": max_depth,
-            "feature_fraction": feature_fraction, # Alias: colsample_bytree
-            "bagging_fraction": bagging_fraction, # Alias: subsample
+            "feature_fraction": feature_fraction,
+            "bagging_fraction": bagging_fraction,
             "bagging_freq": bagging_freq,
             "lambda_l1": reg_alpha,
             "lambda_l2": reg_lambda,
             "verbosity": -1,
             "seed": seed,
-            "n_jobs": -1                    # 自动使用所有 CPU 核心
+            "num_threads": -1,                 # 建议用 num_threads（而不是 n_jobs）
         }
+
+        if use_gpu:
+            # 走 OpenCL GPU（你已验证 clinfo 平台/设备存在）
+            self.params.update({
+                "device_type": "gpu",           # 关键：OpenCL GPU
+                "gpu_platform_id": 0,           # NVIDIA CUDA 平台
+                "gpu_device_id": 1,             # V100 是 Device #1
+            })
+        else:
+            self.params.update({
+                "device_type": "cpu",
+            })
 
         self.num_boost_round: int = num_boost_round
         self.early_stopping_rounds: int = early_stopping_rounds
@@ -65,7 +78,8 @@ class LgbModel(AlphaModel):
         
         # 记录特征名，用于后续一致性校验
         sample_df = dataset.fetch_learn(Segment.TRAIN)
-        self.feature_names = sample_df.columns[2:-1]
+        exclude = {"datetime", "vt_symbol", "label"}
+        self.feature_names = [c for c in sample_df.columns if c not in exclude]
 
         for segment in [Segment.TRAIN, Segment.VALID]:
             df: pl.DataFrame = dataset.fetch_learn(segment)
@@ -73,10 +87,8 @@ class LgbModel(AlphaModel):
 
             # 统一转为 numpy，去除 Pandas 依赖，提高速度
             # 注意：LightGBM 对 NaN 友好，不需要像 MLP 那样填充 0
-            data = df.select(df.columns[2: -1]).to_numpy()
+            data = df.select(self.feature_names).to_numpy()
             label = np.array(df["label"])
-
-            # 显式传入 feature_name，保证模型知道每一列是谁
             lgb_data = lgb.Dataset(data, label=label, feature_name=self.feature_names)
             ds.append(lgb_data)
 
@@ -104,7 +116,7 @@ class LgbModel(AlphaModel):
         df: pl.DataFrame = dataset.fetch_infer(segment)
         df = df.sort(["datetime", "vt_symbol"])
 
-        data: np.ndarray = df.select(df.columns[2: -1]).to_numpy()
+        data: np.ndarray = df.select(self.feature_names).to_numpy()
         
         # 这里的 predict 会自动利用训练时记录的 feature_name 结构（如果输入是 dataframe）
         # 因为我们输入是 numpy，只要保证列顺序一致即可 (AlphaDataset 保证了这点)

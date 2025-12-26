@@ -29,6 +29,7 @@ class AlphaLab:
         self.daily_path: Path = self.lab_path.joinpath("daily")
         self.minute_path: Path = self.lab_path.joinpath("minute")
         self.component_path: Path = self.lab_path.joinpath("component")
+        self.common_path: Path = self.lab_path.joinpath("common")
 
         # 为不同分钟级别创建子文件夹
         self.minute_1m_path: Path = self.minute_path.joinpath("1m")
@@ -52,6 +53,7 @@ class AlphaLab:
             self.minute_30m_path,
             self.minute_60m_path,
             self.component_path,
+            self.common_path,
             self.dataset_path,
             self.model_path,
             self.signal_path
@@ -416,6 +418,284 @@ class AlphaLab:
                 component_filters[vt_symbol].append((period_start, period_end))
 
         return component_filters
+
+    def _load_common_trade_date_csv(
+        self,
+        filename: str,
+        columns: list[str] | None = None,
+        start: datetime | str | None = None,
+        end: datetime | str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load common CSV with trade_date/vt_symbol keys (daily factors, industry, etc.)"""
+        file_path: Path = self.common_path.joinpath(filename)
+        if not file_path.exists():
+            logger.error(f"Common 数据文件不存在：{file_path}")
+            return None
+
+        try:
+            header: pl.DataFrame = pl.read_csv(file_path, n_rows=0)
+        except Exception as exc:
+            logger.error(f"读取 Common 数据表头失败：{file_path} | {exc}")
+            return None
+
+        col_names: list[str] = list(header.columns)
+        rename_map: dict[str, str] = {}
+        if col_names and col_names[0].startswith("\ufeff"):
+            rename_map[col_names[0]] = col_names[0].lstrip("\ufeff")
+            col_names[0] = rename_map[col_names[0]]
+
+        required = {"trade_date", "vt_symbol"}
+        if not required.issubset(set(col_names)):
+            logger.error(f"Common 数据缺少必要列 trade_date/vt_symbol：{file_path}")
+            return None
+
+        if columns is None:
+            columns = [c for c in col_names if c not in required]
+        else:
+            missing = [c for c in columns if c not in col_names]
+            if missing:
+                logger.error(f"Common 数据缺少列 {missing}：{file_path}")
+                return None
+
+        select_cols = ["trade_date", "vt_symbol", *columns]
+
+        lf = pl.scan_csv(file_path, infer_schema_length=1000)
+        if rename_map:
+            lf = lf.rename(rename_map)
+
+        lf = lf.select(select_cols).with_columns(
+            pl.col("trade_date")
+            .str.strptime(pl.Date, "%Y-%m-%d", strict=False)
+            .cast(pl.Datetime)
+            .alias("datetime"),
+            pl.col("vt_symbol").cast(pl.Utf8),
+        ).drop("trade_date")
+
+        if start is not None:
+            lf = lf.filter(pl.col("datetime") >= to_datetime(start))
+        if end is not None:
+            lf = lf.filter(pl.col("datetime") <= to_datetime(end))
+
+        return lf.collect()
+
+    def _load_common_financial_csv(
+        self,
+        filename: str,
+        columns: list[str] | None = None,
+        asof_start: datetime | str | None = None,
+        asof_end: datetime | str | None = None,
+        asof_col: str = "asof_date",
+    ) -> pl.DataFrame | None:
+        """Load common financial CSV (quarterly tables)"""
+        file_path: Path = self.common_path.joinpath(filename)
+        if not file_path.exists():
+            logger.error(f"Common 数据文件不存在：{file_path}")
+            return None
+
+        try:
+            header: pl.DataFrame = pl.read_csv(file_path, n_rows=0)
+        except Exception as exc:
+            logger.error(f"读取 Common 数据表头失败：{file_path} | {exc}")
+            return None
+
+        col_names: list[str] = list(header.columns)
+        rename_map: dict[str, str] = {}
+        if col_names and col_names[0].startswith("\ufeff"):
+            rename_map[col_names[0]] = col_names[0].lstrip("\ufeff")
+            col_names[0] = rename_map[col_names[0]]
+
+        if "vt_symbol" not in col_names:
+            logger.error(f"Common 数据缺少必要列 vt_symbol：{file_path}")
+            return None
+
+        if columns is None:
+            columns = [c for c in col_names if c != "vt_symbol"]
+        else:
+            missing = [c for c in columns if c not in col_names]
+            if missing:
+                logger.error(f"Common 数据缺少列 {missing}：{file_path}")
+                return None
+
+        select_cols = ["vt_symbol", *columns]
+        if asof_col in col_names and asof_col not in select_cols:
+            select_cols.append(asof_col)
+
+        lf = pl.scan_csv(file_path, infer_schema_length=1000)
+        if rename_map:
+            lf = lf.rename(rename_map)
+
+        lf = lf.select(select_cols).with_columns(
+            pl.col("vt_symbol").cast(pl.Utf8),
+        )
+
+        if asof_col in select_cols:
+            lf = lf.with_columns(
+                pl.col(asof_col)
+                .str.strptime(pl.Date, "%Y-%m-%d", strict=False)
+                .cast(pl.Datetime)
+                .alias(asof_col)
+            )
+            if asof_start is not None:
+                lf = lf.filter(pl.col(asof_col) >= to_datetime(asof_start))
+            if asof_end is not None:
+                lf = lf.filter(pl.col(asof_col) <= to_datetime(asof_end))
+        elif asof_start is not None or asof_end is not None:
+            logger.error(f"Common 数据缺少 {asof_col} 列，无法按日期过滤：{file_path}")
+            return None
+
+        return lf.collect()
+
+    def load_common_industry_data(
+        self,
+        columns: list[str] | None = None,
+        start: datetime | str | None = None,
+        end: datetime | str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load industry classification (industry.csv)"""
+        return self._load_common_trade_date_csv("industry.csv", columns=columns, start=start, end=end)
+
+    def load_industry(
+        self,
+        level: str = "first",
+        column: str | None = None,
+        source: str | None = "citics_2019",
+        start: datetime | str | None = None,
+        end: datetime | str | None = None,
+        alias: str = "industry",
+        fill_value: str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load dynamic industry classification with level/source filter."""
+        level_map = {
+            "first": "first_industry_code",
+            "second": "second_industry_code",
+            "third": "third_industry_code",
+            "first_name": "first_industry_name",
+            "second_name": "second_industry_name",
+            "third_name": "third_industry_name",
+        }
+        col = column or level_map.get(level)
+        if not col:
+            logger.error(f"未知行业层级：{level}")
+            return None
+
+        cols = [col, "source"]
+        df = self.load_common_industry_data(columns=cols, start=start, end=end)
+        if df is None or df.is_empty():
+            return df
+
+        if source:
+            df = df.filter(pl.col("source") == source)
+
+        df = df.select(
+            "datetime",
+            "vt_symbol",
+            pl.col(col).cast(pl.Utf8).alias(alias),
+        )
+        if fill_value is not None:
+            df = df.with_columns(pl.col(alias).fill_null(fill_value))
+        return df
+
+    def load_common_valuation_factors(
+        self,
+        columns: list[str] | None = None,
+        start: datetime | str | None = None,
+        end: datetime | str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load valuation factors (factors_valuation.csv)"""
+        return self._load_common_trade_date_csv("factors_valuation.csv", columns=columns, start=start, end=end)
+
+    def load_common_operation_factors(
+        self,
+        columns: list[str] | None = None,
+        start: datetime | str | None = None,
+        end: datetime | str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load operation factors (factors_operation.csv)"""
+        return self._load_common_trade_date_csv("factors_operation.csv", columns=columns, start=start, end=end)
+
+    def load_common_cashflow_factors(
+        self,
+        columns: list[str] | None = None,
+        start: datetime | str | None = None,
+        end: datetime | str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load cashflow factors (factors_cashflow.csv)"""
+        return self._load_common_trade_date_csv("factors_cashflow.csv", columns=columns, start=start, end=end)
+
+    def load_common_financial_factors(
+        self,
+        columns: list[str] | None = None,
+        start: datetime | str | None = None,
+        end: datetime | str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load financial factors (factors_financial.csv)"""
+        return self._load_common_trade_date_csv("factors_financial.csv", columns=columns, start=start, end=end)
+
+    def load_common_growth_factors(
+        self,
+        columns: list[str] | None = None,
+        start: datetime | str | None = None,
+        end: datetime | str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load growth factors (factors_growth.csv)"""
+        return self._load_common_trade_date_csv("factors_growth.csv", columns=columns, start=start, end=end)
+
+    def load_common_balance_sheet(
+        self,
+        columns: list[str] | None = None,
+        asof_start: datetime | str | None = None,
+        asof_end: datetime | str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load balance sheet (balance_sheet.csv)"""
+        return self._load_common_financial_csv(
+            "balance_sheet.csv",
+            columns=columns,
+            asof_start=asof_start,
+            asof_end=asof_end,
+        )
+
+    def load_common_income_statement(
+        self,
+        columns: list[str] | None = None,
+        asof_start: datetime | str | None = None,
+        asof_end: datetime | str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load income statement (income_statement.csv)"""
+        return self._load_common_financial_csv(
+            "income_statement.csv",
+            columns=columns,
+            asof_start=asof_start,
+            asof_end=asof_end,
+        )
+
+    def load_common_cash_flow_statement(
+        self,
+        columns: list[str] | None = None,
+        asof_start: datetime | str | None = None,
+        asof_end: datetime | str | None = None,
+    ) -> pl.DataFrame | None:
+        """Load cash flow statement (cash_flow_statement.csv)"""
+        return self._load_common_financial_csv(
+            "cash_flow_statement.csv",
+            columns=columns,
+            asof_start=asof_start,
+            asof_end=asof_end,
+        )
+
+    def load_market_cap(
+        self,
+        cap_field: str = "market_cap_2",
+        start: datetime | str | None = None,
+        end: datetime | str | None = None,
+        alias: str = "cap",
+    ) -> pl.DataFrame | None:
+        """Load market cap from valuation factors (default: market_cap_2)"""
+        df = self.load_common_valuation_factors(columns=[cap_field], start=start, end=end)
+        if df is None or df.is_empty():
+            return df
+        return df.with_columns(
+            pl.col(cap_field).cast(pl.Float64).alias(alias)
+        ).select(["datetime", "vt_symbol", alias])
 
     def add_contract_setting(
         self,

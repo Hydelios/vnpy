@@ -1,3 +1,8 @@
+import polars as pl
+
+from vnpy.alpha import Segment
+from vnpy.alpha.dataset import label_postprocess
+
 from .baseAlphaStrategy import BaseAlphaStrategy
 
 class LabelStrategy(BaseAlphaStrategy):
@@ -77,4 +82,52 @@ class LabelStrategy(BaseAlphaStrategy):
         self.add_feature(
             "label_sharpe_h5",
             f"ts_mean({future_o2o_ret}, 5) / (ts_std({future_o2o_ret}, 5) + 1e-12)"
+        )
+
+    def neutralize_labels(
+        self,
+        industry_df: pl.DataFrame | None = None,
+        cap_df: pl.DataFrame | None = None,
+        *,
+        mode: str | None = None,
+        industry_col: str = "industry",
+        cap_col: str = "cap",
+        industry_method: str = "demean",
+        cap_log: bool = True,
+        fill_missing: str = "UNKNOWN",
+        suffix: str = "_neu",
+    ) -> None:
+        self.result_df = label_postprocess.neutralize_labels(
+            result_df=self.result_df,
+            industry_df=industry_df,
+            cap_df=cap_df,
+            mode=mode,
+            industry_col=industry_col,
+            cap_col=cap_col,
+            industry_method=industry_method,
+            cap_log=cap_log,
+            fill_missing=fill_missing,
+            suffix=suffix,
+        )
+
+    def add_benchmark_excess_labels(
+        self,
+        bench_df: pl.DataFrame,
+        *,
+        suffix: str = "_excess",
+        label_cols: list[str] | None = None,
+        max_workers: int | None = None,
+    ) -> None:
+        self.result_df = label_postprocess.add_benchmark_excess_labels(
+            result_df=self.result_df,
+            bench_df=bench_df,
+            label_strategy_cls=self.__class__,
+            train_period=self.data_periods[Segment.TRAIN],
+            valid_period=self.data_periods[Segment.VALID],
+            test_period=self.data_periods[Segment.TEST],
+            interval=self.interval,
+            enable_cache=getattr(self, "enable_cache", False),
+            suffix=suffix,
+            label_cols=label_cols,
+            max_workers=max_workers,
         )
