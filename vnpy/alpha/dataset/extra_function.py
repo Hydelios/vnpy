@@ -451,21 +451,3 @@ def ts_winsor(
 
     return DataProxy(clipped)
 
-
-# not check yet
-def cs_scale(feature: DataProxy, k: float = 1.0) -> DataProxy:
-    """Scale within each date: x_scaled = k * x / sum(|x|). 因子值缩放
-
-    If denominator is 0 (all zeros), output zeros.
-    """
-    df: pl.DataFrame = feature.df.select(
-        pl.col("datetime"),
-        pl.col("vt_symbol"),
-        pl.col("data"),
-        pl.col("data").abs().sum().over("datetime").alias("sum_abs")
-    ).select(
-        pl.col("datetime"),
-        pl.col("vt_symbol"),
-        pl.when(pl.col("sum_abs") > 0).then(pl.lit(float(k)) * pl.col("data") / pl.col("sum_abs")).otherwise(0.0).alias("data")
-    )
-    return DataProxy(df)

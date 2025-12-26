@@ -24,7 +24,7 @@ import argparse
 import json
 import configparser
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Set, Tuple
 
 from tqdm import tqdm
 import rqdatac as rq
@@ -40,33 +40,96 @@ from vnpy.trader.utility import round_to, ZoneInfo
 from vnpy.alpha import AlphaLab, logger
 
 
-def get_all_stocks() -> List[str]:
-    """
-    获取全市场股票列表
-    
-    Returns:
-        所有股票的vnpy格式代码列表
-    """
+DEFAULT_INDEX_LIST: list[dict[str, str]] = [
+    {"vnpy": "000016.SSE", "rq": "000016.XSHG", "name": "上证50"},
+    {"vnpy": "000300.SSE", "rq": "000300.XSHG", "name": "沪深300"},
+    {"vnpy": "000905.SSE", "rq": "000905.XSHG", "name": "中证500"},
+    {"vnpy": "000906.SSE", "rq": "000906.XSHG", "name": "中证800"},
+    {"vnpy": "000852.SSE", "rq": "000852.XSHG", "name": "中证1000"},
+    {"vnpy": "932000.SSE", "rq": "932000.XSHG", "name": "中证2000"},
+    {"vnpy": "000688.SSE", "rq": "000688.XSHG", "name": "科创50"},
+    {"vnpy": "000922.SSE", "rq": "000922.XSHG", "name": "中证红利"},
+]
+
+
+def _is_truthy(value: object) -> bool:
+    """将配置值解析为布尔值（兼容 bool/str/int）。"""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _dedup_keep_order(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for item in items:
+        if item in seen:
+            continue
+        uniq.append(item)
+        seen.add(item)
+    return uniq
+
+
+def _rq_to_vt_symbol(order_book_id: str) -> str:
+    """将米筐 order_book_id 转换为 vnpy vt_symbol。"""
+    return order_book_id.replace("XSHG", "SSE").replace("XSHE", "SZSE")
+
+
+def _parse_symbol_list(value: object) -> list[str]:
+    """解析逗号分隔字符串或列表为 vt_symbol 列表。"""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    if isinstance(value, str):
+        return [s.strip() for s in value.split(",") if s.strip()]
+    return [str(value).strip()] if str(value).strip() else []
+
+
+def get_stock_symbols() -> list[str]:
+    """获取全市场股票（CS）列表，返回 vt_symbol 列表。"""
     print("正在获取全市场股票列表...")
-    
     try:
-        # 获取所有股票
-        df = rq.all_instruments(type='CS')  # CS表示普通股票
-        
-        # 转换为vnpy格式的股票代码列表
-        all_symbols = []
-        for _, row in df.iterrows():
-            rq_symbol = row['order_book_id']
-            # 转换格式：XSHG->SSE, XSHE->SZSE
-            vt_symbol = rq_symbol.replace("XSHG", "SSE").replace("XSHE", "SZSE")
-            all_symbols.append(vt_symbol)
-        
-        print(f"成功获取 {len(all_symbols)} 只股票")
-        return all_symbols
-        
+        df = rq.all_instruments(type="CS")  # CS表示普通股票
+        symbols = [_rq_to_vt_symbol(s) for s in df["order_book_id"].tolist()]
+        symbols = _dedup_keep_order(symbols)
+        print(f"成功获取 {len(symbols)} 只股票")
+        return symbols
     except Exception as e:
         logger.error(f"获取股票列表失败：{e}")
         return []
+
+
+def get_all_index_symbols() -> list[str]:
+    """获取全市场指数（INDX）列表，返回 vt_symbol 列表。"""
+    print("正在获取全市场指数列表...")
+    try:
+        df = rq.all_instruments(type="INDX")
+        symbols = [_rq_to_vt_symbol(s) for s in df["order_book_id"].tolist()]
+        symbols = _dedup_keep_order(symbols)
+        print(f"成功获取 {len(symbols)} 只指数")
+        return symbols
+    except Exception as e:
+        logger.error(f"获取指数列表失败：{e}")
+        return []
+
+
+def get_default_index_symbols(cfg: dict) -> list[str]:
+    """获取默认指数列表：优先读取配置 index_list，否则使用内置 DEFAULT_INDEX_LIST。"""
+    cfg_list = cfg.get("index_list")
+    if isinstance(cfg_list, list) and cfg_list:
+        symbols: list[str] = []
+        for item in cfg_list:
+            if not isinstance(item, dict):
+                continue
+            vt = str(item.get("vnpy", "")).strip()
+            if vt:
+                symbols.append(vt)
+        if symbols:
+            return _dedup_keep_order(symbols)
+    return [d["vnpy"] for d in DEFAULT_INDEX_LIST]
 
 
 def _load_config_file(path: str | Path) -> dict:
@@ -95,7 +158,17 @@ def _load_config_file(path: str | Path) -> dict:
             return str(v).strip().lower() in {"1", "true", "yes", "on"}
         for k in list(data.keys()):
             v = data[k]
-            if k in {"no_contract", "no_verify", "full", "incremental", "verify", "set_contract"}:
+            if k in {
+                "no_contract",
+                "no_verify",
+                "full",
+                "incremental",
+                "verify",
+                "set_contract",
+                "include_index",
+                "all_index",
+                "merge_index",
+            }:
                 data[k] = to_bool(v)
         return data
     except Exception:
@@ -142,7 +215,8 @@ def get_incremental_start(
 
 
 def download_bar_data_extended(lab: AlphaLab, symbols: List[str], start: datetime, end: datetime, 
-                              interval_str: str, full_mode: bool = False) -> List[str]:
+                              interval_str: str, full_mode: bool = False,
+                              index_symbols: Set[str] | None = None) -> List[str]:
     """
     下载扩展周期的K线数据（10分钟、30分钟等）
     直接调用米筐API支持非标准周期
@@ -187,6 +261,7 @@ def download_bar_data_extended(lab: AlphaLab, symbols: List[str], start: datetim
         "60m": timedelta(hours=1),
     }
     adjustment = adjustment_map.get(rq_frequency, timedelta())
+    index_symbols = index_symbols or set()
     
     for vt_symbol in tqdm(symbols, desc="下载进度"):
         try:
@@ -205,7 +280,9 @@ def download_bar_data_extended(lab: AlphaLab, symbols: List[str], start: datetim
             fields = ["open", "high", "low", "close", "volume", "total_turnover"]
             
             # 对于股票查询后复权K线数据
-            if rq_symbol.endswith(".XSHG") or rq_symbol.endswith(".XSHE"):
+            if vt_symbol in index_symbols:
+                adjust_type = "none"
+            elif rq_symbol.endswith(".XSHG") or rq_symbol.endswith(".XSHE"):
                 adjust_type = "post_volume"
             else:
                 adjust_type = "none"
@@ -283,7 +360,8 @@ def download_bar_data_extended(lab: AlphaLab, symbols: List[str], start: datetim
 
 def download_bar_data(lab: AlphaLab, symbols: List[str], start: datetime, end: datetime, 
                      interval: Interval = Interval.DAILY, interval_value: str = None,
-                     full_mode: bool = False) -> List[str]:
+                     full_mode: bool = False,
+                     index_symbols: Set[str] | None = None) -> List[str]:
     """
     下载K线数据（标准周期）
     
@@ -299,8 +377,9 @@ def download_bar_data(lab: AlphaLab, symbols: List[str], start: datetime, end: d
         下载失败的股票列表
     """
     failed_symbols = []
+    index_symbols = index_symbols or set()
     
-    print(f"\n开始下载 {len(symbols)} 只股票的{interval.value}数据...")
+    print(f"\n开始下载 {len(symbols)} 个标的的{interval.value}数据...")
     print(f"时间范围：{start.strftime('%Y-%m-%d')} 至 {end.strftime('%Y-%m-%d')}")
     
     # 初始化数据服务
@@ -324,15 +403,75 @@ def download_bar_data(lab: AlphaLab, symbols: List[str], start: datetime, end: d
                 fmt = "%Y-%m-%d" if interval == Interval.DAILY else "%Y-%m-%d %H:%M"
                 tqdm.write(f"[增量] {vt_symbol}：{req_start.strftime(fmt)} -> {end.strftime(fmt)}")
 
-            req = HistoryRequest(
-                symbol=symbol, 
-                exchange=Exchange(exchange_str), 
-                start=req_start, 
-                end=end, 
-                interval=interval
-            )
-            
-            bars = datafeed.query_bar_history(req)
+            if vt_symbol in index_symbols:
+                # 指数：直接用米筐 get_price 下载，避免 datafeed 侧对 .XSHG/.XSHE 自动前复权
+                from rqdatac.services.get_price import get_price
+                from rqdatac.services.calendar import get_next_trading_date
+
+                CHINA_TZ = ZoneInfo("Asia/Shanghai")
+                exchange = Exchange(exchange_str)
+                if exchange == Exchange.SSE:
+                    rq_symbol = f"{symbol}.XSHG"
+                elif exchange == Exchange.SZSE:
+                    rq_symbol = f"{symbol}.XSHE"
+                else:
+                    rq_symbol = vt_symbol
+
+                if interval == Interval.DAILY:
+                    rq_frequency = "1d"
+                    adjustment = timedelta()
+                elif interval == Interval.HOUR:
+                    rq_frequency = "60m"
+                    adjustment = timedelta(hours=1)
+                elif interval == Interval.MINUTE:
+                    adjustment = timedelta(minutes=1)
+                else:
+                    raise ValueError(f"不支持的周期：{interval.value}")
+
+                df = get_price(
+                    rq_symbol,
+                    frequency=rq_frequency,
+                    fields=["open", "high", "low", "close", "volume", "total_turnover"],
+                    start_date=req_start,
+                    end_date=get_next_trading_date(end),
+                    adjust_type="none",
+                )
+
+                bars = []
+                if df is not None and not df.empty:
+                    df.fillna(0, inplace=True)
+                    for row in df.itertuples():
+                        row_index = row.Index
+                        ts = row_index[1] if isinstance(row_index, tuple) else row_index
+                        dt = ts.to_pydatetime() - adjustment
+                        dt = dt.replace(tzinfo=CHINA_TZ)
+                        if dt >= end:
+                            break
+
+                        bar = BarData(
+                            symbol=symbol,
+                            exchange=exchange,
+                            interval=interval,
+                            datetime=dt,
+                            open_price=round_to(row.open, 0.000001),
+                            high_price=round_to(row.high, 0.000001),
+                            low_price=round_to(row.low, 0.000001),
+                            close_price=round_to(row.close, 0.000001),
+                            volume=row.volume,
+                            turnover=row.total_turnover,
+                            open_interest=0,
+                            gateway_name="RQ",
+                        )
+                        bars.append(bar)
+            else:
+                req = HistoryRequest(
+                    symbol=symbol,
+                    exchange=Exchange(exchange_str),
+                    start=req_start,
+                    end=end,
+                    interval=interval
+                )
+                bars = datafeed.query_bar_history(req)
             
             if bars:
                 lab.save_bar_data(bars, interval_value=interval_value)
@@ -385,16 +524,16 @@ def save_download_report(lab: AlphaLab, total: int, failed_symbols: List[str]):
     report_path = lab.lab_path.joinpath("download_report.txt")
     
     with open(report_path, 'w', encoding='utf-8') as f:
-        f.write(f"# 全市场股票数据下载报告\n")
+        f.write(f"# 数据下载报告\n")
         f.write(f"# 生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         
         f.write(f"## 统计信息\n")
-        f.write(f"- 总股票数量：{total}\n")
+        f.write(f"- 总标的数量：{total}\n")
         f.write(f"- 成功下载：{total - len(failed_symbols)}\n")
         f.write(f"- 下载失败：{len(failed_symbols)}\n\n")
         
         if failed_symbols:
-            f.write(f"## 失败股票列表\n")
+            f.write(f"## 失败标的列表\n")
             for symbol in failed_symbols:
                 f.write(f"- {symbol}\n")
     
@@ -434,6 +573,10 @@ def parse_arguments():
   python download_all_stocks.py --interval 10m     # 下载10分钟线
   python download_all_stocks.py --interval 30m     # 下载30分钟线
   python download_all_stocks.py --interval 60m     # 下载60分钟线
+  python download_all_stocks.py --targets index --include-index   # 下载默认指数列表（见 data_download.json 的 index_list）
+  python download_all_stocks.py --targets index --all-index       # 下载全量指数列表（INDX）
+  python download_all_stocks.py --targets index --index-symbols 000300.SSE,000852.SSE  # 指定下载的指数
+  python download_all_stocks.py --targets both --include-index    # 股票+默认指数（可用 --merge-index 合并保存）
         """
     )
     
@@ -487,6 +630,43 @@ def parse_arguments():
         default='data_download.json',
         help='下载参数配置文件路径（JSON或INI），默认：data_download.json'
     )
+
+    parser.add_argument(
+        '--targets',
+        choices=['stocks', 'index', 'both'],
+        default=None,
+        help='下载范围：stocks(仅股票)、index(仅指数)、both(股票+指数)；也可在配置中设置 targets'
+    )
+
+    parser.add_argument(
+        '--include-index',
+        action='store_true',
+        help='下载默认指数列表（见配置 index_list）；与 --targets 搭配使用，或作为快速开关'
+    )
+
+    parser.add_argument(
+        '--all-index',
+        action='store_true',
+        help='下载全量指数列表（INDX），优先级高于 index_list/index_symbols'
+    )
+
+    parser.add_argument(
+        '--index-symbols',
+        default=None,
+        help='指定下载的指数列表（vnpy代码，逗号分隔），例如 000300.SSE,000852.SSE'
+    )
+
+    parser.add_argument(
+        '--merge-index',
+        action='store_true',
+        help='将指数行情与股票保存到同一目录（默认保存到 ./lab/{task_name}/index/）'
+    )
+
+    parser.add_argument(
+        '--index-dir',
+        default=None,
+        help='指数保存子目录名（默认 index；仅在未启用 --merge-index 时生效）'
+    )
     
     args = parser.parse_args()
 
@@ -509,7 +689,9 @@ def main():
         if cfg:
             print(
                 f"[配置] interval={cfg.get('interval')}, start_date={cfg.get('start_date')}, end_date={cfg.get('end_date')}, "
-                f"task_name={cfg.get('task_name')}, mode={cfg.get('mode')}, full={cfg.get('full')}"
+                f"task_name={cfg.get('task_name')}, mode={cfg.get('mode')}, full={cfg.get('full')}, "
+                f"targets={cfg.get('targets')}, include_index={cfg.get('include_index')}, all_index={cfg.get('all_index')}, "
+                f"merge_index={cfg.get('merge_index')}, index_dir={cfg.get('index_dir')}"
             )
         else:
             print("[配置] 配置为空或解析失败，使用默认/命令行参数")
@@ -553,11 +735,37 @@ def main():
         else:
             verify_download = True
 
+    # 下载范围：CLI > 配置 > 兼容 include_index > 默认 stocks
+    targets = args.targets
+    if targets is None:
+        if args.include_index:
+            targets = "both"
+        else:
+            targets = cfg.get("targets")
+    if targets is None:
+        include_index = _is_truthy(cfg.get("include_index")) or _is_truthy(cfg.get("download_index"))
+        targets = "both" if include_index else "stocks"
+    targets = str(targets).strip().lower()
+    if targets not in {"stocks", "index", "both"}:
+        print(f"[配置] targets={targets} 非法，已回退为 stocks")
+        targets = "stocks"
+
+    # 指数下载参数
+    all_index = args.all_index or _is_truthy(cfg.get("all_index")) or _is_truthy(cfg.get("index_all"))
+    merge_index = args.merge_index or _is_truthy(cfg.get("merge_index"))
+    index_dir = str(args.index_dir or cfg.get("index_dir") or "index").strip() or "index"
+
+    # 自定义指数列表：CLI > 配置 index_symbols > 配置 index_list/内置列表
+    index_symbols_override: list[str] = _parse_symbol_list(args.index_symbols)
+    if not index_symbols_override:
+        index_symbols_override = _parse_symbol_list(cfg.get("index_symbols"))
+
     # 生效参数调试打印
     try:
         print(
             f"[生效] interval={interval_arg}, start_date={start_date}, end_date={end_date}, "
-            f"task_name={task_name}, mode={'full' if full_mode else 'incremental'}"
+            f"task_name={task_name}, mode={'full' if full_mode else 'incremental'}, "
+            f"targets={targets}, all_index={all_index}, merge_index={merge_index}, index_dir={index_dir}"
         )
     except Exception:
         pass
@@ -602,12 +810,27 @@ def main():
     print(f"  - K线周期：{interval_arg}")
     print(f"  - 下载模式：{'全量' if full_mode else '增量(重复最后一天)'}")
     print(f"  - 任务名称：{task_name}")
+    targets_text = {"stocks": "仅股票", "index": "仅指数", "both": "股票+指数"}[targets]
+    print(f"  - 下载范围：{targets_text}")
+    if targets in {"index", "both"}:
+        if all_index:
+            index_src = "全量指数(INDX)"
+        elif index_symbols_override:
+            index_src = f"自定义列表({len(index_symbols_override)}个)"
+        else:
+            index_src = "默认指数列表(index_list)"
+        print(f"  - 指数列表：{index_src}")
+        print(f"  - 指数保存：{'合并到主目录' if merge_index else f'子目录 {index_dir}/'}")
     print(f"  - 设置回测参数：{'是' if set_contract_params else '否'}")
     print(f"  - 验证数据：{'是' if verify_download else '否'}")
     
     # 创建投研实验室
-    lab = AlphaLab(f"./lab/{task_name}")
-    print(f"\n数据保存路径：./lab/{task_name}/")
+    base_lab = AlphaLab(f"./lab/{task_name}")
+    print(f"\n股票数据保存路径：./lab/{task_name}/")
+    index_lab = base_lab
+    if targets in {"index", "both"} and not merge_index:
+        index_lab = AlphaLab(str(base_lab.lab_path.joinpath(index_dir)))
+        print(f"指数数据保存路径：./lab/{task_name}/{index_dir}/")
     
     # 初始化数据服务
     print("\n初始化米筐数据服务...")
@@ -621,66 +844,147 @@ def main():
     start = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=DB_TZ)
     end = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=DB_TZ)
     
-    # ========== 获取股票列表 ==========
-    
-    all_symbols = get_all_stocks()
-    
-    if not all_symbols:
-        print("未能获取股票列表，程序退出")
-        return
+    # ========== 获取标的列表 ==========
+    stock_symbols: list[str] = []
+    index_symbols: list[str] = []
+    index_symbols_set: set[str] = set()
+
+    if targets in {"stocks", "both"}:
+        stock_symbols = get_stock_symbols()
+        if not stock_symbols and targets == "stocks":
+            print("未能获取股票列表，程序退出")
+            return 0
+
+    if targets in {"index", "both"}:
+        if all_index:
+            index_symbols = get_all_index_symbols()
+        elif index_symbols_override:
+            index_symbols = _dedup_keep_order(index_symbols_override)
+            print(f"使用自定义指数列表，共 {len(index_symbols)} 个")
+        else:
+            index_symbols = get_default_index_symbols(cfg)
+            print(f"使用默认指数列表，共 {len(index_symbols)} 个")
+
+        index_symbols_set = set(index_symbols)
+        if not index_symbols and targets == "index":
+            print("未能获取指数列表，程序退出")
+            return 0
     
     # ========== 下载数据 ==========
-    
-    # 根据不同的周期类型选择下载函数
-    if interval_arg in ['10m', '30m']:
-        # 使用扩展下载函数处理10分钟、30分钟
-        failed_symbols = download_bar_data_extended(lab, all_symbols, start, end, interval_arg, full_mode=full_mode)
-    else:
+    failed_stock_symbols: list[str] = []
+    failed_index_symbols: list[str] = []
+    failed_all_symbols: list[str] = []
+    all_symbols: list[str] = []
+
+    def run_download(lab: AlphaLab, symbols: list[str], index_set: set[str]) -> list[str]:
+        """按 interval_arg 调用相应下载函数，返回失败列表。"""
+        if not symbols:
+            return []
+        if interval_arg in ["10m", "30m"]:
+            return download_bar_data_extended(
+                lab,
+                symbols,
+                start,
+                end,
+                interval_arg,
+                full_mode=full_mode,
+                index_symbols=index_set,
+            )
         # 使用标准下载函数处理日线、1分钟、60分钟
-        # 对于分钟级数据，传递interval_value以便保存到正确的子文件夹
-        interval_value = interval_arg if interval_arg in ['1m', '60m'] else None
-        failed_symbols = download_bar_data(lab, all_symbols, start, end, interval, interval_value, full_mode=full_mode)
-    
+        interval_value = interval_arg if interval_arg in ["1m", "60m"] else None
+        return download_bar_data(
+            lab,
+            symbols,
+            start,
+            end,
+            interval,
+            interval_value,
+            full_mode=full_mode,
+            index_symbols=index_set,
+        )
+
+    if targets == "stocks":
+        failed_stock_symbols = run_download(base_lab, stock_symbols, set())
+    elif targets == "index":
+        failed_index_symbols = run_download(index_lab, index_symbols, index_symbols_set)
+    else:  # both
+        if merge_index:
+            all_symbols = _dedup_keep_order([*stock_symbols, *index_symbols])
+            failed_all_symbols = run_download(base_lab, all_symbols, index_symbols_set)
+            failed_stock_symbols = [s for s in failed_all_symbols if s not in index_symbols_set]
+            failed_index_symbols = [s for s in failed_all_symbols if s in index_symbols_set]
+        else:
+            failed_stock_symbols = run_download(base_lab, stock_symbols, set())
+            failed_index_symbols = run_download(index_lab, index_symbols, index_symbols_set)
+
     # 输出统计信息
-    print(f"\n下载完成！")
-    print(f"  - 成功：{len(all_symbols) - len(failed_symbols)} 只")
-    print(f"  - 失败：{len(failed_symbols)} 只")
-    
-    if failed_symbols:
-        print("\n失败的股票列表（前20个）：")
-        for symbol in failed_symbols[:20]:
-            print(f"  - {symbol}")
-        if len(failed_symbols) > 20:
-            print(f"  ... 还有 {len(failed_symbols) - 20} 只")
+    print("\n下载完成！")
+    success_count = 0
+    if targets in {"stocks", "both"}:
+        success_stock = len(stock_symbols) - len(failed_stock_symbols)
+        print(f"  - 股票：成功 {success_stock} / {len(stock_symbols)}")
+        success_count += success_stock
+        if failed_stock_symbols:
+            print("\n失败的股票列表（前20个）：")
+            for symbol in failed_stock_symbols[:20]:
+                print(f"  - {symbol}")
+            if len(failed_stock_symbols) > 20:
+                print(f"  ... 还有 {len(failed_stock_symbols) - 20} 只")
+
+    if targets in {"index", "both"}:
+        success_index = len(index_symbols) - len(failed_index_symbols)
+        print(f"  - 指数：成功 {success_index} / {len(index_symbols)}")
+        success_count += success_index
+        if failed_index_symbols:
+            print("\n失败的指数列表（前20个）：")
+            for symbol in failed_index_symbols[:20]:
+                print(f"  - {symbol}")
+            if len(failed_index_symbols) > 20:
+                print(f"  ... 还有 {len(failed_index_symbols) - 20} 个")
     
     # ========== 设置回测参数 ==========
     
-    if set_contract_params:
-        successful_symbols = [s for s in all_symbols if s not in failed_symbols]
-        set_contract_settings(lab, successful_symbols, contract_settings)
+    if set_contract_params and targets in {"stocks", "both"}:
+        successful_stock_symbols = [s for s in stock_symbols if s not in failed_stock_symbols]
+        set_contract_settings(base_lab, successful_stock_symbols, contract_settings)
     
     # ========== 保存下载报告 ==========
-    
-    save_download_report(lab, len(all_symbols), failed_symbols)
+    if targets == "stocks":
+        save_download_report(base_lab, len(stock_symbols), failed_stock_symbols)
+    elif targets == "index":
+        save_download_report(index_lab, len(index_symbols), failed_index_symbols)
+    else:  # both
+        if merge_index:
+            save_download_report(base_lab, len(all_symbols), failed_all_symbols)
+        else:
+            save_download_report(base_lab, len(stock_symbols), failed_stock_symbols)
+            save_download_report(index_lab, len(index_symbols), failed_index_symbols)
     
     # ========== 数据验证 ==========
     
-    if verify_download and all_symbols:
-        successful_symbols = [s for s in all_symbols if s not in failed_symbols]
-        if successful_symbols:
-            verify_data(lab, successful_symbols, start, end)
+    if verify_download:
+        if targets in {"stocks", "both"}:
+            successful_stock_symbols = [s for s in stock_symbols if s not in failed_stock_symbols]
+            if successful_stock_symbols:
+                verify_data(base_lab, successful_stock_symbols, start, end)
+        if targets in {"index", "both"}:
+            successful_index_symbols = [s for s in index_symbols if s not in failed_index_symbols]
+            if successful_index_symbols:
+                verify_data(index_lab, successful_index_symbols, start, end)
     
     # ========== 完成 ==========
     
     print("\n" + "="*60)
     print("所有任务完成！")
-    print(f"数据保存在：./lab/{task_name}/")
+    print(f"股票数据保存在：./lab/{task_name}/")
+    if targets in {"index", "both"} and not merge_index:
+        print(f"指数数据保存在：./lab/{task_name}/{index_dir}/")
     print("="*60)
     
-    return len(all_symbols) - len(failed_symbols)  # 返回成功下载的数量
+    return success_count  # 返回成功下载的数量
 
 
 if __name__ == "__main__":
     # 执行主函数
     success_count = main()
-    print(f"\n程序执行完毕，成功下载 {success_count} 只股票数据")
+    print(f"\n程序执行完毕，成功下载 {success_count} 个标的数据")
