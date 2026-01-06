@@ -24,9 +24,16 @@ import argparse
 from datetime import datetime, timedelta
 from typing import List, Dict, Set
 
+import pandas as pd
 import rqdatac as rq
 from vnpy.trader.datafeed import get_datafeed
 from vnpy.alpha import AlphaLab, logger
+
+
+def _safe_to_datetime(series: pd.Series) -> pd.Series:
+    """将异常日期转换为可解析的时间类型"""
+    series = series.replace({"0000-00-00": pd.NA, "2999-12-31": pd.NA})
+    return pd.to_datetime(series, errors="coerce")
 
 
 def get_index_components(lab: AlphaLab, rq_index_symbol: str, index_symbol: str, 
@@ -75,6 +82,80 @@ def get_index_components(lab: AlphaLab, rq_index_symbol: str, index_symbol: str,
     except Exception as e:
         logger.error(f"获取指数 {index_symbol} 成分股失败：{e}")
         return set()
+
+
+def build_full_market_stock_pool(
+    start_date: str,
+    end_date: str,
+    min_listed_days: int = 180
+) -> dict[str, list[str]]:
+    """构建全市场回测股票池（按交易日输出可交易股票列表）"""
+    trading_days = rq.get_trading_dates(start_date, end_date)
+    day_index = [d.strftime("%Y-%m-%d") for d in trading_days]
+
+    instruments = rq.all_instruments(type="CS", market="cn").copy()
+    instruments["listed_date"] = _safe_to_datetime(instruments["listed_date"])
+    instruments["de_listed_date"] = _safe_to_datetime(instruments["de_listed_date"])
+
+    instruments["vt_symbol"] = (
+        instruments["order_book_id"]
+        .str.replace("XSHG", "SSE", regex=False)
+        .str.replace("XSHE", "SZSE", regex=False)
+    )
+
+    symbols = instruments["order_book_id"].tolist()
+    vt_symbols = instruments["vt_symbol"].tolist()
+
+    st = rq.is_st_stock(symbols, start_date, end_date)
+    st.index = [d.strftime("%Y-%m-%d") for d in st.index]
+    st = st.reindex(index=day_index, columns=symbols, fill_value=False)
+
+    suspended = rq.is_suspended(symbols, start_date, end_date)
+    suspended.index = [d.strftime("%Y-%m-%d") for d in suspended.index]
+    suspended = suspended.reindex(index=day_index, columns=symbols, fill_value=False)
+
+    price = rq.get_price(
+        symbols,
+        start_date=start_date,
+        end_date=end_date,
+        fields=["high", "low", "limit_up", "limit_down"],
+        expect_df=True
+    )
+    high = price["high"].unstack("order_book_id").reindex(index=day_index, columns=symbols).fillna(0)
+    low = price["low"].unstack("order_book_id").reindex(index=day_index, columns=symbols).fillna(0)
+    limit_up = price["limit_up"].unstack("order_book_id").reindex(index=day_index, columns=symbols).fillna(0)
+    limit_down = price["limit_down"].unstack("order_book_id").reindex(index=day_index, columns=symbols).fillna(0)
+
+    far_future = pd.Timestamp("2100-01-01")
+    listed_dt = instruments["listed_date"].fillna(far_future)
+    delisted_dt = instruments["de_listed_date"].fillna(far_future)
+
+    dates = pd.to_datetime(day_index).values
+    listed = listed_dt.values
+    delisted = delisted_dt.values
+
+    active = (dates[:, None] >= listed[None, :]) & (dates[:, None] <= delisted[None, :])
+    listed_days = (dates[:, None] - listed[None, :]).astype("timedelta64[D]").astype(int)
+    listed_ok = listed_days >= min_listed_days
+
+    limit_up_hit = (high.values == limit_up.values) & (limit_up.values != 0)
+    limit_down_hit = (low.values == limit_down.values) & (limit_down.values != 0)
+    limit_ok = (limit_up.values != 0) & (limit_down.values != 0)
+
+    stock_pool = active & listed_ok
+    stock_pool &= ~st.values
+    stock_pool &= ~suspended.values
+    stock_pool &= ~limit_up_hit
+    stock_pool &= ~limit_down_hit
+    stock_pool &= limit_ok
+
+    stock_pool_df = pd.DataFrame(stock_pool, index=day_index, columns=vt_symbols)
+    index_components = {
+        d: stock_pool_df.columns[stock_pool_df.loc[d]].tolist()
+        for d in stock_pool_df.index
+    }
+
+    return index_components
 
 
 def get_multiple_indexes_components(lab: AlphaLab, index_list: List[Dict], 
@@ -283,7 +364,15 @@ def main():
             print(f"  ... 还有 {len(all_symbols) - 10} 个")
     else:
         print("\n未获取到任何成分股数据")
-    
+
+    print("\n开始生成全市场回测股票池（all_stocks_3800）...")
+    try:
+        all_stock_components = build_full_market_stock_pool(start_date, end_date, min_listed_days=180)
+        lab.save_component_data("all_stocks_3800", all_stock_components)
+        print(f"  - 已保存全市场股票池，交易日数量：{len(all_stock_components)}")
+    except Exception as e:
+        logger.error(f"生成全市场股票池失败：{e}")
+
     # ========== 完成 ==========
     
     print("\n" + "="*60)

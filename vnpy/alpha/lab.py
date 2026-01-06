@@ -294,6 +294,7 @@ class AlphaLab:
                 (pl.col("high") / close_0).alias("high"),
                 (pl.col("low") / close_0).alias("low"),
                 (pl.col("close") / close_0).alias("close"),
+                (pl.col("vwap") / close_0).alias("vwap")
             )
 
             # Convert zeros to NaN for suspended trading days
