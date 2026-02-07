@@ -373,6 +373,11 @@ class AlphaDataset:
         signal_s: pd.Series = signal_df["signal"]
 
         # Extract price
+        if "close" not in df.columns:
+            raise ValueError(
+                "未找到价格列 'close'，无法进行信号绩效分析；"
+                "请在 dataset.result_df 中保留 close（例如在构建 work_df 时加入 close）。"
+            )
         price_df: pd.DataFrame = df.select(["datetime", "vt_symbol", "close"]).to_pandas()
         price_df = price_df.pivot(index="datetime", columns="vt_symbol", values="close")
 

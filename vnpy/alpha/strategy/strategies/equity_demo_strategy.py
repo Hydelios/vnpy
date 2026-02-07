@@ -14,7 +14,8 @@ class EquityDemoStrategy(AlphaStrategy):
 
     top_k: int = 50                 # Maximum number of stocks to hold
     n_drop: int = 5                 # Number of stocks to sell each time
-    min_days: int = 3               # Minimum holding period in days
+    min_days: int = 3               # Minimum holding period in days (legacy)
+    hold_thresh: int = 3            # Minimum holding period in days per stock
     cash_ratio: float = 0.95        # Cash utilization ratio
     min_volume: int = 100           # Minimum trading unit
     open_rate: float = 0.0003       # Opening commission rate
@@ -39,6 +40,9 @@ class EquityDemoStrategy(AlphaStrategy):
         """K-line slice callback"""
         # Get the latest signals and sort them
         last_signal: pl.DataFrame = self.get_signal()
+        if last_signal.is_empty():
+            self.write_log("未找到当日信号，跳过调仓")
+            return
         last_signal = last_signal.sort("signal", descending=True)
 
         # Get position symbols and update holding days
@@ -47,30 +51,36 @@ class EquityDemoStrategy(AlphaStrategy):
         for vt_symbol in pos_symbols:
             self.holding_days[vt_symbol] += 1
 
-        # Generate sell list
-        active_symbols: set[str] = set(last_signal["vt_symbol"][:self.top_k])                         # Extract symbols with highest signals
-        active_symbols.update(pos_symbols)                                                            # Merge with currently held symbols
-        active_df: pl.DataFrame = last_signal.filter(pl.col("vt_symbol").is_in(active_symbols))       # Filter signals for these symbols
+        # Determine holding threshold (prefer hold_thresh if set)
+        hold_thresh: int = getattr(self, "hold_thresh", self.min_days)
 
-        component_symbols: set[str] = set(last_signal["vt_symbol"])                 # Extract current index component symbols
-        sell_symbols: set[str] = set(pos_symbols).difference(component_symbols)     # Sell positions not in components
+        # Generate sell list: pick lowest n_drop in active_df
+        active_symbols: set[str] = set(last_signal["vt_symbol"][:self.top_k])
+        active_symbols.update(pos_symbols)
+        active_df: pl.DataFrame = last_signal.filter(pl.col("vt_symbol").is_in(active_symbols))
 
-        for vt_symbol in active_df["vt_symbol"][-self.n_drop:]:                     # Iterate through lowest signal portion
-            if vt_symbol in pos_symbols:                                            # If the contract is in current positions
-                sell_symbols.add(vt_symbol)                                         # Add it to sell list
+        sell_symbols: set[str] = set()
+        for vt_symbol in active_df["vt_symbol"][-self.n_drop:]:
+            if vt_symbol not in pos_symbols:
+                continue
+            if self.holding_days[vt_symbol] < hold_thresh:
+                continue
+            sell_symbols.add(vt_symbol)
+
+        sellable_symbols: list[str] = [s for s in sell_symbols if s in bars]
 
         # Generate buy list
-        buyable_df: pl.DataFrame = last_signal.filter(~pl.col("vt_symbol").is_in(pos_symbols))  # Filter contracts available for purchase
-        buy_quantity: int = len(sell_symbols) + self.top_k - len(pos_symbols)                   # Calculate number of contracts to buy
-        buy_symbols: list = list(buyable_df[:buy_quantity]["vt_symbol"])                        # Select buy contract code list
+        buyable_df: pl.DataFrame = last_signal.filter(~pl.col("vt_symbol").is_in(pos_symbols))
+        if len(pos_symbols) < self.top_k:
+            buy_quantity: int = self.top_k - len(pos_symbols) + len(sellable_symbols)
+        else:
+            buy_quantity = len(sellable_symbols)
+        buy_symbols: list = list(buyable_df[:buy_quantity]["vt_symbol"])
 
         # Sell rebalancing
         cash: float = self.get_cash_available()                     # Get available cash after yesterday's settlement
 
-        for vt_symbol in sell_symbols:
-            if self.holding_days[vt_symbol] < self.min_days:        # Check if holding period exceeds threshold
-                continue
-
+        for vt_symbol in sellable_symbols:
             bar: BarData | None = bars.get(vt_symbol)               # Get current price of the contract
             if not bar:
                 continue
@@ -86,16 +96,21 @@ class EquityDemoStrategy(AlphaStrategy):
 
         # Buy rebalancing
         if buy_symbols:
-            buy_value: float = cash * self.cash_ratio / len(buy_symbols)        # Calculate investment amount per contract
+            eligible_symbols: list[str] = [vt_symbol for vt_symbol in buy_symbols if vt_symbol in bars]
+            if eligible_symbols:
+                buy_value: float = cash * self.cash_ratio / len(eligible_symbols)        # Calculate investment amount per contract
 
-            for vt_symbol in buy_symbols:
-                buy_price: float = bars[vt_symbol].close_price                  # Get current price of the contract
-                if not buy_price:
-                    continue
+                for vt_symbol in eligible_symbols:
+                    bar: BarData | None = bars.get(vt_symbol)
+                    if not bar:
+                        continue
+                    buy_price: float = bar.close_price                                  # Get current price of the contract
+                    if not buy_price:
+                        continue
 
-                buy_volume: float = round_to(buy_value / buy_price, self.min_volume)    # Calculate volume to buy
+                    buy_volume: float = round_to(buy_value / buy_price, self.min_volume)    # Calculate volume to buy
 
-                self.set_target(vt_symbol, buy_volume)                          # Set target holding volume
+                    self.set_target(vt_symbol, buy_volume)                          # Set target holding volume
 
         # Execute trading
         self.execute_trading(bars, price_add=self.price_add)

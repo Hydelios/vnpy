@@ -17,6 +17,7 @@ from vnpy.trader.utility import round_to, extract_vt_symbol
 from ..logger import logger
 from ..lab import AlphaLab
 from .template import AlphaStrategy
+from .strategies.recorder import DailyRebalanceRecorder
 
 
 class BacktestingEngine:
@@ -45,6 +46,7 @@ class BacktestingEngine:
         self.strategy: AlphaStrategy
         self.bars: dict[str, BarData] = {}
         self.datetime: datetime | None = None
+        self.prev_datetime: datetime | None = None
 
         self.interval: Interval
         self.history_data: dict[tuple, BarData] = {}
@@ -66,6 +68,7 @@ class BacktestingEngine:
 
         self.cash: float = 0
         self.signal_df: pl.DataFrame
+        self.rebalance_recorder: DailyRebalanceRecorder | None = None
 
     def set_parameters(
         self,
@@ -108,6 +111,25 @@ class BacktestingEngine:
             self, strategy_class.__name__, copy(self.vt_symbols), setting
         )
         self.signal_df = signal_df
+
+    def set_rebalance_recording(
+        self,
+        output_dir: str = "rebalance_records",
+        save_empty: bool = True,
+        account_id: str | None = None,
+        direction_map: dict[str, str] | None = None,
+        market_map: dict[str, str] | None = None,
+        position_template_path: str | None = None,
+    ) -> None:
+        """Enable daily rebalance list recording"""
+        self.rebalance_recorder = DailyRebalanceRecorder(
+            output_dir=output_dir,
+            save_empty=save_empty,
+            account_id=account_id,
+            direction_map=direction_map,
+            market_map=market_map,
+            position_template_path=position_template_path,
+        )
 
     def load_data(self) -> None:
         """Load historical data"""
@@ -401,6 +423,123 @@ class BacktestingEngine:
         logger.info("策略统计指标计算完成")
         return statistics
 
+    def calculate_alpha_statistics(self, benchmark_symbol: str) -> dict:
+        """Calculate alpha statistics based on benchmark"""
+        logger.info("开始计算Alpha统计指标")
+
+        if not hasattr(self, "daily_df"):
+            logger.info("尚未计算逐日盈亏，无法计算Alpha指标")
+            return {}
+
+        df: pl.DataFrame = self.daily_df
+        if df.is_empty():
+            logger.info("逐日结果为空，无法计算Alpha指标")
+            return {}
+
+        if "balance" not in df.columns:
+            df = df.with_columns(
+                balance=pl.col("net_pnl").cum_sum() + self.capital
+            )
+
+        if "return" not in df.columns:
+            df = df.with_columns(
+                pl.col("balance").pct_change().fill_null(0).alias("return")
+            )
+        self.daily_df = df
+
+        # Load benchmark prices
+        benchmark_bars: list[BarData] = self.lab.load_bar_data(
+            benchmark_symbol,
+            self.interval,
+            self.start,
+            self.end
+        )
+
+        if not benchmark_bars:
+            logger.info("基准指数数据为空，无法计算Alpha指标")
+            return {}
+
+        benchmark_df: pl.DataFrame = pl.DataFrame(
+            {
+                "date": [bar.datetime.date() for bar in benchmark_bars],
+                "benchmark_price": [bar.close_price for bar in benchmark_bars],
+            }
+        ).unique(subset=["date"], keep="last")
+
+        df = df.join(benchmark_df, on="date", how="left").drop_nulls(["benchmark_price"])
+        if df.is_empty():
+            logger.info("与基准指数对齐后无有效数据，无法计算Alpha指标")
+            return {}
+
+        df = df.with_columns(
+            benchmark_return=pl.col("benchmark_price").pct_change().fill_null(0)
+        ).with_columns(
+            alpha_return=pl.col("return") - pl.col("benchmark_return")
+        ).with_columns(
+            alpha_curve=pl.col("alpha_return").cum_sum(),
+            alpha_high=pl.col("alpha_return").cum_sum().cum_max()
+        ).with_columns(
+            alpha_drawdown=pl.col("alpha_curve") - pl.col("alpha_high")
+        )
+
+        total_days: int = len(df)
+        alpha_total_return: float = cast(float, df["alpha_curve"][-1]) * 100
+        alpha_annual_return: float = alpha_total_return / total_days * self.annual_days
+        alpha_daily_return: float = cast(float, df["alpha_return"].mean()) * 100
+        alpha_return_std: float = cast(float, df["alpha_return"].std()) * 100
+
+        if alpha_return_std:
+            alpha_sharpe: float = alpha_daily_return / alpha_return_std * np.sqrt(self.annual_days)
+        else:
+            alpha_sharpe = 0
+
+        alpha_max_drawdown: float = cast(float, df["alpha_drawdown"].min()) * 100
+        alpha_calmar: float = 0
+        if alpha_max_drawdown:
+            alpha_calmar = alpha_annual_return / abs(alpha_max_drawdown)
+
+        max_drawdown_end_idx = cast(int, df["alpha_drawdown"].arg_min())
+        max_drawdown_end = df["date"][max_drawdown_end_idx]
+
+        if isinstance(max_drawdown_end, date):
+            max_drawdown_start_idx = cast(
+                int,
+                df.slice(0, max_drawdown_end_idx + 1)["alpha_curve"].arg_max()
+            )
+            max_drawdown_start = df["date"][max_drawdown_start_idx]
+            alpha_max_drawdown_duration = (max_drawdown_end - max_drawdown_start).days
+        else:
+            alpha_max_drawdown_duration = 0
+
+        statistics: dict = {
+            "alpha_total_return": alpha_total_return,
+            "alpha_annual_return": alpha_annual_return,
+            "alpha_daily_return": alpha_daily_return,
+            "alpha_return_std": alpha_return_std,
+            "alpha_sharpe": alpha_sharpe,
+            "alpha_max_drawdown": alpha_max_drawdown,
+            "alpha_calmar": alpha_calmar,
+            "alpha_max_drawdown_duration": alpha_max_drawdown_duration,
+        }
+
+        for key, value in statistics.items():
+            if value in (np.inf, -np.inf):
+                value = 0
+            statistics[key] = np.nan_to_num(value)
+
+        logger.info("-" * 30)
+        logger.info(f"Alpha总收益：  {statistics['alpha_total_return']:,.2f}%")
+        logger.info(f"Alpha年化收益：  {statistics['alpha_annual_return']:,.2f}%")
+        logger.info(f"Alpha日均收益：  {statistics['alpha_daily_return']:,.2f}%")
+        logger.info(f"Alpha收益标准差：  {statistics['alpha_return_std']:,.2f}%")
+        logger.info(f"Alpha Sharpe：  {statistics['alpha_sharpe']:,.2f}")
+        logger.info(f"Alpha最大回撤：  {statistics['alpha_max_drawdown']:,.2f}%")
+        logger.info(f"Alpha Calmar：  {statistics['alpha_calmar']:,.2f}")
+        logger.info(f"Alpha最长回撤天数：  {statistics['alpha_max_drawdown_duration']}")
+
+        logger.info("Alpha统计指标计算完成")
+        return statistics
+
     def show_chart(self) -> None:
         """Display chart"""
         df: pl.DataFrame = self.daily_df
@@ -439,23 +578,47 @@ class BacktestingEngine:
 
     def show_performance(self, benchmark_symbol: str) -> None:
         """Display performance metrics"""
+        if not hasattr(self, "daily_df"):
+            logger.info("尚未计算逐日盈亏，无法展示绩效")
+            return
+
+        df: pl.DataFrame = self.daily_df
+        if df.is_empty():
+            logger.info("逐日结果为空，无法展示绩效")
+            return
+
+        if "balance" not in df.columns:
+            df = df.with_columns(
+                balance=pl.col("net_pnl").cum_sum() + self.capital
+            )
+
+        if "return" not in df.columns:
+            df = df.with_columns(
+                pl.col("balance").pct_change().fill_null(0).alias("return")
+            )
+
+        self.daily_df = df
+
         # Load benchmark prices
         benchmark_bars: list[BarData] = self.lab.load_bar_data(benchmark_symbol, self.interval, self.start, self.end)
+        if not benchmark_bars:
+            logger.info("基准指数数据为空，无法展示绩效")
+            return
 
-        benchmark_prices: list[float] = []
-        for bar in benchmark_bars:
-            benchmark_prices.append(bar.close_price)
+        benchmark_df: pl.DataFrame = pl.DataFrame(
+            {
+                "date": [bar.datetime.date() for bar in benchmark_bars],
+                "benchmark_price": [bar.close_price for bar in benchmark_bars],
+            }
+        ).unique(subset=["date"], keep="last")
 
         # Calculate strategy performance
         performance_df: pl.DataFrame = (
-            self.daily_df.with_columns(
+            df.join(benchmark_df, on="date", how="left").drop_nulls(["benchmark_price"]).with_columns(
                 # Cumulative return
                 cumulative_return=pl.col("balance").pct_change().cum_sum(),
                 # Cumulative cost
                 cumulative_cost=(pl.col("commission") / pl.col("balance").shift(1)).cum_sum()
-            ).with_columns(
-                # Benchmark price
-                benchmark_price=pl.Series(values=benchmark_prices, dtype=pl.Float64)
             ).with_columns(
                 # Benchmark return
                 benchmark_return=pl.col("benchmark_price").pct_change().cum_sum()
@@ -472,6 +635,10 @@ class BacktestingEngine:
                 net_excess_return_drawdown=(pl.col("net_excess_return") - pl.col("net_excess_return").cum_max())
             )
         )
+
+        if performance_df.is_empty():
+            logger.info("与基准指数对齐后无有效数据，无法展示绩效")
+            return
 
         # Draw chart
         fig: go.Figure = make_subplots(
@@ -512,8 +679,8 @@ class BacktestingEngine:
             name="Alpha with Cost"
         )
         turnover_curve: go.Scatter = go.Scatter(
-            x=self.daily_df["date"],
-            y=self.daily_df["turnover"] / self.daily_df["balance"].shift(1),
+            x=performance_df["date"],
+            y=performance_df["turnover"] / performance_df["balance"].shift(1),
             name="Turnover",
         )
         excess_drawdown_curve: go.Scatter = go.Scatter(
@@ -578,6 +745,7 @@ class BacktestingEngine:
 
     def new_bars(self, dt: datetime) -> None:
         """Push historical data"""
+        prev_date = self.prev_datetime.date() if self.prev_datetime else None
         self.datetime = dt
 
         bars: dict[str, BarData] = {}
@@ -614,7 +782,20 @@ class BacktestingEngine:
         self.cross_order()
         self.strategy.on_bars(bars)
 
+        if self.rebalance_recorder:
+            close_prices = {vt_symbol: bar.close_price for vt_symbol, bar in self.bars.items()}
+            self.rebalance_recorder.record_rebalance(
+                target_date=dt.date(),
+                pos_data=dict(self.strategy.pos_data),
+                target_data=dict(self.strategy.target_data),
+                close_prices=close_prices,
+                sizes=self.sizes,
+                position_date=prev_date or dt.date(),
+                strategy_name=self.strategy.strategy_name,
+            )
+
         self.update_daily_close(self.bars, dt)
+        self.prev_datetime = dt
 
     def cross_order(self) -> None:
         """Match limit orders"""

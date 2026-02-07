@@ -23,7 +23,7 @@ class Alpha101NEW(BaseFeatureSpec):
     DEFAULT_WINDOWS: list[int] = [5, 10, 20, 30]
 
     def register(self, *, windows: list[int] | None = None) -> None:
-        self.require_bars("open", "high", "low", "close", "volume", "vwap")
+        self.require_bars("open", "high", "low", "close", "volume", "vwap", "turnover")
         self.register_all(windows=windows)
 
 

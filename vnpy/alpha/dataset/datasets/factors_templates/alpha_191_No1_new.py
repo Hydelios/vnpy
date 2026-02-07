@@ -18,7 +18,7 @@ class Alpha191NEW(BaseFeatureSpec):
     DEFAULT_WINDOWS: list[int] = [5, 10, 20, 30]
 
     def register(self, *, windows: list[int] | None = None) -> None:
-        self.require_bars("open", "high", "low", "close", "volume", "vwap")
+        self.require_bars("open", "high", "low", "close", "volume", "vwap", "turnover")
         self.register_all(windows=windows)
 
     # ========= 工具：多参数展开 =========
@@ -1498,22 +1498,22 @@ class Alpha191NEW(BaseFeatureSpec):
         # 079:
         # SMA(MAX(CLOSE-DELAY(CLOSE,1),0),12,1)
         # / SMA(ABS(CLOSE-DELAY(CLOSE,1)),12,1) * 100
-        self._add_parametric_feature(
-            base_name="alpha191_079",
-            expr_tpl=(
-                "ts_mean("
-                "  ts_where(close - ts_delay(close, 1) > 0,"
-                "           close - ts_delay(close, 1),"
-                "           0),"
-                "  {w_win}"
-                ")"
-                " / ("
-                "  ts_mean(abs(close - ts_delay(close, 1)), {w_win})"
-                "  + 1e-12"
-                ") * 100"
-            ),
-            param_grid={"w_win": [12]},
-        )
+        # self._add_parametric_feature(
+        #     base_name="alpha191_079",
+        #     expr_tpl=(
+        #         "ts_mean("
+        #         "  ts_where(close - ts_delay(close, 1) > 0,"
+        #         "           close - ts_delay(close, 1),"
+        #         "           0),"
+        #         "  {w_win}"
+        #         ")"
+        #         " / ("
+        #         "  ts_mean(abs(close - ts_delay(close, 1)), {w_win})"
+        #         "  + 1e-12"
+        #         ") * 100"
+        #     ),
+        #     param_grid={"w_win": [12]},
+        # )
 
         # 080: (VOLUME-DELAY(VOLUME,5))/DELAY(VOLUME,5)*100
         self._add_parametric_feature(

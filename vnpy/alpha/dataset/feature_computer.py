@@ -12,9 +12,16 @@ from .utility import calculate_by_expression, calculate_by_polars
 
 
 class FeatureComputer:
-    def __init__(self, *, id_cols: Sequence[str] = ("datetime", "vt_symbol"), join_how: str = "left"):
+    def __init__(
+        self,
+        *,
+        id_cols: Sequence[str] = ("datetime", "vt_symbol"),
+        join_how: str = "left",
+        sort_keys: bool = True,
+    ):
         self.id_cols = list(id_cols)
         self.join_how = join_how
+        self.sort_keys = sort_keys
 
     def compute(
         self,
@@ -73,6 +80,9 @@ class FeatureComputer:
             for _, ext in external_inputs.items():
                 work = work.join(ext, on=self.id_cols, how=self.join_how)
 
+        if self.sort_keys and all(c in work.columns for c in self.id_cols):
+            work = work.sort(self.id_cols)
+
         expr_items = list(expressions.items())
         if expr_items:
             args = [(work, name, expression) for name, expression in expr_items]
@@ -90,6 +100,8 @@ class FeatureComputer:
         if external_outputs:
             for _, ext in external_outputs.items():
                 work = work.join(ext, on=self.id_cols, how=self.join_how)
+            if self.sort_keys and all(c in work.columns for c in self.id_cols):
+                work = work.sort(self.id_cols)
 
         if return_requirements:
             return work, req
