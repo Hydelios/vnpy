@@ -30,6 +30,7 @@ class AlphaLab:
         self.minute_path: Path = self.lab_path.joinpath("minute")
         self.component_path: Path = self.lab_path.joinpath("component")
         self.common_path: Path = self.lab_path.joinpath("common")
+        self.universe_daily_path: Path = self.common_path.joinpath("universe_daily")
 
         # 为不同分钟级别创建子文件夹
         self.minute_1m_path: Path = self.minute_path.joinpath("1m")
@@ -54,12 +55,171 @@ class AlphaLab:
             self.minute_60m_path,
             self.component_path,
             self.common_path,
+            self.universe_daily_path,
             self.dataset_path,
             self.model_path,
             self.signal_path
         ]:
             if not path.exists():
                 path.mkdir(parents=True)
+
+    @staticmethod
+    def _sanitize_universe_id(universe_id: str) -> str:
+        """Sanitize universe id for filesystem path."""
+        return universe_id.replace("/", "__")
+
+    def _get_universe_daily_file_path(self, universe_id: str) -> Path:
+        """Get parquet file path for one universe."""
+        safe_id = self._sanitize_universe_id(universe_id)
+        return self.universe_daily_path.joinpath(f"{safe_id}.parquet")
+
+    def save_universe_daily(
+        self,
+        universe_id: str,
+        df: pl.DataFrame,
+        upsert: bool = True,
+    ) -> None:
+        """Save/Upsert daily universe membership table for one universe."""
+        if df is None or df.is_empty():
+            return
+
+        required = {"datetime", "vt_symbol"}
+        if not required.issubset(set(df.columns)):
+            logger.error("universe_daily 缺少必要列 datetime/vt_symbol")
+            return
+
+        if "weight" not in df.columns:
+            df = df.with_columns(pl.lit(None).cast(pl.Float32).alias("weight"))
+
+        if "universe_id" not in df.columns:
+            df = df.with_columns(pl.lit(universe_id).alias("universe_id"))
+        else:
+            df = df.with_columns(pl.col("universe_id").fill_null(universe_id))
+
+        canonical = df.with_columns(
+            pl.coalesce(
+                [
+                    pl.col("datetime").cast(pl.Utf8).str.strptime(pl.Datetime, "%Y-%m-%d %H:%M:%S", strict=False),
+                    pl.col("datetime").cast(pl.Utf8).str.strptime(pl.Datetime, "%Y-%m-%d", strict=False),
+                    pl.col("datetime").cast(pl.Datetime, strict=False),
+                ]
+            ).alias("datetime"),
+            pl.col("vt_symbol").cast(pl.Utf8),
+            pl.col("universe_id").cast(pl.Utf8),
+            pl.col("weight").cast(pl.Float32, strict=False),
+        ).drop_nulls(subset=["datetime", "vt_symbol", "universe_id"]).select(
+            "datetime",
+            "vt_symbol",
+            "universe_id",
+            "weight",
+        )
+
+        file_path = self._get_universe_daily_file_path(universe_id)
+        if upsert and file_path.exists():
+            old_df = pl.read_parquet(file_path).with_columns(
+                pl.col("datetime").cast(pl.Datetime, strict=False),
+                pl.col("vt_symbol").cast(pl.Utf8),
+                pl.col("universe_id").cast(pl.Utf8),
+                pl.col("weight").cast(pl.Float32, strict=False),
+            )
+            canonical = pl.concat([old_df, canonical], how="vertical")
+
+        canonical = canonical.unique(
+            subset=["datetime", "vt_symbol", "universe_id"],
+            keep="last",
+        ).sort(["datetime", "vt_symbol"])
+        canonical.write_parquet(file_path)
+
+    def load_universe_daily(
+        self,
+        universe_id: str,
+        start: datetime | str | None = None,
+        end: datetime | str | None = None,
+    ) -> pl.DataFrame:
+        """Load universe_daily rows for one universe."""
+        file_path = self._get_universe_daily_file_path(universe_id)
+        if not file_path.exists():
+            return pl.DataFrame(
+                schema={
+                    "datetime": pl.Datetime,
+                    "vt_symbol": pl.Utf8,
+                    "universe_id": pl.Utf8,
+                    "weight": pl.Float32,
+                }
+            )
+
+        df = pl.read_parquet(file_path)
+        if "weight" not in df.columns:
+            df = df.with_columns(pl.lit(None).cast(pl.Float32).alias("weight"))
+        if "universe_id" not in df.columns:
+            df = df.with_columns(pl.lit(universe_id).alias("universe_id"))
+
+        df = df.with_columns(
+            pl.col("datetime").cast(pl.Datetime, strict=False),
+            pl.col("vt_symbol").cast(pl.Utf8),
+            pl.col("universe_id").cast(pl.Utf8),
+            pl.col("weight").cast(pl.Float32, strict=False),
+        )
+        df = df.filter(pl.col("universe_id") == universe_id)
+
+        if start is not None:
+            df = df.filter(pl.col("datetime") >= to_datetime(start))
+        if end is not None:
+            df = df.filter(pl.col("datetime") <= to_datetime(end))
+
+        return df.select(
+            "datetime",
+            "vt_symbol",
+            "universe_id",
+            "weight",
+        ).sort(["datetime", "vt_symbol"])
+
+    def join_universe_mask(
+        self,
+        df: pl.DataFrame,
+        universe_id: str,
+        mask_col: str = "in_universe",
+        weight_col: str = "weight",
+    ) -> pl.DataFrame:
+        """Left-join universe membership and add boolean mask column."""
+        if df is None or df.is_empty():
+            return df
+
+        base = df
+        if mask_col in base.columns:
+            base = base.drop(mask_col)
+        if weight_col and weight_col in base.columns:
+            base = base.drop(weight_col)
+
+        try:
+            start = base["datetime"].min()
+            end = base["datetime"].max()
+        except Exception:
+            start = None
+            end = None
+
+        universe_df = self.load_universe_daily(universe_id, start=start, end=end)
+        if universe_df.is_empty():
+            out = base.with_columns(pl.lit(False).alias(mask_col))
+            if weight_col:
+                out = out.with_columns(pl.lit(None).cast(pl.Float32).alias(weight_col))
+            return out
+
+        if weight_col != "weight":
+            universe_df = universe_df.rename({"weight": weight_col})
+
+        universe_df = universe_df.select(
+            "datetime",
+            "vt_symbol",
+            weight_col,
+        ).with_columns(pl.lit(True).alias(mask_col))
+
+        out = base.join(universe_df, on=["datetime", "vt_symbol"], how="left")
+        out = out.with_columns(
+            pl.col(mask_col).fill_null(False),
+            pl.col(weight_col).cast(pl.Float32, strict=False),
+        )
+        return out
 
     def get_minute_folder_path(self, interval: Interval, interval_value: str = None) -> Path:
         """获取分钟级别数据的文件夹路径"""
@@ -340,17 +500,37 @@ class AlphaLab:
         start = to_datetime(start)
         end = to_datetime(end)
 
-        with shelve.open(str(file_path)) as db:
-            keys: list[str] = list(db.keys())
-            keys.sort()
+        index_components: dict[datetime, list[str]] = {}
+        # shelve 在文件不存在时会自动创建，先做存在性检查避免无意义空文件
+        has_component_store = any(self.component_path.glob(f"{index_symbol}*"))
+        if has_component_store:
+            with shelve.open(str(file_path)) as db:
+                keys: list[str] = list(db.keys())
+                keys.sort()
 
-            index_components: dict[datetime, list[str]] = {}
-            for key in keys:
-                dt: datetime = datetime.strptime(key, "%Y-%m-%d")
-                if start <= dt <= end:
-                    index_components[dt] = db[key]
+                for key in keys:
+                    dt: datetime = datetime.strptime(key, "%Y-%m-%d")
+                    if start <= dt <= end:
+                        index_components[dt] = db[key]
 
+        # 兼容新存储：若旧 component 数据不存在/为空，则回退读取 universe_daily
+        if index_components:
             return index_components
+
+        universe_df = self.load_universe_daily(index_symbol, start=start, end=end)
+        if universe_df.is_empty():
+            return {}
+
+        grouped = universe_df.group_by("datetime").agg(pl.col("vt_symbol")).sort("datetime")
+        for row in grouped.iter_rows(named=True):
+            dt_raw = row["datetime"]
+            if isinstance(dt_raw, datetime):
+                dt = dt_raw.replace(hour=0, minute=0, second=0, microsecond=0)
+            else:
+                dt = to_datetime(dt_raw).replace(hour=0, minute=0, second=0, microsecond=0)
+            index_components[dt] = list(row["vt_symbol"])
+
+        return index_components
 
     def load_component_symbols(
         self,

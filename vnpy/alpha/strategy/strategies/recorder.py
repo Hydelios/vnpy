@@ -10,7 +10,29 @@ import json
 import polars as pl
 
 
+def _normalize_columns(columns: List[Any]) -> List[str]:
+    normalized: List[str] = []
+    seen: set[str] = set()
+
+    for col in columns:
+        if col is None:
+            continue
+
+        name = str(col).strip()
+        if not name or name.lower() == "none":
+            continue
+
+        if name in seen:
+            continue
+
+        seen.add(name)
+        normalized.append(name)
+
+    return normalized
+
+
 def _ensure_columns(df: pl.DataFrame, columns: List[str]) -> pl.DataFrame:
+    columns = _normalize_columns(columns)
     missing = [col for col in columns if col not in df.columns]
     if missing:
         df = df.with_columns([pl.lit(None).alias(col) for col in missing])
@@ -18,6 +40,7 @@ def _ensure_columns(df: pl.DataFrame, columns: List[str]) -> pl.DataFrame:
 
 
 def _empty_df(columns: List[str]) -> pl.DataFrame:
+    columns = _normalize_columns(columns)
     return pl.DataFrame({col: [] for col in columns})
 
 
@@ -405,6 +428,33 @@ class DailyRebalanceRecorder:
             "资金账号",
         ]
 
+        def _extract_row_columns(row: ET.Element, ns: Dict[str, str], shared_strings: List[str]) -> List[str]:
+            cells = {}
+            for c in row.findall("a:c", ns):
+                ref = c.get("r", "")
+                col_ref = "".join([ch for ch in ref if ch.isalpha()])
+                if not col_ref:
+                    continue
+
+                col_idx = 0
+                for ch in col_ref:
+                    col_idx = col_idx * 26 + (ord(ch.upper()) - ord("A") + 1)
+
+                v = c.find("a:v", ns)
+                if v is None:
+                    value = None
+                else:
+                    value = v.text
+                    if c.get("t") == "s":
+                        try:
+                            value = shared_strings[int(value)]
+                        except Exception:
+                            pass
+                cells[col_idx] = value
+
+            ordered_values = [cells[i] for i in sorted(cells.keys())]
+            return _normalize_columns(ordered_values)
+
         try:
             if not self.position_template_path.exists():
                 self.position_columns = default_columns
@@ -425,34 +475,20 @@ class DailyRebalanceRecorder:
                 sheet_data = zf.read("xl/worksheets/sheet1.xml")
                 root = ET.fromstring(sheet_data)
                 ns = {"a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
-                row = root.find("a:sheetData/a:row[@r='5']", ns)
-                if row is None:
-                    self.position_columns = default_columns
-                    return self.position_columns
+                rows = root.findall("a:sheetData/a:row", ns)
 
-                cells = {}
-                for c in row.findall("a:c", ns):
-                    ref = c.get("r", "")
-                    col_ref = "".join([ch for ch in ref if ch.isalpha()])
-                    if not col_ref:
+                columns: List[str] = []
+                for row in rows[:80]:
+                    row_columns = _extract_row_columns(row, ns, shared_strings)
+                    if not row_columns:
                         continue
-                    col_idx = 0
-                    for ch in col_ref:
-                        col_idx = col_idx * 26 + (ord(ch.upper()) - ord("A") + 1)
 
-                    v = c.find("a:v", ns)
-                    if v is None:
-                        value = None
-                    else:
-                        value = v.text
-                        if c.get("t") == "s":
-                            try:
-                                value = shared_strings[int(value)]
-                            except Exception:
-                                pass
-                    cells[col_idx] = value
+                    has_code = "证券代码" in row_columns or "万得代码" in row_columns
+                    has_qty = "持仓数量" in row_columns or "数量" in row_columns
+                    if has_code and has_qty:
+                        columns = row_columns
+                        break
 
-                columns = [cells[i] for i in sorted(cells.keys()) if cells[i]]
                 self.position_columns = columns or default_columns
         except Exception:
             self.position_columns = default_columns
