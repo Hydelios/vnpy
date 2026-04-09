@@ -361,7 +361,7 @@ class DailyRebalanceRecorder:
 
     def __init__(
         self,
-        output_dir: str = "rebalance_records",
+        output_dir: str = "rebalance_records/results",
         save_empty: bool = True,
         account_id: str | None = None,
         asset_unit: str | None = None,
@@ -371,7 +371,6 @@ class DailyRebalanceRecorder:
         rebalance_template: str | None = None,
     ):
         self.output_dir = Path(output_dir)
-        self.output_dir: Path = self.output_dir.joinpath("results")
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         self.save_empty: bool = save_empty

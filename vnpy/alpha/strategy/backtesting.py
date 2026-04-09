@@ -114,7 +114,7 @@ class BacktestingEngine:
 
     def set_rebalance_recording(
         self,
-        output_dir: str = "rebalance_records",
+        output_dir: str = "rebalance_records/results",
         save_empty: bool = True,
         account_id: str | None = None,
         direction_map: dict[str, str] | None = None,
