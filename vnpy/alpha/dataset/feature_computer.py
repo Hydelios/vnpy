@@ -18,10 +18,12 @@ class FeatureComputer:
         id_cols: Sequence[str] = ("datetime", "vt_symbol"),
         join_how: str = "left",
         sort_keys: bool = True,
+        interval: str | None = None,
     ):
         self.id_cols = list(id_cols)
         self.join_how = join_how
         self.sort_keys = sort_keys
+        self.interval = interval
 
     def compute(
         self,
@@ -85,7 +87,7 @@ class FeatureComputer:
 
         expr_items = list(expressions.items())
         if expr_items:
-            args = [(work, name, expression) for name, expression in expr_items]
+            args = [(work, name, expression, self.interval) for name, expression in expr_items]
             if max_workers and max_workers > 0:
                 context = get_context("spawn")
                 with context.Pool(processes=max_workers) as pool:
@@ -108,16 +110,20 @@ class FeatureComputer:
         return work
 
 
-def calculate_feature(args: tuple[pl.DataFrame, str, str | pl.expr.expr.Expr]) -> pl.Series:
+def calculate_feature(args: tuple) -> pl.Series:
     start = time.time()
 
-    df, name, expression = args
+    if len(args) == 3:
+        df, name, expression = args
+        interval = None
+    else:
+        df, name, expression, interval = args
 
     try:
         if isinstance(expression, pl.expr.expr.Expr):
             result = calculate_by_polars(df, expression)["data"].alias(name)
         else:
-            result = calculate_by_expression(df, expression)["data"].alias(name)
+            result = calculate_by_expression(df, expression, interval=interval)["data"].alias(name)
     except Exception as e:
         expr_text = str(expression)
         print(f"[FeatureError] name={name} | expr={expr_text} | err={e}")

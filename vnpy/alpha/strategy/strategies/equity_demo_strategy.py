@@ -18,7 +18,7 @@ class EquityDemoStrategy(AlphaStrategy):
     hold_thresh: int = 3            # Minimum holding period in days per stock
     cash_ratio: float = 0.95        # Cash utilization ratio
     min_volume: int = 100           # Minimum trading unit
-    open_rate: float = 0.0003       # Opening commission rate
+    open_rate: float = 0.0005       # Opening commission rate
     close_rate: float = 0.0015      # Closing commission rate
     min_commission: int = 5         # Minimum commission value
     price_add: float = 0.02         # Order price adjustment ratio

@@ -78,6 +78,7 @@ class AlphaLab:
         universe_id: str,
         df: pl.DataFrame,
         upsert: bool = True,
+        replace_range: bool = False,
     ) -> None:
         """Save/Upsert daily universe membership table for one universe."""
         if df is None or df.is_empty():
@@ -122,6 +123,14 @@ class AlphaLab:
                 pl.col("universe_id").cast(pl.Utf8),
                 pl.col("weight").cast(pl.Float32, strict=False),
             )
+            if replace_range:
+                start_dt = canonical["datetime"].min()
+                end_dt = canonical["datetime"].max()
+                old_df = old_df.filter(
+                    (pl.col("universe_id") != universe_id)
+                    | (pl.col("datetime") < start_dt)
+                    | (pl.col("datetime") > end_dt)
+                )
             canonical = pl.concat([old_df, canonical], how="vertical")
 
         canonical = canonical.unique(
@@ -285,7 +294,8 @@ class AlphaLab:
 
             new_df = pl.concat([old_df, new_df])
 
-            new_df = new_df.unique(subset=["datetime"])
+            # 单文件对应单个 vt_symbol，按 datetime 去重即可；保留新下载值覆盖旧值。
+            new_df = new_df.unique(subset=["datetime"], keep="last")
 
             new_df = new_df.sort("datetime")
 
@@ -487,41 +497,39 @@ class AlphaLab:
         with shelve.open(str(file_path)) as db:
             db.update(index_components)
 
-    @lru_cache      # noqa
-    def load_component_data(
+    def _load_component_data_from_universe_daily(
         self,
         index_symbol: str,
-        start: datetime | str,
-        end: datetime | str
+        start: datetime,
+        end: datetime,
     ) -> dict[datetime, list[str]]:
-        """Load index component data as DataFrame"""
-        file_path: Path = self.component_path.joinpath(f"{index_symbol}")
-
-        start = to_datetime(start)
-        end = to_datetime(end)
-
-        index_components: dict[datetime, list[str]] = {}
-        # shelve 在文件不存在时会自动创建，先做存在性检查避免无意义空文件
-        has_component_store = any(self.component_path.glob(f"{index_symbol}*"))
-        if has_component_store:
-            with shelve.open(str(file_path)) as db:
-                keys: list[str] = list(db.keys())
-                keys.sort()
-
-                for key in keys:
-                    dt: datetime = datetime.strptime(key, "%Y-%m-%d")
-                    if start <= dt <= end:
-                        index_components[dt] = db[key]
-
-        # 兼容新存储：若旧 component 数据不存在/为空，则回退读取 universe_daily
-        if index_components:
-            return index_components
-
-        universe_df = self.load_universe_daily(index_symbol, start=start, end=end)
-        if universe_df.is_empty():
+        """Load component membership from parquet-backed universe_daily."""
+        file_path = self._get_universe_daily_file_path(index_symbol)
+        if not file_path.exists():
             return {}
 
-        grouped = universe_df.group_by("datetime").agg(pl.col("vt_symbol")).sort("datetime")
+        lf = pl.scan_parquet(file_path)
+        schema_names = set(lf.collect_schema().names())
+
+        lf = lf.with_columns(
+            pl.col("datetime").cast(pl.Datetime, strict=False),
+            pl.col("vt_symbol").cast(pl.Utf8),
+        ).drop_nulls(["datetime", "vt_symbol"])
+
+        if "universe_id" in schema_names:
+            lf = lf.filter(pl.col("universe_id").cast(pl.Utf8) == index_symbol)
+
+        lf = lf.filter(
+            (pl.col("datetime") >= start)
+            & (pl.col("datetime") <= end)
+        ).select("datetime", "vt_symbol").sort(["datetime", "vt_symbol"])
+
+        df = lf.collect()
+        if df.is_empty():
+            return {}
+
+        index_components: dict[datetime, list[str]] = {}
+        grouped = df.group_by("datetime").agg(pl.col("vt_symbol")).sort("datetime")
         for row in grouped.iter_rows(named=True):
             dt_raw = row["datetime"]
             if isinstance(dt_raw, datetime):
@@ -532,17 +540,29 @@ class AlphaLab:
 
         return index_components
 
+    @lru_cache      # noqa
+    def load_component_data(
+        self,
+        index_symbol: str,
+        start: datetime | str,
+        end: datetime | str,
+    ) -> dict[datetime, list[str]]:
+        """Load index component data as DataFrame"""
+        start = to_datetime(start)
+        end = to_datetime(end)
+        return self._load_component_data_from_universe_daily(index_symbol, start, end)
+
     def load_component_symbols(
         self,
         index_symbol: str,
         start: datetime | str,
-        end: datetime | str
+        end: datetime | str,
     ) -> list[str]:
         """Collect index component symbols"""
         index_components: dict[datetime, list[str]] = self.load_component_data(
             index_symbol,
             start,
-            end
+            end,
         )
 
         component_symbols: set[str] = set()
@@ -556,13 +576,13 @@ class AlphaLab:
         self,
         index_symbol: str,
         start: datetime | str,
-        end: datetime | str
+        end: datetime | str,
     ) -> dict[str, list[tuple[datetime, datetime]]]:
         """Collect index component duration filters"""
         index_components: dict[datetime, list[str]] = self.load_component_data(
             index_symbol,
             start,
-            end
+            end,
         )
 
         # Get all trading dates and sort

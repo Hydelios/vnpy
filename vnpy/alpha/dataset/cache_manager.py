@@ -251,7 +251,7 @@ class FactorCacheManager:
                 else:
                     # 多进程计算
                     args_list = [
-                        (accumulated_df, name, expressions[name])
+                        (accumulated_df, name, expressions[name], self.interval)
                         for name in factors_to_calculate
                     ]
                     
@@ -306,7 +306,7 @@ class FactorCacheManager:
         if isinstance(expression, pl.expr.expr.Expr):
             result = calculate_by_polars(df, expression)["data"]
         else:
-            result = calculate_by_expression(df, expression)["data"]
+            result = calculate_by_expression(df, expression, interval=self.interval)["data"]
         return result
     
     def clear_cache(self) -> None:
@@ -329,7 +329,9 @@ class FactorCacheManager:
                 logger.warning(f"清理临时缓存目录失败: {e}")
 
 
-def _calculate_factor_wrapper(args: Tuple[pl.DataFrame, str, Union[str, pl.expr.expr.Expr]]) -> Tuple[str, pl.Series]:
+def _calculate_factor_wrapper(
+    args: Tuple[pl.DataFrame, str, Union[str, pl.expr.expr.Expr], str | None],
+) -> Tuple[str, pl.Series]:
     """
     多进程计算的包装函数
     
@@ -343,11 +345,11 @@ def _calculate_factor_wrapper(args: Tuple[pl.DataFrame, str, Union[str, pl.expr.
     Tuple[str, pl.Series]
         (因子名称, 计算结果)
     """
-    df, name, expression = args
+    df, name, expression, interval = args
     
     if isinstance(expression, pl.expr.expr.Expr):
         result = calculate_by_polars(df, expression)["data"]
     else:
-        result = calculate_by_expression(df, expression)["data"]
+        result = calculate_by_expression(df, expression, interval=interval)["data"]
     
     return name, result

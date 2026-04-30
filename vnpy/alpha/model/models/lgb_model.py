@@ -1,3 +1,4 @@
+import os
 from typing import cast, Any
 
 import numpy as np
@@ -145,11 +146,17 @@ class LgbModel(AlphaModel):
         # 按 Gain 排序，通常 Gain 对量化更有意义
         df = df.sort_values('Importance_Gain', ascending=False).reset_index(drop=True)
         
-        # 简单画个图 (可选)
-        try:
-            lgb.plot_importance(self.model, max_num_features=20, importance_type='gain', title='Feature Importance (Gain)')
-            plt.show()
-        except Exception:
-            pass # 防止无界面环境下报错
+        # 默认不在 detail() 里绘图，避免无界面/批处理环境被 Qt 后端中断。
+        if os.environ.get("VNPY_LGBM_PLOT_IMPORTANCE", "").strip() == "1":
+            try:
+                lgb.plot_importance(
+                    self.model,
+                    max_num_features=20,
+                    importance_type='gain',
+                    title='Feature Importance (Gain)',
+                )
+                plt.show()
+            except Exception:
+                pass
 
         return df

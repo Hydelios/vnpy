@@ -169,7 +169,7 @@ def ts_log_prod(feature: DataProxy,
 
     参数
     ----
-    feature      : DataProxy(["datetime", by, "value"])
+    feature      : DataProxy(["datetime", "vt_symbol", "data"])
     window       : int, 滚动窗口
     mode         : {"strict","clip","skipna"}
     eps          : float, 在 clip 模式下用于下限裁剪
@@ -178,20 +178,21 @@ def ts_log_prod(feature: DataProxy,
 
     返回
     ----
-    DataProxy(["datetime", by, "value"])
+    DataProxy(["datetime", "vt_symbol", "data"])
     """
-    df = feature.data
+    df = feature.df.with_columns(pl.col("data").cast(pl.Float64).alias("data"))
+    invalid = pl.col("data").is_null() | pl.col("data").is_nan() | (pl.col("data") <= 0)
 
     if mode == "strict":
         # 标记非正/NaN
         flags = (
             df.with_columns([
-                pl.when(pl.col("value").is_null() | (pl.col("value") <= 0))
+                pl.when(invalid)
                   .then(1).otherwise(0).alias("_bad")
             ])
             .with_columns([
-                pl.col("_bad").rolling_sum(window_size=window, min_periods=min_samples).over(by).alias("_bad_win"),
-                pl.col("value").log().rolling_sum(window_size=window, min_periods=min_samples).over(by).alias("_logsum")
+                pl.col("_bad").rolling_sum(window_size=window, min_samples=min_samples).over(by).alias("_bad_win"),
+                pl.col("data").log().rolling_sum(window_size=window, min_samples=min_samples).over(by).alias("_logsum")
             ])
         )
         res = (
@@ -199,50 +200,50 @@ def ts_log_prod(feature: DataProxy,
                 pl.when(pl.col("_bad_win") > 0)
                   .then(None)                      # 严格：窗口内有坏值 → NaN
                   .otherwise(pl.col("_logsum").exp())
-                  .alias("value")
+                  .alias("data")
             ])
-            .select(["datetime", by, "value"])
+            .select(["datetime", "vt_symbol", "data"])
         )
 
     elif mode == "clip":
         # 非正或NaN 用 eps 替换，再求 log-sum-exp
         safe = df.with_columns([
-            pl.when(pl.col("value").is_null() | (pl.col("value") <= 0))
-              .then(eps).otherwise(pl.col("value")).alias("_v")
+            pl.when(invalid)
+              .then(eps).otherwise(pl.col("data")).alias("_v")
         ])
         res = (
             safe.with_columns([
-                pl.col("_v").log().rolling_sum(window_size=window, min_periods=min_samples).over(by).alias("_logsum")
+                pl.col("_v").log().rolling_sum(window_size=window, min_samples=min_samples).over(by).alias("_logsum")
             ])
             .with_columns([
-                pl.col("_logsum").exp().alias("value")
+                pl.col("_logsum").exp().alias("data")
             ])
-            .select(["datetime", by, "value"])
+            .select(["datetime", "vt_symbol", "data"])
         )
 
     elif mode == "skipna":
         # 仅对 x>0 的项求和，并统计有效个数；若窗口内有效计数=0 → NaN
         safe = df.with_columns([
-            pl.when(pl.col("value").is_not_null() & (pl.col("value") > 0))
-              .then(pl.col("value").log())
+            pl.when(pl.col("data").is_not_null() & ~pl.col("data").is_nan() & (pl.col("data") > 0))
+              .then(pl.col("data").log())
               .otherwise(None)
               .alias("_logv"),
-            pl.when(pl.col("value").is_not_null() & (pl.col("value") > 0))
+            pl.when(pl.col("data").is_not_null() & ~pl.col("data").is_nan() & (pl.col("data") > 0))
               .then(1).otherwise(0)
               .alias("_cnt")
         ])
         res = (
             safe.with_columns([
-                pl.col("_logv").rolling_sum(window_size=window, min_periods=min_samples).over(by).alias("_logsum"),
-                pl.col("_cnt").rolling_sum(window_size=window, min_periods=min_samples).over(by).alias("_cntsum"),
+                pl.col("_logv").rolling_sum(window_size=window, min_samples=min_samples).over(by).alias("_logsum"),
+                pl.col("_cnt").rolling_sum(window_size=window, min_samples=min_samples).over(by).alias("_cntsum"),
             ])
             .with_columns([
                 pl.when(pl.col("_cntsum") > 0)
                   .then(pl.col("_logsum").exp())
                   .otherwise(None)
-                  .alias("value")
+                  .alias("data")
             ])
-            .select(["datetime", by, "value"])
+            .select(["datetime", "vt_symbol", "data"])
         )
 
     else:
@@ -269,7 +270,7 @@ def ts_ema(feature: DataProxy, span: int, adjust: bool = False) -> DataProxy:
     return ts_ewm(feature, alpha=alpha, adjust=adjust)
 
 
-def ts_direction(feature: DataProxy, by: str = "vt_symbol"):
+def ts_direction(feature: DataProxy, by: str = "vt_symbol") -> DataProxy:
     """
     时间序列方向变化算子：
       - 对每个标的（by 分组）计算一阶差分方向
@@ -279,26 +280,33 @@ def ts_direction(feature: DataProxy, by: str = "vt_symbol"):
     参数
     ----
     feature : DataProxy
-        包含 ["datetime", by, "value"] 的时间序列因子
+        包含 ["datetime", "vt_symbol", "data"] 的时间序列因子
     by : str, 默认 "vt_symbol"
         分组列名，一般是股票代码或标的ID
 
     返回
     ----
-    DataProxy : 与输入结构相同，value 为 {-1, 0, +1}
+    DataProxy : 与输入结构相同，data 为 {-1, 0, +1}
     """
-    df = feature.data
+    df = feature.df
 
     result = (
         df.with_columns([
             # 一阶差分（按标的分组）
-            (pl.col("value") - pl.col("value").shift(1).over(by)).alias("_diff")
+            (pl.col("data").cast(pl.Float64) - pl.col("data").cast(pl.Float64).shift(1).over(by)).alias("_diff")
         ])
         .with_columns([
             # 取符号
-            pl.sign(pl.col("_diff")).alias("value")
+            pl.when(pl.col("_diff").is_null() | pl.col("_diff").is_nan())
+              .then(None)
+              .when(pl.col("_diff") > 0)
+              .then(1)
+              .when(pl.col("_diff") < 0)
+              .then(-1)
+              .otherwise(0)
+              .alias("data")
         ])
-        .select(["datetime", by, "value"])
+        .select(["datetime", "vt_symbol", "data"])
     )
 
     return DataProxy(result)
@@ -450,4 +458,3 @@ def ts_winsor(
     )
 
     return DataProxy(clipped)
-

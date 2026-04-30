@@ -352,7 +352,10 @@ class BacktestingEngine:
             else:
                 sharpe_ratio = 0
 
-            return_drawdown_ratio = -total_net_pnl / max_drawdown
+            if max_drawdown:
+                return_drawdown_ratio = -total_net_pnl / max_drawdown
+            else:
+                return_drawdown_ratio = 0
 
         # Output results
         logger.info("-" * 30)

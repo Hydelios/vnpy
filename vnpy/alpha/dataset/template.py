@@ -130,7 +130,10 @@ class AlphaDataset:
 
             logger.info("开始计算表达式因子特征")
 
-            args: list[tuple] = [(self.df, name, expression) for name, expression in expressions]
+            args: list[tuple] = [
+                (self.df, name, expression, self.interval)
+                for name, expression in expressions
+            ]
 
             if max_workers and max_workers > 0:
                 context: BaseContext = get_context("spawn")
@@ -156,7 +159,11 @@ class AlphaDataset:
         if isinstance(self.label_expression, pl.expr.expr.Expr):
             label_result = calculate_by_polars(self.result_df, self.label_expression)["data"].alias("label")
         else:
-            label_result = calculate_by_expression(self.result_df, self.label_expression)["data"].alias("label")
+            label_result = calculate_by_expression(
+                self.result_df,
+                self.label_expression,
+                interval=self.interval,
+            )["data"].alias("label")
         self.result_df = self.result_df.with_columns(label_result)
 
     def merge_feature_results(self) -> None:
@@ -176,7 +183,10 @@ class AlphaDataset:
         """
         # rebuild_views(filters=...) 的常见诉求是：基于已存在的 raw_df 做成分股区间过滤，
         # 而不是每次都从宽表 result_df 重新过滤（会非常慢，且在加载 parquet 后 df.width 不一定可靠）。
-        raw_df = self.raw_df.fill_null(float("nan"))
+        source_df = getattr(self, "raw_df", None)
+        if source_df is None:
+            source_df = self.result_df
+        raw_df = source_df.fill_null(float("nan"))
 
         if filters:
             logger.info("开始筛选成分股数据")
@@ -408,19 +418,23 @@ def query_by_time(df: pl.DataFrame, start: datetime | str = "", end: datetime | 
     return df.sort(["datetime", "vt_symbol"])
 
 
-def calculate_feature(args: tuple[pl.DataFrame, str, str | pl.expr.expr.Expr]) -> pl.Series:
+def calculate_feature(args: tuple) -> pl.Series:
     """
     Calculate feature by expression
     """
     start = time.time()
 
-    df, name, expression = args
+    if len(args) == 3:
+        df, name, expression = args
+        interval = None
+    else:
+        df, name, expression, interval = args
 
     try:
         if isinstance(expression, pl.expr.expr.Expr):
             result = calculate_by_polars(df, expression)["data"].alias(name)
         else:
-            result = calculate_by_expression(df, expression)["data"].alias(name)
+            result = calculate_by_expression(df, expression, interval=interval)["data"].alias(name)
     except Exception as e:
         # 打印出错因子的名称与表达式，便于快速定位
         expr_text = str(expression)

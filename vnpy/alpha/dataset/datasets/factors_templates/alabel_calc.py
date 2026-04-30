@@ -48,6 +48,8 @@ class LabelStrategy(BaseAlphaStrategy):
         self.add_feature("label_o2o_h3", f"ts_delay(open, -4) / ts_delay(open, -1) - 1")
         # 辅助 Label (5天收益)：T+1买，T+6卖 (偏移 -6)
         self.add_feature("label_o2o_h5", f"ts_delay(open, -6) / ts_delay(open, -1) - 1")
+        # 辅助 Label (7天收益)：T+1买，T+8卖 (偏移 -8)
+        self.add_feature("label_o2o_h7", f"ts_delay(open, -8) / ts_delay(open, -1) - 1")
 
         # =========================================================
         # close to close 收益率计算
