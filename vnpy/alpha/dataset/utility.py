@@ -432,11 +432,51 @@ def calculate_by_expression(
         cs_zscore_by_category,
         cs_neutralize_ols1,
     )
+    from .dolphindb_compat_function import (    # noqa
+        iif,
+        sign,
+        move,
+        ratios,
+        rowRank,
+        msum,
+        mavg,
+        mstd,
+        mcorr,
+        mcovar,
+        mcov,
+        mbeta,
+        mmin,
+        mmax,
+        mcount,
+        mprod,
+        mfirst,
+        mrank,
+        mimin,
+        mimax,
+        elem_min,
+        elem_max,
+        ddb_min,
+        ddb_max,
+        rowMax,
+        rowMin,
+        rollingOlsResidual3,
+        rolling_ols_residual3,
+        conditionalCumprod,
+        conditional_cumprod,
+        signedPower,
+        signed_power,
+        linearTimeTrend,
+        linear_time_trend,
+    )
 
     # Backward-compatibility aliases for expression strings
     # 一些历史模板中使用 log(...)，这里兼容为 ts_log
     d: dict = locals()
     d["log"] = ts_log  # type: ignore
+    d["true"] = True
+    d["false"] = False
+    d["NULL"] = float("nan")
+    d["null"] = float("nan")
     d["ewmMean"] = ewmMean
     d["ewmVar"] = ts_ewm_var
     d["ewmStd"] = ts_ewm_std
