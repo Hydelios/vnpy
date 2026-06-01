@@ -425,6 +425,11 @@ def calculate_by_expression(
         ts_state_iterate,
         ts_conditional_iterate,
     )
+    from .stateful_ext_function import (  # noqa
+        ts_rolling_ols_residual,
+        ts_rolling_ols_residual_corr,
+        ts_corr_quantile_mask,
+    )
     from .neutralize_function import (      # noqa
         cs_demean,
         cs_zscore,

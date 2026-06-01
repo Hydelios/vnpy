@@ -217,6 +217,8 @@ class LgbModel(AlphaModel):
         weight_window: int = 20,
         weight_lag: int = 1,
         weight_transform: WeightTransform = "sqrt",
+        extra_trees: bool = False,
+        feature_fraction_bynode: float | None = None,
     ) -> None:
         if objective != "regression":
             raise ValueError("lgb_model_mod.py 当前仅保留 'regression' 功能")
@@ -277,6 +279,10 @@ class LgbModel(AlphaModel):
             self.params["metric"] = "None"
         if min_data_in_leaf is not None:
             self.params["min_data_in_leaf"] = int(min_data_in_leaf)
+        if extra_trees:
+            self.params["extra_trees"] = True
+        if feature_fraction_bynode is not None:
+            self.params["feature_fraction_bynode"] = float(feature_fraction_bynode)
 
         if use_gpu:
             self.params["device_type"] = "gpu"

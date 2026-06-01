@@ -36,6 +36,8 @@ class LgbModel(AlphaModel):
         reg_lambda: float = 0.1,            # [新增] L2 正则化
         log_evaluation_period: int = 20,
         seed: int = 42,
+        extra_trees: bool = False,
+        feature_fraction_bynode: float | None = None,
         use_gpu: bool = True  # 默认尝试开启 GPU
     ):
         self.params: dict[str, Any] = {
@@ -54,6 +56,10 @@ class LgbModel(AlphaModel):
             "seed": seed,
             "num_threads": -1,                 # 建议用 num_threads（而不是 n_jobs）
         }
+        if extra_trees:
+            self.params["extra_trees"] = True
+        if feature_fraction_bynode is not None:
+            self.params["feature_fraction_bynode"] = feature_fraction_bynode
 
         if use_gpu:
             # 走 OpenCL GPU（你已验证 clinfo 平台/设备存在）
