@@ -83,6 +83,7 @@ ICBM_REBALANCE_COLUMNS = [
     "*指令数量",
     "*指令金额",
     "*交易市场",
+    "*投资类型",
     "指令价格相对昨收盘增幅(%)",
 ]
 
@@ -369,6 +370,7 @@ class DailyRebalanceRecorder:
         market_map: Dict[str, str] | None = None,
         position_template_path: str | None = None,
         rebalance_template: str | None = None,
+        rebalance_file_prefix: str | None = None,
     ):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -382,6 +384,7 @@ class DailyRebalanceRecorder:
         self.rebalance_template: str = (rebalance_template or "icbm").lower()
         if self.rebalance_template not in {"icbm", "o32"}:
             raise ValueError(f"未知调仓模板类型: {self.rebalance_template}")
+        self.rebalance_file_prefix: str = rebalance_file_prefix or "rebalance"
 
         if position_template_path:
             self.position_template_path = Path(position_template_path)
@@ -575,6 +578,7 @@ class DailyRebalanceRecorder:
                     "*指令数量": None,
                     "*指令金额": amount,
                     "*交易市场": self._to_market_code(vt_symbol),
+                    "*投资类型": "1",
                     "指令价格相对昨收盘增幅(%)": None,
                 }
             records.append(record)
@@ -634,9 +638,9 @@ class DailyRebalanceRecorder:
             for col in asset_cols:
                 positions_df = positions_df.with_columns(pl.lit(self.asset_unit).alias(col))
 
-        rebalance_path = self.output_dir / f"rebalance_{target_date.strftime('%Y%m%d')}.xlsx"
-        rebalance_buy_path = self.output_dir / f"rebalance_buy_{target_date.strftime('%Y%m%d')}.xlsx"
-        rebalance_sell_path = self.output_dir / f"rebalance_sell_{target_date.strftime('%Y%m%d')}.xlsx"
+        rebalance_path = self.output_dir / f"{self.rebalance_file_prefix}_{target_date.strftime('%Y%m%d')}.xlsx"
+        rebalance_buy_path = self.output_dir / f"{self.rebalance_file_prefix}_buy_{target_date.strftime('%Y%m%d')}.xlsx"
+        rebalance_sell_path = self.output_dir / f"{self.rebalance_file_prefix}_sell_{target_date.strftime('%Y%m%d')}.xlsx"
         position_path = self.output_dir / f"position_{position_date.strftime('%Y%m%d')}.xlsx"
 
         if self.save_empty or records:
