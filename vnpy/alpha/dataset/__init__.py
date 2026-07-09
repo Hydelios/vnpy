@@ -12,6 +12,7 @@ from .processor import (
     process_cs_neutralize_by_category,
     process_industry_neutralize
 )
+from .processor_post import neutralize_columns, neutralize_label_columns
 
 
 __all__ = [
@@ -27,5 +28,7 @@ __all__ = [
     "process_cs_neutralize_ols",
     "process_cap_neutralize",
     "process_cs_neutralize_by_category",
-    "process_industry_neutralize"
+    "process_industry_neutralize",
+    "neutralize_columns",
+    "neutralize_label_columns",
 ]

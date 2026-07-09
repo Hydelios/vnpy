@@ -284,7 +284,8 @@ def calculate_by_expression(
     from .cs_function import (              # noqa
         cs_rank,
         cs_mean,
-        cs_std
+        cs_std,
+        cs_sum,
     )
     from .ta_function import (              # noqa
         ta_rsi,
@@ -325,6 +326,16 @@ def calculate_by_expression(
         ts_winsor,
         cs_pct_rank,
         cs_scale,
+        rq_rank,
+        rq_ts_rank,
+        rq_ts_std,
+        rq_ts_argmax,
+        rq_ts_argmin,
+        rq_min,
+        rq_max,
+        rq_as_float,
+        rq_sign,
+        rq_indneutralize,
         ts_highday,
         ts_lowday,
     )
@@ -340,6 +351,9 @@ def calculate_by_expression(
         ts_last,
         ts_wsum,
         ts_wavg,
+        ts_mdd,
+        ts_avedev,
+        rq_dma,
         ts_beta,
         ts_ffill,
         ts_ratio,

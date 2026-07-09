@@ -416,6 +416,223 @@ def cs_pct_rank(feature: DataProxy) -> DataProxy:
     return DataProxy(df)
 
 
+def rq_rank(feature: DataProxy) -> DataProxy:
+    """RiceQuant/WorldQuant cross-sectional rank in percentile scale."""
+    data = pl.col("data").cast(pl.Float64, strict=False)
+    valid = data.is_not_null() & data.is_finite()
+    clean = pl.when(valid).then(data).otherwise(None)
+    n = valid.cast(pl.Int32).sum().over("datetime")
+    rank = clean.rank(method="average").over("datetime")
+
+    df: pl.DataFrame = feature.df.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        pl.when(n > 0).then(rank / n).otherwise(None).alias("data"),
+    )
+    return DataProxy(df)
+
+
+def rq_ts_rank(feature: DataProxy, window: int | float) -> DataProxy:
+    """RiceQuant/WorldQuant time-series rank.
+
+    RQ defines TS_RANK as the current value's rank divided by the valid sample
+    count in the rolling window. For example, if N=5 and the current value ranks
+    third, the result is 3 / 5 = 0.6.
+    """
+    size = int(round(float(window)))
+    size = max(1, size)
+
+    def _pct_rank(series: pl.Series) -> float:
+        values = series.to_numpy()
+        current = values[-1]
+        if current is None or not np.isfinite(current):
+            return float("nan")
+        valid = values[np.isfinite(values)]
+        if len(valid) == 0:
+            return float("nan")
+        less = float(np.sum(valid < current))
+        equal = float(np.sum(valid == current))
+        rank = less + (equal + 1.0) / 2.0
+        return float(rank / len(valid))
+
+    df: pl.DataFrame = feature.df.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        pl.col("data")
+        .cast(pl.Float64, strict=False)
+        .rolling_map(_pct_rank, size)
+        .over("vt_symbol")
+        .alias("data"),
+    )
+    return DataProxy(df)
+
+
+def rq_ts_std(feature: DataProxy, window: int | float) -> DataProxy:
+    """RiceQuant/TA-Lib style rolling STDDEV with population ddof=0."""
+    size = int(round(float(window)))
+    size = max(1, size)
+    df: pl.DataFrame = feature.df.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        pl.col("data")
+        .cast(pl.Float64, strict=False)
+        .rolling_std(window_size=size, min_samples=size, ddof=0)
+        .over("vt_symbol")
+        .alias("data"),
+    )
+    return DataProxy(df)
+
+
+def rq_ts_argmax(feature: DataProxy, window: int | float) -> DataProxy:
+    """RiceQuant/TA-Lib style rolling MAXINDEX.
+
+    Returns the 0-based absolute row index of the maximum value within the
+    rolling window for each symbol, matching TA-Lib MAXINDEX semantics after
+    the warmup period.
+    """
+    size = int(round(float(window)))
+    size = max(1, size)
+
+    def _argmax(series: pl.Series) -> float:
+        values = series.to_numpy()
+        if not np.isfinite(values).any():
+            return float("nan")
+        return float(np.nanargmax(values))
+
+    work = feature.df.with_columns(pl.int_range(0, pl.len()).over("vt_symbol").alias("_rq_index"))
+    df: pl.DataFrame = work.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        (
+            pl.col("data")
+            .cast(pl.Float64, strict=False)
+            .rolling_map(_argmax, size)
+            .over("vt_symbol")
+            + pl.col("_rq_index")
+            - size
+            + 1
+        ).alias("data"),
+    )
+    return DataProxy(df)
+
+
+def rq_ts_argmin(feature: DataProxy, window: int | float) -> DataProxy:
+    """RiceQuant/TA-Lib style rolling MININDEX.
+
+    Returns the 0-based absolute row index of the minimum value within the
+    rolling window for each symbol, matching TA-Lib MININDEX semantics after
+    the warmup period.
+    """
+    size = int(round(float(window)))
+    size = max(1, size)
+
+    def _argmin(series: pl.Series) -> float:
+        values = series.to_numpy()
+        if not np.isfinite(values).any():
+            return float("nan")
+        return float(np.nanargmin(values))
+
+    work = feature.df.with_columns(pl.int_range(0, pl.len()).over("vt_symbol").alias("_rq_index"))
+    df: pl.DataFrame = work.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        (
+            pl.col("data")
+            .cast(pl.Float64, strict=False)
+            .rolling_map(_argmin, size)
+            .over("vt_symbol")
+            + pl.col("_rq_index")
+            - size
+            + 1
+        ).alias("data"),
+    )
+    return DataProxy(df)
+
+
+def rq_min(feature1: DataProxy, feature2: DataProxy | float | int) -> DataProxy:
+    """Strict element-wise minimum matching RQ MIN.
+
+    Unlike FMIN, if either side is missing/NaN the result is missing.
+    """
+    if isinstance(feature2, DataProxy):
+        base = feature1.df.join(feature2.df.rename({"data": "data_right"}), on=["datetime", "vt_symbol"], how="inner")
+    else:
+        base = feature1.df.with_columns(pl.lit(float(feature2)).alias("data_right"))
+
+    left = pl.col("data").cast(pl.Float64, strict=False)
+    right = pl.col("data_right").cast(pl.Float64, strict=False)
+    invalid = left.is_null() | right.is_null() | left.is_nan() | right.is_nan()
+    df: pl.DataFrame = base.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        pl.when(invalid).then(None).otherwise(pl.min_horizontal(left, right)).alias("data"),
+    )
+    return DataProxy(df)
+
+
+def rq_max(feature1: DataProxy, feature2: DataProxy | float | int) -> DataProxy:
+    """Strict element-wise maximum matching RQ MAX.
+
+    Unlike FMAX, if either side is missing/NaN the result is missing.
+    """
+    if isinstance(feature2, DataProxy):
+        base = feature1.df.join(feature2.df.rename({"data": "data_right"}), on=["datetime", "vt_symbol"], how="inner")
+    else:
+        base = feature1.df.with_columns(pl.lit(float(feature2)).alias("data_right"))
+
+    left = pl.col("data").cast(pl.Float64, strict=False)
+    right = pl.col("data_right").cast(pl.Float64, strict=False)
+    invalid = left.is_null() | right.is_null() | left.is_nan() | right.is_nan()
+    df: pl.DataFrame = base.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        pl.when(invalid).then(None).otherwise(pl.max_horizontal(left, right)).alias("data"),
+    )
+    return DataProxy(df)
+
+
+def rq_as_float(feature: DataProxy) -> DataProxy:
+    """Cast boolean/numeric values to float for formulas using AS_FLOAT."""
+    df: pl.DataFrame = feature.df.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        pl.col("data").cast(pl.Float64, strict=False).alias("data"),
+    )
+    return DataProxy(df)
+
+
+def rq_sign(feature: DataProxy) -> DataProxy:
+    """NumPy-style sign preserving NaN/null values."""
+    data = pl.col("data").cast(pl.Float64, strict=False)
+    df: pl.DataFrame = feature.df.select(
+        pl.col("datetime"),
+        pl.col("vt_symbol"),
+        pl.when(data.is_null() | data.is_nan())
+        .then(None)
+        .when(data > 0)
+        .then(1.0)
+        .when(data < 0)
+        .then(-1.0)
+        .otherwise(0.0)
+        .alias("data"),
+    )
+    return DataProxy(df)
+
+
+def rq_indneutralize(feature: DataProxy, category: DataProxy | None = None) -> DataProxy:
+    """Industry-neutralize a feature by demeaning within date/category.
+
+    If no category is supplied, fall back to cross-sectional demeaning. The
+    strict RiceQuant Alpha101 template passes an ``industry`` column when it is
+    available.
+    """
+    from .neutralize_function import cs_demean, cs_demean_by_category
+
+    if category is None:
+        return cs_demean(feature)
+    return cs_demean_by_category(feature, category)
+
+
 def ts_winsor(
     feature: DataProxy,
     lower_q: float = 0.01,

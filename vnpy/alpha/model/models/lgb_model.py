@@ -38,8 +38,13 @@ class LgbModel(AlphaModel):
         seed: int = 42,
         extra_trees: bool = False,
         feature_fraction_bynode: float | None = None,
-        use_gpu: bool = True  # 默认尝试开启 GPU
+        use_gpu: bool = True,  # 默认尝试开启 GPU
+        sample_weight_col: str | None = None,
     ):
+        if sample_weight_col is not None and not str(sample_weight_col).strip():
+            raise ValueError("sample_weight_col 不能为空字符串")
+
+        self.sample_weight_col: str | None = sample_weight_col
         self.params: dict[str, Any] = {
             "objective": "regression",
             "metric": ["mse", "mae"],
@@ -86,6 +91,8 @@ class LgbModel(AlphaModel):
         # 记录特征名，用于后续一致性校验
         sample_df = dataset.fetch_learn(Segment.TRAIN)
         exclude = {"datetime", "vt_symbol", "label"}
+        if self.sample_weight_col is not None:
+            exclude.add(self.sample_weight_col)
         self.feature_names = [c for c in sample_df.columns if c not in exclude]
 
         for segment in [Segment.TRAIN, Segment.VALID]:
@@ -96,7 +103,13 @@ class LgbModel(AlphaModel):
             # 注意：LightGBM 对 NaN 友好，不需要像 MLP 那样填充 0
             data = df.select(self.feature_names).to_numpy()
             label = np.array(df["label"])
-            lgb_data = lgb.Dataset(data, label=label, feature_name=self.feature_names)
+            weight: np.ndarray | None = None
+            if self.sample_weight_col is not None:
+                if self.sample_weight_col not in df.columns:
+                    raise ValueError(f"缺少 sample_weight_col: {self.sample_weight_col}")
+                weight = np.asarray(df[self.sample_weight_col], dtype=np.float64)
+                weight = np.where(np.isfinite(weight) & (weight >= 0), weight, 0.0)
+            lgb_data = lgb.Dataset(data, label=label, weight=weight, feature_name=self.feature_names)
             ds.append(lgb_data)
 
         return ds

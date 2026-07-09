@@ -1,6 +1,7 @@
 import numpy as np
 import polars as pl
-from sklearn.linear_model import Lasso      # type: ignore
+from sklearn.linear_model import LassoCV
+from sklearn.model_selection import TimeSeriesSplit
 
 from vnpy.alpha import (
     AlphaDataset,
@@ -10,71 +11,79 @@ from vnpy.alpha import (
 )
 
 
-class LassoModel(AlphaModel):
-    """LASSO regression learning algorithm"""
+class LassoCVModel(AlphaModel):
+    """
+    LASSO regression learning algorithm with Time-Series Cross-Validation.
+    自动寻找最优惩罚力度(alpha)，并防止时序未来函数泄露。
+    """
 
     def __init__(
         self,
-        alpha: float = 0.0005,
-        max_iter: int = 1000,
+        cv_folds: int = 5,
+        max_iter: int = 5000,  # LassoCV 寻优时可能需要更多迭代次数以保证收敛
         random_state: int | None = None,
     ) -> None:
         """
         Parameters
         ----------
-        alpha : float
-            Regularization parameter
+        cv_folds : int
+            时间序列交叉验证的折数
         max_iter : int
-            Maximum number of iterations
+            最大迭代次数
         random_state : int
-            Random seed
+            随机种子
         """
-        self.alpha: float = alpha
+        self.cv_folds: int = cv_folds
         self.max_iter: int = max_iter
         self.random_state: int | None = random_state
 
-        self.model: Lasso = None
-
+        self.model: LassoCV = None
         self.feature_names: list[str] = []
 
     def fit(self, dataset: AlphaDataset) -> None:
         """
-        Fit the model with dataset
+        Fit the model with dataset using Cross-Validation
 
         Parameters
         ----------
         dataset : AlphaDataset
             The dataset used for training
         """
-        # Get training data
+        # 1. 仅获取训练集，将 VALID 留作严格的纯样本外验证
         df_train: pl.DataFrame = dataset.fetch_learn(Segment.TRAIN)
-        df_valid: pl.DataFrame = dataset.fetch_learn(Segment.VALID)
 
-        # Merge data, remove duplicates and sort
-        df_train = pl.concat([df_train, df_valid])
+        # 2. 数据清洗：去重并排序
         df_train = df_train.unique(subset=["datetime", "vt_symbol"])
         df_train = df_train.sort(["datetime", "vt_symbol"])
 
-        # Extract feature names
+        # 3. 提取特征名称
         self.feature_names = df_train.columns[2:-1]
 
-        # Convert to numpy arrays
+        # 4. 转换为 numpy 数组
         X: np.ndarray = df_train.select(self.feature_names).to_numpy()
         y: np.ndarray = np.array(df_train["label"])
 
-        # Create and train the model
-        self.model = Lasso(
-            alpha=self.alpha,
+        # 5. 核心逻辑：设置时间序列交叉验证，防止未来数据泄露到训练集
+        tscv = TimeSeriesSplit(n_splits=self.cv_folds)
+
+        # 6. 创建并训练 LassoCV 模型
+        self.model = LassoCV(
+            cv=tscv,               # 使用时序交叉验证
             max_iter=self.max_iter,
             random_state=self.random_state,
-            fit_intercept=False,
-            copy_X=False
+            fit_intercept=True,    # 开启截距项，吸收无法被因子解释的整体截面 Beta 漂移
+            copy_X=False,          # 节省内存
+            n_jobs=-1              # 开启所有CPU核心并行加速 CV 搜索
         )
+        
         self.model.fit(X, y)
+
+        # 打印由数据自动选出的最优 alpha 值
+        logger.info(f"LassoCV 交叉验证完成，最佳惩罚系数 (Alpha): {self.model.alpha_:.6f}")
 
     def predict(self, dataset: AlphaDataset, segment: Segment) -> np.ndarray:
         """
-        Make predictions using the model
+        Make predictions using the fitted model
 
         Parameters
         ----------
@@ -93,18 +102,18 @@ class LassoModel(AlphaModel):
         ValueError
             If the model has not been fitted yet
         """
-        # Check if model exists
+        # 检查模型是否已训练
         if self.model is None:
             raise ValueError("model is not fitted yet!")
 
-        # Get data for prediction
+        # 获取预测数据并排序
         df: pl.DataFrame = dataset.fetch_infer(segment)
         df = df.sort(["datetime", "vt_symbol"])
 
-        # Convert to numpy array
+        # 提取特征矩阵
         data: np.ndarray = df.select(df.columns[2: -1]).to_numpy()
 
-        # Return prediction results
+        # 返回预测结果
         result: np.ndarray = self.model.predict(data)
 
         return result
@@ -117,23 +126,27 @@ class LassoModel(AlphaModel):
         of the LASSO model, showing only non-zero features
         sorted by absolute value.
         """
-        # Get feature coefficients
+        if self.model is None:
+            logger.info("模型尚未训练，无法查看特征细节。")
+            return
+
+        # 获取特征系数
         coef: np.ndarray = self.model.coef_
 
-        # Extract feature coefficients
+        # 组合特征名与系数
         data: list[tuple[str, float]] = list(zip(self.feature_names, coef, strict=False))
 
-        # Filter non-zero features
+        # 过滤掉被 LASSO 压缩为 0 的噪音特征
         data = [x for x in data if x[1]]
 
-        # Sort by absolute value
+        # 按绝对值大小（重要性）降序排序
         data.sort(key=lambda x: abs(x[1]), reverse=True)
 
-        # Filter out features with very small coefficients
+        # 过滤掉浮点数精度级别的极小值
         data = [x for x in data if round(x[1], 6) != 0]
 
-        # Print feature importance
-        logger.info(f"LASSO模型特征总数量: {len(data)}")
+        # 打印特征重要性
+        logger.info(f"LASSO模型最终保留的特征总数量: {len(data)}")
 
         for name, importance in data:
             logger.info(f"{name}: {importance:.6f}")

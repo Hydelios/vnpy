@@ -51,12 +51,25 @@ def _iter_group_slices(group_sizes: np.ndarray) -> Iterator[tuple[int, int]]:
 
 def _daily_rank_ic_series(preds: np.ndarray, labels: np.ndarray, group_sizes: np.ndarray) -> np.ndarray:
     """按横截面计算每日 Spearman Rank IC 序列。"""
+    return _daily_rank_ic_series_weighted_mask(preds, labels, group_sizes, None)
+
+
+def _daily_rank_ic_series_weighted_mask(
+    preds: np.ndarray,
+    labels: np.ndarray,
+    group_sizes: np.ndarray,
+    sample_weights: np.ndarray | None,
+) -> np.ndarray:
+    """按横截面计算每日 Spearman Rank IC 序列，可用样本权重过滤样本。"""
     scores: list[float] = []
 
     for start, end in _iter_group_slices(group_sizes):
         group_preds = preds[start:end]
         group_labels = labels[start:end]
         mask = np.isfinite(group_preds) & np.isfinite(group_labels)
+        if sample_weights is not None and sample_weights.size == labels.size:
+            group_weights = sample_weights[start:end]
+            mask &= np.isfinite(group_weights) & (group_weights > 0)
 
         if np.count_nonzero(mask) < 2:
             continue
@@ -127,6 +140,7 @@ def _daily_topk_return_series(
     labels: np.ndarray,
     group_sizes: np.ndarray,
     top_k: int,
+    sample_weights: np.ndarray | None = None,
 ) -> np.ndarray:
     """按横截面构造每日 Top-K 多头收益序列。"""
     scores: list[float] = []
@@ -135,6 +149,9 @@ def _daily_topk_return_series(
         group_preds = preds[start:end]
         group_labels = labels[start:end]
         mask = np.isfinite(group_preds) & np.isfinite(group_labels)
+        if sample_weights is not None and sample_weights.size == labels.size:
+            group_weights = sample_weights[start:end]
+            mask &= np.isfinite(group_weights) & (group_weights > 0)
 
         valid_count = int(np.count_nonzero(mask))
         if valid_count <= 0:
@@ -205,6 +222,7 @@ class LgbModel(AlphaModel):
         reg_alpha: float = 0.1,
         reg_lambda: float = 0.1,
         min_data_in_leaf: int | None = None,
+        min_data_in_leaf_daily_fraction: float | None = 0.05,
         log_evaluation_period: int = 20,
         seed: int = 42,
         use_gpu: bool = True,
@@ -217,6 +235,7 @@ class LgbModel(AlphaModel):
         weight_window: int = 20,
         weight_lag: int = 1,
         weight_transform: WeightTransform = "sqrt",
+        weight_multiplier_col: str | None = None,
         extra_trees: bool = False,
         feature_fraction_bynode: float | None = None,
     ) -> None:
@@ -224,6 +243,10 @@ class LgbModel(AlphaModel):
             raise ValueError("lgb_model_mod.py 当前仅保留 'regression' 功能")
         if min_data_in_leaf is not None and int(min_data_in_leaf) <= 0:
             raise ValueError("min_data_in_leaf 必须 > 0")
+        if min_data_in_leaf_daily_fraction is not None:
+            fraction = float(min_data_in_leaf_daily_fraction)
+            if not (0 < fraction <= 1):
+                raise ValueError("min_data_in_leaf_daily_fraction 必须在 (0, 1] 之间，或为 None")
         if int(top_k) <= 0:
             raise ValueError("top_k 必须 > 0")
         if int(weight_window) <= 0:
@@ -232,6 +255,8 @@ class LgbModel(AlphaModel):
             raise ValueError("weight_lag 必须 >= 0")
         if int(num_threads) == 0 or int(num_threads) < -1:
             raise ValueError("num_threads 必须为正整数或 -1")
+        if weight_multiplier_col is not None and not str(weight_multiplier_col).strip():
+            raise ValueError("weight_multiplier_col 不能为空字符串")
 
         valid_metrics = {
             "mae",
@@ -257,6 +282,12 @@ class LgbModel(AlphaModel):
         self.weight_window: int = int(weight_window)
         self.weight_lag: int = int(weight_lag)
         self.weight_transform: WeightTransform = weight_transform
+        self.weight_multiplier_col: str | None = (
+            None if weight_multiplier_col is None else str(weight_multiplier_col)
+        )
+        self.min_data_in_leaf_daily_fraction: float | None = (
+            None if min_data_in_leaf_daily_fraction is None else float(min_data_in_leaf_daily_fraction)
+        )
 
         self.params: dict[str, Any] = {
             "objective": "regression",
@@ -298,7 +329,23 @@ class LgbModel(AlphaModel):
         self.log_evaluation_period: int = log_evaluation_period
 
         self.model: lgb.Booster | None = None
+        self.resolved_min_data_in_leaf: int | None = None
         self.feature_names: list[str] = []
+
+    def _resolve_min_data_in_leaf(self, train_data: lgb.Dataset) -> int | None:
+        if "min_data_in_leaf" in self.params:
+            return int(self.params["min_data_in_leaf"])
+        if self.min_data_in_leaf_daily_fraction is None:
+            return None
+
+        group_sizes = np.asarray(train_data.get_group(), dtype=np.float64)
+        group_sizes = group_sizes[np.isfinite(group_sizes) & (group_sizes > 0)]
+        if group_sizes.size == 0:
+            return None
+
+        # LightGBM 的 min_data_in_leaf 是全局树参数，不能按交易日动态变化；
+        # 这里用训练期每日截面样本数的中位数 * 比例，避免误用全训练集总样本数。
+        return max(1, int(round(float(np.median(group_sizes)) * self.min_data_in_leaf_daily_fraction)))
 
     def _uses_weighted_metric(self) -> bool:
         return self.eval_metric in {"weighted_rank_ic", "weighted_rank_ic_ir"}
@@ -336,19 +383,30 @@ class LgbModel(AlphaModel):
             raise ValueError("group size 与标签长度不一致，请检查输入数据是否按日分组完整")
 
         eval_weight: np.ndarray | None = None
+        sample_weight: np.ndarray | None = None
+        if self.weight_multiplier_col is not None:
+            if self.weight_multiplier_col not in df.columns:
+                raise ValueError(f"缺少 weight_multiplier_col: {self.weight_multiplier_col}")
+            sample_weight = np.asarray(df[self.weight_multiplier_col], dtype=np.float64)
+            sample_weight = np.where(np.isfinite(sample_weight) & (sample_weight > 0), sample_weight, 0.0)
+
         if self._uses_weighted_metric():
             if _WEIGHT_COL not in df.columns:
                 raise ValueError(f"{self.eval_metric} 缺少辅助权重列，请检查数据准备流程")
             eval_weight = np.asarray(df[_WEIGHT_COL], dtype=np.float64)
+            if sample_weight is not None:
+                eval_weight = eval_weight * sample_weight
 
         lgb_data = lgb.Dataset(
             data,
             label=labels,
+            weight=sample_weight,
             group=group_sizes,
             feature_name=self.feature_names,
         )
         try:
             setattr(lgb_data, "_vnpy_eval_weight", eval_weight)
+            setattr(lgb_data, "_vnpy_sample_weight", sample_weight)
         except Exception:
             pass
 
@@ -360,6 +418,8 @@ class LgbModel(AlphaModel):
 
         sample_df = dataset.fetch_learn(Segment.TRAIN)
         exclude = {"datetime", "vt_symbol", "label"}
+        if self.weight_multiplier_col is not None:
+            exclude.add(self.weight_multiplier_col)
         self.feature_names = [c for c in sample_df.columns if c not in exclude]
 
         segment_frames: list[pl.DataFrame] = []
@@ -400,14 +460,28 @@ class LgbModel(AlphaModel):
             labels = np.asarray(train_data.get_label(), dtype=np.float64)
             group_sizes = np.asarray(train_data.get_group(), dtype=np.int32)
             pred_values = np.asarray(preds, dtype=np.float64)
+            sample_weights = cast(
+                np.ndarray | None,
+                getattr(train_data, "_vnpy_sample_weight", train_data.get_weight()),
+            )
 
             if metric_name == "rank_ic":
-                score = _mean_or_zero(_daily_rank_ic_series(pred_values, labels, group_sizes))
+                score = _mean_or_zero(
+                    _daily_rank_ic_series_weighted_mask(pred_values, labels, group_sizes, sample_weights)
+                )
             elif metric_name == "rank_ic_ir":
-                score = _ir_or_zero(_daily_rank_ic_series(pred_values, labels, group_sizes))
+                score = _ir_or_zero(
+                    _daily_rank_ic_series_weighted_mask(pred_values, labels, group_sizes, sample_weights)
+                )
             elif metric_name == "simulated_sharpe":
                 score = _annualized_sharpe_or_zero(
-                    _daily_topk_return_series(pred_values, labels, group_sizes, top_k=self.top_k)
+                    _daily_topk_return_series(
+                        pred_values,
+                        labels,
+                        group_sizes,
+                        top_k=self.top_k,
+                        sample_weights=sample_weights,
+                    )
                 )
             elif metric_name == "weighted_rank_ic":
                 weights = cast(
@@ -434,6 +508,11 @@ class LgbModel(AlphaModel):
 
     def fit(self, dataset: AlphaDataset) -> None:
         datasets, eval_weights = self._prepare_data(dataset)
+        params = dict(self.params)
+        resolved_min_data_in_leaf = self._resolve_min_data_in_leaf(datasets[0])
+        self.resolved_min_data_in_leaf = resolved_min_data_in_leaf
+        if resolved_min_data_in_leaf is not None:
+            params["min_data_in_leaf"] = resolved_min_data_in_leaf
 
         callbacks = []
         if self.early_stopping_rounds > 0:
@@ -444,7 +523,7 @@ class LgbModel(AlphaModel):
         feval = None if self.eval_metric == "mae" else self._build_eval_func(datasets, eval_weights)
 
         self.model = lgb.train(
-            self.params,
+            params,
             datasets[0],
             num_boost_round=self.num_boost_round,
             valid_sets=datasets,

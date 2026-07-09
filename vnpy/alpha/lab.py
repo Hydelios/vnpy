@@ -27,6 +27,7 @@ class AlphaLab:
         self.lab_path: Path = Path(lab_path)
 
         self.daily_path: Path = self.lab_path.joinpath("daily")
+        self.price_limit_path: Path = self.lab_path.joinpath("price_limit")
         self.minute_path: Path = self.lab_path.joinpath("minute")
         self.component_path: Path = self.lab_path.joinpath("component")
         self.common_path: Path = self.lab_path.joinpath("common")
@@ -48,6 +49,7 @@ class AlphaLab:
         for path in [
             self.lab_path,
             self.daily_path,
+            self.price_limit_path,
             self.minute_path,
             self.minute_1m_path,
             self.minute_10m_path,
@@ -62,6 +64,116 @@ class AlphaLab:
         ]:
             if not path.exists():
                 path.mkdir(parents=True)
+
+    def save_price_limit_data(
+        self,
+        df: pl.DataFrame,
+        upsert: bool = True,
+    ) -> None:
+        """Save daily price-limit data by symbol without touching normalized bar data."""
+        if df is None or df.is_empty():
+            return
+
+        required = {"vt_symbol", "open", "close", "limit_up", "limit_down"}
+        if "datetime" not in df.columns and "trade_date" not in df.columns:
+            logger.error("price_limit 缺少必要列 datetime/trade_date")
+            return
+        if not required.issubset(set(df.columns)):
+            logger.error(f"price_limit 缺少必要列: {sorted(required - set(df.columns))}")
+            return
+
+        work = df
+        if "datetime" not in work.columns:
+            work = work.with_columns(
+                pl.col("trade_date")
+                .cast(pl.Utf8)
+                .str.strptime(pl.Datetime, "%Y-%m-%d", strict=False)
+                .alias("datetime")
+            )
+
+        canonical = (
+            work.with_columns(
+                pl.coalesce(
+                    [
+                        pl.col("datetime")
+                        .cast(pl.Utf8)
+                        .str.strptime(pl.Datetime, "%Y-%m-%d %H:%M:%S", strict=False),
+                        pl.col("datetime")
+                        .cast(pl.Utf8)
+                        .str.strptime(pl.Datetime, "%Y-%m-%d", strict=False),
+                        pl.col("datetime").cast(pl.Datetime, strict=False),
+                    ]
+                ).alias("datetime"),
+                pl.col("vt_symbol").cast(pl.Utf8),
+                pl.col("open").cast(pl.Float64, strict=False),
+                pl.col("close").cast(pl.Float64, strict=False),
+                pl.col("limit_up").cast(pl.Float64, strict=False),
+                pl.col("limit_down").cast(pl.Float64, strict=False),
+            )
+            .drop_nulls(subset=["datetime", "vt_symbol"])
+            .select("datetime", "vt_symbol", "open", "close", "limit_up", "limit_down")
+        )
+
+        for vt_symbol in canonical["vt_symbol"].unique().to_list():
+            part = canonical.filter(pl.col("vt_symbol") == vt_symbol).sort("datetime")
+            file_path = self.price_limit_path.joinpath(f"{vt_symbol}.parquet")
+            if upsert and file_path.exists():
+                old_df = pl.read_parquet(file_path).with_columns(
+                    pl.col("datetime").cast(pl.Datetime, strict=False),
+                    pl.col("vt_symbol").cast(pl.Utf8),
+                    pl.col("open").cast(pl.Float64, strict=False),
+                    pl.col("close").cast(pl.Float64, strict=False),
+                    pl.col("limit_up").cast(pl.Float64, strict=False),
+                    pl.col("limit_down").cast(pl.Float64, strict=False),
+                )
+                part = pl.concat([old_df, part], how="vertical")
+            part = part.unique(subset=["datetime"], keep="last").sort("datetime")
+            part.write_parquet(file_path)
+
+    def load_price_limit_df(
+        self,
+        vt_symbols: list[str],
+        start: datetime | str,
+        end: datetime | str,
+    ) -> pl.DataFrame:
+        """Load raw daily price-limit panel from lab/price_limit."""
+        schema = {
+            "datetime": pl.Datetime,
+            "vt_symbol": pl.Utf8,
+            "open": pl.Float64,
+            "close": pl.Float64,
+            "limit_up": pl.Float64,
+            "limit_down": pl.Float64,
+        }
+        if not vt_symbols:
+            return pl.DataFrame(schema=schema)
+
+        start_dt = to_datetime(start)
+        end_dt = to_datetime(end)
+        dfs: list[pl.DataFrame] = []
+        for vt_symbol in vt_symbols:
+            file_path = self.price_limit_path.joinpath(f"{vt_symbol}.parquet")
+            if not file_path.exists():
+                continue
+            df = (
+                pl.read_parquet(file_path)
+                .with_columns(
+                    pl.col("datetime").cast(pl.Datetime, strict=False),
+                    pl.col("vt_symbol").cast(pl.Utf8),
+                    pl.col("open").cast(pl.Float64, strict=False),
+                    pl.col("close").cast(pl.Float64, strict=False),
+                    pl.col("limit_up").cast(pl.Float64, strict=False),
+                    pl.col("limit_down").cast(pl.Float64, strict=False),
+                )
+                .filter((pl.col("datetime") >= start_dt) & (pl.col("datetime") <= end_dt))
+                .select("datetime", "vt_symbol", "open", "close", "limit_up", "limit_down")
+            )
+            if not df.is_empty():
+                dfs.append(df)
+
+        if not dfs:
+            return pl.DataFrame(schema=schema)
+        return pl.concat(dfs, how="vertical").sort(["datetime", "vt_symbol"])
 
     @staticmethod
     def _sanitize_universe_id(universe_id: str) -> str:

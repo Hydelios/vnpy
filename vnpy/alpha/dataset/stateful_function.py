@@ -507,6 +507,91 @@ def ts_wavg(feature: DataProxy, weight: DataProxy, window: int | float) -> DataP
     )
 
 
+def ts_mdd(feature: DataProxy, window: int | float) -> DataProxy:
+    """Rolling maximum drawdown as a positive ratio.
+
+    For each rolling window, this returns max((peak - later_trough) / peak).
+    Invalid or non-positive peaks are ignored.
+    """
+    size = _as_window(window)
+
+    def reducer(values: np.ndarray) -> float:
+        valid = _valid(values)
+        if len(valid) == 0:
+            return np.nan
+        peak = np.nan
+        max_drawdown = 0.0
+        for value in valid:
+            if not np.isfinite(peak) or value > peak:
+                peak = value
+            if np.isfinite(peak) and peak > 0.0:
+                max_drawdown = max(max_drawdown, float((peak - value) / peak))
+        return max_drawdown
+
+    return _per_symbol_unary(feature, lambda values: _rolling_unary(values, size, reducer))
+
+
+def ts_avedev(feature: DataProxy, window: int | float) -> DataProxy:
+    """Rolling average absolute deviation from the window mean."""
+    size = _as_window(window)
+
+    def reducer(values: np.ndarray) -> float:
+        valid = _valid(values)
+        if len(valid) == 0:
+            return np.nan
+        mean = float(np.mean(valid))
+        return float(np.mean(np.abs(valid - mean)))
+
+    return _per_symbol_unary(feature, lambda values: _rolling_unary(values, size, reducer))
+
+
+def rq_dma(
+    feature: DataProxy,
+    alpha: DataProxy | int | float,
+    alpha_scale: int | float = 100.0,
+    clip: bool = True,
+) -> DataProxy:
+    """Ricequant-style dynamic moving average.
+
+    The rq_tech definitions pass turnover rates as percentages, e.g.
+    ``100 * volume / capital``.  By default those values are divided by 100
+    before applying the recursive update:
+
+        y_t = a_t * x_t + (1 - a_t) * y_{t-1}
+    """
+    base = feature.df.with_row_index("_left_id").rename({"data": "x"})
+    joined, alpha_name = _aligned_value_array(base, alpha, "_alpha")
+    joined = joined.sort("_left_id").with_row_index("_result_id")
+    scale = float(alpha_scale)
+    use_clip = bool(clip)
+
+    def func(values: np.ndarray, alphas: np.ndarray) -> np.ndarray:
+        out = np.full(len(values), np.nan, dtype=float)
+        state = np.nan
+        for index, value in enumerate(values):
+            if not np.isfinite(value):
+                out[index] = state
+                continue
+
+            raw_alpha = alphas[index]
+            if not np.isfinite(raw_alpha):
+                out[index] = state
+                continue
+
+            coeff = raw_alpha / scale if scale != 0.0 else raw_alpha
+            if use_clip:
+                coeff = min(1.0, max(0.0, coeff))
+
+            if not np.isfinite(state):
+                state = value
+            else:
+                state = coeff * value + (1.0 - coeff) * state
+            out[index] = state
+        return out
+
+    return _per_symbol_joined(joined, ("x", alpha_name), func)
+
+
 def ts_beta(feature_y: DataProxy, feature_x: DataProxy, window: int | float) -> DataProxy:
     """Rolling beta of feature_y against feature_x."""
     size = _as_window(window)
