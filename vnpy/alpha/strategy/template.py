@@ -50,6 +50,14 @@ class AlphaStrategy(metaclass=ABCMeta):
         """Bar slice callback"""
         pass
 
+    def on_open(self, bars: dict[str, BarData]) -> None:
+        """Opening callback before order matching (optional)."""
+        pass
+
+    def on_after_open(self, bars: dict[str, BarData]) -> None:
+        """Callback after opening orders have been matched (optional)."""
+        pass
+
     @abstractmethod
     def on_trade(self, trade: TradeData) -> None:
         """Trade callback"""
@@ -130,7 +138,12 @@ class AlphaStrategy(metaclass=ABCMeta):
         """Set target position"""
         self.target_data[vt_symbol] = target
 
-    def execute_trading(self, bars: dict[str, BarData], price_add: float) -> None:
+    def execute_trading(
+        self,
+        bars: dict[str, BarData],
+        price_add: float,
+        use_open: bool = False,
+    ) -> None:
         """Execute position adjustment based on targets"""
         self.cancel_all()
 
@@ -144,7 +157,8 @@ class AlphaStrategy(metaclass=ABCMeta):
             # Long position
             if diff > 0:
                 # Calculate long order price
-                order_price: float = bar.close_price * (1 + price_add)
+                reference_price: float = bar.open_price if use_open else bar.close_price
+                order_price: float = reference_price * (1 + price_add)
 
                 # Calculate cover and buy volumes
                 cover_volume: float = 0
@@ -165,7 +179,8 @@ class AlphaStrategy(metaclass=ABCMeta):
             # Short position
             elif diff < 0:
                 # Calculate short order price
-                order_price = bar.close_price * (1 - price_add)
+                reference_price = bar.open_price if use_open else bar.close_price
+                order_price = reference_price * (1 - price_add)
 
                 # Calculate sell and short volumes
                 sell_volume: float = 0

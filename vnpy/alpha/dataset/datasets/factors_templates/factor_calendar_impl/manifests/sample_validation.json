@@ -1,0 +1,105 @@
+{
+  "calendar_year": 2026,
+  "catalog_status": {
+    "exact": 119,
+    "proxy": 7,
+    "pending_implementation": 0,
+    "blocked_data": 173,
+    "blocked_formula": 63
+  },
+  "synthetic_validation": {
+    "new_definitions": 11,
+    "definitions_executed": 11,
+    "daily_symbols": 12,
+    "daily_days": 140,
+    "minute_days": 45,
+    "strict_mode": true
+  },
+  "unique_implementation_sweep": {
+    "calendar_exact_rows_before_industry_proxy_reclassification": 617,
+    "unique_implementations_executed": 324,
+    "initial_failures": 2,
+    "failures_fixed": 2,
+    "fixed_implementations_retested": [
+      "daily_panic_metric:volatility",
+      "daily_magnitude_information_dispersion"
+    ]
+  },
+  "real_data_validation": {
+    "lab_path": "playground/alpha_research/lab/all_stocks",
+    "industry_source": "sws",
+    "symbols_requested": 12,
+    "start": "2026-03-01",
+    "end": "2026-04-30",
+    "daily_rows": 445,
+    "minute_rows": 106800,
+    "definitions_executed": 8,
+    "strict_mode": true,
+    "non_null": {
+      "量谷相对加权价格": 40,
+      "基于换手率的注意力溢出": 0,
+      "基于异常收益的注意力溢出": 0,
+      "趋势资金相对均价因子": 10,
+      "净支撑成交量因子": 20,
+      "趋势资金净支撑量因子": 10,
+      "极端跟随行为_比值因子": 10,
+      "极端跟随行为_相关性因子": 9
+    },
+    "attention_spillover_zero_note": "12只抽样股票在同一申万一级行业和3:4:3市值桶内没有同组邻居；合成截面验证产生70个非空值"
+  },
+  "calendar_2025_real_data_validation": {
+    "lab_path": "playground/alpha_research/lab/all_stocks",
+    "symbols_requested": 30,
+    "start": "2023-08-01",
+    "end": "2024-06-28",
+    "result_rows": 6600,
+    "definitions_executed": 17,
+    "strict_mode": true,
+    "non_null": {
+      "商品通道": 3819,
+      "平均异常日收益率": 6000,
+      "相对强弱": 3819,
+      "买卖意愿": 3819,
+      "透视指标": 3819,
+      "心理指标": 3819,
+      "成交量比率": 3819,
+      "钱德动量摆动": 3819,
+      "动量修正": 3819,
+      "Hurst 指标": 3819,
+      "平均收盘价绝对方差": 3819,
+      "CSAD 模型（基于时序回归变形）": 180,
+      "资金流向": 3819,
+      "资金流量": 3819,
+      "价量趋势": 3819,
+      "简易波动": 3819,
+      "基于PB的前景价值TK": 6000
+    }
+  },
+  "cpp_validation": {
+    "expression_rows": 286,
+    "special_rows": 11,
+    "total_cpp_rows": 297,
+    "remaining_operator_rows": 396,
+    "synthetic_python_cpp": {
+      "special_factors": 11,
+      "finite_masks_equal": true,
+      "rtol": 1e-8,
+      "atol": 1e-10
+    },
+    "real_python_cpp": {
+      "symbols": 12,
+      "start": "2025-08-29",
+      "end": "2026-04-30",
+      "daily_rows": 1615,
+      "minute_rows": 387600,
+      "finite_masks_equal": true,
+      "maximum_absolute_difference": 4.42e-14,
+      "attention_spillover_note": "抽样截面没有同一行业及市值桶邻居，Python与C++均为空；合成数据已验证非空一致性"
+    },
+    "incremental_parity": {
+      "warmup_daily_days": 121,
+      "last_day_matches_full": true
+    }
+  },
+  "full_history_full_market_run": false
+}

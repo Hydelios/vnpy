@@ -1,0 +1,886 @@
+name,calendar_year,calendar_id,title,category,sub_category,raw_category,normalized_category,source_file,source_start_line,source_end_line,input_frequency,output_frequency,available_at,required_fields,original_formula,implemented_formula,implementation_status,implementation_notes,implementation_key,proxy_of,duplicate_refs,duplicate_type,default_params,warmup_requirement
+calendar2023_1_1_1_u516c_53f8_6cbb_7406_56e0_5b50,2023,1.1.1,公司治理因子,公司治理类,公司治理类,公司治理类,公司治理类,factors2023.md,6,24,1d,1d,T_close,shareholder,公司治理因子 = α₁第一大股东持股比例 + α₂第二至十大股东持股比例,,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2023_1_1_2_u516c_53f8_6cbb_7406_6307_6570,2023,1.1.2,公司治理指数,公司治理类,公司治理类,公司治理类,公司治理类,factors2023.md,24,33,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2023_2_1_1_u968f_673a_6307_6807,2023,2.1.1,随机指标,量价技术类,技术因子-超买超卖,技术因子-超买超卖,量价技术类,factors2023.md,35,48,1d,1d,T_close,high|low|close,"RSV = 100*(CLOSE-MIN(LOW,N))/(MAX(HIGH,N)-MIN(LOW,N))
+K = SMA(RSV,M1,1)
+D = SMA(K,M2,1)
+J = 3\*K-2\*D
+SMA(X,N,M)为加权移动平均: Y = (X\*M+Y\*(N-M))/N
+默认: N = 9、M1 = 3、M2 = 3","(close - ts_min(low, 9)) / (ts_max(high, 9) - ts_min(low, 9) + 1e-12) * 100",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},9
+calendar2023_2_1_2_u5f02_540c_79bb_5dee_4e56_79bb_7387,2023,2.1.2,异同离差乖离率,量价技术类,技术因子-超买超卖,技术因子-超买超卖,量价技术类,factors2023.md,48,61,1d,1d,T_close,close,"BIAS = (CLOSE-SMA(CLOSE,N1))/SMA(CLOSE,N1)
+DIF = BIAS-BIAS\[N2\]
+DBCD = SMA(DIF,N3,1)
+SMA(X,N,M)为加权移动平均: Y = (X\*M+Y\*(N-M))/N
+默认: N1 = 5、N2 = 16、N3 = 17","ts_ema(((close-ts_mean(close,5))/(ts_mean(close,5)+1e-12))-ts_delay((close-ts_mean(close,5))/(ts_mean(close,5)+1e-12),16),17)",exact,,legacy_expression,,,,{},38
+calendar2023_2_1_3_u4e56_79bb_7387,2023,2.1.3,乖离率,量价技术类,技术因子-超买超卖,技术因子-超买超卖,量价技术类,factors2023.md,61,70,1d,1d,T_close,close,"BIAS = 100*(CLOSE-SMA(CLOSE,N))/SMA(CLOSE,N)
+默认: N = 6、12、24等","100*(close-ts_mean(close,6))/(ts_mean(close,6)+1e-12)",exact,,legacy_expression,,,,{},6
+calendar2023_2_1_4_u52a8_6001_4e70_5356_6c14_6307_6807,2023,2.1.4,动态买卖气指标,量价技术类,技术因子-超买超卖,技术因子-超买超卖,量价技术类,factors2023.md,70,84,1d,1d,T_close,open|high|low,"DTM = IF(OPEN<OPEN\[1],0,MAX((HIGH-OPEN),(OPEN-OPEN\[1])))
+DBM = IF(OPEN≥OPEN\[1],0,MAX((OPEN-LOW), OPEN-OPEN\[1])))
+STM = SUM(DTM,N)
+SBM = SUM(DBM,N)
+ADTM = IF(STM>SBM,(STM-SBM)/STM,IF(STM=SBM,0, (STM-SBM)/SBM))
+ADTMMMA = SMA(ADTM,M)
+默认: N = 23、M = 8","ts_where(ts_sum(ts_where(open<ts_delay(open,1),0,ts_greater(high-open,open-ts_delay(open,1))),23)>ts_sum(ts_where(open>=ts_delay(open,1),0,ts_greater(open-low,open-ts_delay(open,1))),23),(ts_sum(ts_where(open<ts_delay(open,1),0,ts_greater(high-open,open-ts_delay(open,1))),23)-ts_sum(ts_where(open>=ts_delay(open,1),0,ts_greater(open-low,open-ts_delay(open,1))),23))/(ts_sum(ts_where(open<ts_delay(open,1),0,ts_greater(high-open,open-ts_delay(open,1))),23)+1e-12),(ts_sum(ts_where(open<ts_delay(open,1),0,ts_greater(high-open,open-ts_delay(open,1))),23)-ts_sum(ts_where(open>=ts_delay(open,1),0,ts_greater(open-low,open-ts_delay(open,1))),23))/(ts_sum(ts_where(open>=ts_delay(open,1),0,ts_greater(open-low,open-ts_delay(open,1))),23)+1e-12))",exact,,legacy_expression,,,,{},24
+calendar2023_2_1_5_u53d8_52a8_901f_7387,2023,2.1.5,变动速率,量价技术类,技术因子-超买超卖,技术因子-超买超卖,量价技术类,factors2023.md,84,94,1d,1d,T_close,close,"ROC = (CLOSE-CLOSE\[N])/CLOSE\[N]
+ROCMA = SMA(ROC,M)
+默认: N = 12、M = 6","100*(close-ts_delay(close,12))/(ts_delay(close,12)+1e-12)",exact,,legacy_expression,,,,{},12
+calendar2023_2_1_6_u76f8_5bf9_5f3a_5f31_6307_6807,2023,2.1.6,相对强弱指标,量价技术类,技术因子-超买超卖,技术因子-超买超卖,量价技术类,factors2023.md,94,109,1d,1d,T_close,close,"UM = IF(CLOSE-CLOSE\[1]>0,CLOSE-CLOSE\[1],0)
+DM = IF(CLOSE-CLOSE\[1]<0,CLOSE\[1]-CLOSE,0)
+UA(N) = (UA\[1]\*(N-1)+UM)/N
+DA(N) = (DA\[1]\*(N-1)+DM)/N
+RSI = 100*(UA/(UA+DA))
+UA初始值 = SMA(UM,N)
+DA初始值 = SMA(DM,N)
+默认: N = 14","ta_rsi(close,14)",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},14
+calendar2023_2_1_7_u8d27_5e01_6d41_91cf_6307_6807,2023,2.1.7,货币流量指标,量价技术类,技术因子-超买超卖,技术因子-超买超卖,量价技术类,factors2023.md,109,123,1d,1d,T_close,high|low|close|volume,"TP = (HIGH+LOW+CLOSE)/3
+MF = TP\*VOL
+PF(N) = SUM(IF(TP>TP\[1],MF,0),N)
+NF(N) = SUM(IF(TP<=TP\[1],MF,0),N)
+MR(N) = PF(N)/NF(N)
+MFI = 100-(100/(1+MR))
+默认: N = 20","100-100/(1+ts_sum(ts_where((high+low+close)/3>ts_delay((high+low+close)/3,1),(high+low+close)/3*volume,0),20)/(ts_sum(ts_where((high+low+close)/3<=ts_delay((high+low+close)/3,1),(high+low+close)/3*volume,0),20)+1e-12))",exact,,legacy_expression,,,,{},21
+calendar2023_2_1_8_u65b9_5411_6807_51c6_79bb_5dee_6307_6807,2023,2.1.8,方向标准离差指标,量价技术类,技术因子-超买超卖,技术因子-超买超卖,量价技术类,factors2023.md,123,139,1d,1d,T_close,high|low,"DMZ = IF(HIGH+LOW<=HIGH\[1]+LOW\[1],0,
+DMF = IF(HIGH+LOW>HIGH\[1]+LOW\[1],0,
+DIZ = SUM(DMZ,N)/(SUM(DMZ,N)+SUM(DMF,N))\*100
+DIF = SUM(DMF,N)/(SUM(DMZ,N)+SUM(DMF,N))\*100
+DDI = DIZ-DIF
+若分母为 0，则令 DDI = 0
+默认: N = 20","100*(ts_sum(ts_where(high+low<=ts_delay(high+low,1),0,ts_greater(ts_abs(high-ts_delay(high,1)),ts_abs(low-ts_delay(low,1)))),20)-ts_sum(ts_where(high+low>ts_delay(high+low,1),0,ts_greater(ts_abs(high-ts_delay(high,1)),ts_abs(low-ts_delay(low,1)))),20))/(ts_sum(ts_where(high+low<=ts_delay(high+low,1),0,ts_greater(ts_abs(high-ts_delay(high,1)),ts_abs(low-ts_delay(low,1)))),20)+ts_sum(ts_where(high+low>ts_delay(high+low,1),0,ts_greater(ts_abs(high-ts_delay(high,1)),ts_abs(low-ts_delay(low,1)))),20)+1e-12)",exact,,legacy_expression,,,,{},21
+calendar2023_2_1_9_u5546_54c1_901a_9053_6307_6807,2023,2.1.9,商品通道指标,量价技术类,技术因子-超买超卖,技术因子-超买超卖,量价技术类,factors2023.md,139,151,1d,1d,T_close,high|low|close,"TP = (HIGH+LOW+CLOSE)/3
+CCI(N) = (TP-SMA(P,N))/(0.015\*MAD(TP,N))
+默认: N = 20","((high+low+close)/3-ts_mean((high+low+close)/3,14))/(0.015*ts_avedev((high+low+close)/3,14)+1e-12)",exact,,legacy_expression,,,,{},14
+calendar2023_2_2_1_u4eba_6c14_6307_6570,2023,2.2.1,人气指数,量价技术类,技术因子-动量反转型,技术因子-动量反转型,量价技术类,factors2023.md,152,161,1d,1d,T_close,open|high|low,"AR(N) = SUM(HIGH-OPEN,N)/SUM(OPEN-LOW,N)\*100
+默认: N = 20","100*ts_sum(high-open,26)/(ts_sum(open-low,26)+1e-12)",exact,,legacy_expression,,,,{},26
+calendar2023_2_2_2_u5fc3_7406_7ebf,2023,2.2.2,心理线,量价技术类,技术因子-动量反转型,技术因子-动量反转型,量价技术类,factors2023.md,161,169,1d,1d,T_close,close,"PSY = 100\*COUNT(CLOSE>CLOSE\[1],N)/N
+默认: N = 12","100*ts_mean(rq_as_float(close>ts_delay(close,1)),12)",exact,,legacy_expression,,,,{},13
+calendar2023_2_2_3_u6885_65af_7ebf,2023,2.2.3,梅斯线,量价技术类,技术因子-动量反转型,技术因子-动量反转型,量价技术类,factors2023.md,169,176,1d,1d,T_close,high|low,"MASSINDEX = EMA(HIGH-LOW,9)/EMA((EMA(HIGH-LOW,9),9)","ts_ema(high-low,9)/(ts_ema(ts_ema(high-low,9),9)+1e-12)",exact,,legacy_expression,,,,{},18
+calendar2023_2_2_4_u968f_673a_52a8_91cf_6307_6807,2023,2.2.4,随机动量指标,量价技术类,技术因子-动量反转型,技术因子-动量反转型,量价技术类,factors2023.md,176,190,1d,1d,T_close,high|low|close,"C(N) = (MAX(HIGH,N)+MAX(LOW,N))/2
+H = CLOSE-C(N)
+SH1 = EMA(H,N1)
+SH2 = EMA(SH1,N2)
+R = MAX(HIGH,N)-MAX(LOW,N)
+SR1 = EMA(R,N1)
+SR2 = EMA(SR1,N2)/2
+SMI = (SH2/SR2)\*100
+默认: N = 10、N1 = 3、N2 = 3","100*ts_ema(ts_ema(close-(ts_max(high,10)+ts_max(low,10))/2,3),3)/(ts_ema(ts_ema(ts_max(high,10)-ts_max(low,10),3),3)/2+1e-12)",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},16
+calendar2023_2_2_5_u65e5_5185_52a8_91cf_6307_6807,2023,2.2.5,日内动量指标,量价技术类,技术因子-动量反转型,技术因子-动量反转型,量价技术类,factors2023.md,190,200,1d,1d,T_close,open|close,"USUM(N) = SUM(IF(CLOSE>OPEN, CLOSE-OPEN,0),N)
+DSUM(N) = SUM(IF(CLOSE<=OPEN, OPEN-CLOSE,0),N)
+IMI(N) = USUM(N)/(USUM(N)+DSUM(N))\*100
+若分母为 0，则令 IMI = 100","100*ts_sum(ts_where(close>open,close-open,0),20)/(ts_sum(ts_where(close>open,close-open,0),20)+ts_sum(ts_where(close<=open,open-close,0),20)+1e-12)",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},20
+calendar2023_2_2_6_u7b80_6613_6ce2_52a8_6307_6807,2023,2.2.6,简易波动指标,量价技术类,技术因子-动量反转型,技术因子-动量反转型,量价技术类,factors2023.md,200,210,1d,1d,T_close,high|low|volume,"MM = ((HIGH-LOW)-(HIGH\[1]-LOW\[1]))/2
+BR = VOL/(HIGH-LOW)
+EMV = MM/BR","(((high-low)-ts_delay(high-low,1))/2)*(high-low)/(volume+1e-12)",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},2
+calendar2023_2_2_7_u94b1_5fb7_52a8_91cf_6446_52a8_6307_6807,2023,2.2.7,钱德动量摆动指标,量价技术类,技术因子-动量反转型,技术因子-动量反转型,量价技术类,factors2023.md,210,223,1d,1d,T_close,close,"CZ1 = IF(CLOSE-CLOSE\[1]>0,CLOSE-CLOSE\[1],0)
+CZ2 = IF(CLOSE-CLOSE\[1]<0,ABS(CLOSE-CLOSE\[1]),0)
+SU(N) = SUM(CZ1,N)
+SD(N) = SUM(CZ2,N)
+CMO = (SU(N)-SD(N))/(SU(N)+SD(N))\*100
+默认: N = 20","100*(ts_sum(ts_where(close-ts_delay(close,1)>0,close-ts_delay(close,1),0),14)-ts_sum(ts_where(close-ts_delay(close,1)<0,-1*(close-ts_delay(close,1)),0),14))/(ts_sum(ts_abs(close-ts_delay(close,1)),14)+1e-12)",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},15
+calendar2023_2_2_8_u963f_9686_6307_6570,2023,2.2.8,阿隆指数,量价技术类,技术因子-动量反转型,技术因子-动量反转型,量价技术类,factors2023.md,223,234,1d,1d,T_close,high|low,"AROON上升数 = (计算期天数-最高价后的天数)/计算期天数\*100
+AROON下降数 = (计算期天数-最低价后的天数)/计算期天数\*100
+AROON = AROON上升数 - AROON下降数
+默认: 计算期天数 N = 20","100*(ts_lowday(low,25)-ts_highday(high,25))/25",exact,,legacy_expression,,,,{},25
+calendar2023_2_2_9_u4e70_5356_610f_613f_6307_6807,2023,2.2.9,买卖意愿指标,量价技术类,技术因子-动量反转型,技术因子-动量反转型,量价技术类,factors2023.md,234,242,1d,1d,T_close,high|low|close,"BR(N) = SUM(MAX(0,HIGH-CLOSE\[1]),N)/SUM(MAX(0,CLOSE\[1]-LOW))
+默认: N = 20","100*ts_sum(ts_greater(high-ts_delay(close,1),0),20)/(ts_sum(ts_greater(ts_delay(close,1)-low,0),20)+1e-12)",exact,,legacy_expression,,,,{},21
+calendar2023_2_3_1_u4f73_5e86_79bb_6563_6307_6807,2023,2.3.1,佳庆离散指标,量价技术类,技术因子-波动型,技术因子-波动型,量价技术类,factors2023.md,244,254,1d,1d,T_close,high|low,"REM = EMA((HIGH-LOW),N)
+CV = 100*(REM-REM\[M])/REM\[M]
+默认: N = 10、M = 10","100*(ts_ema(high-low,10)-ts_delay(ts_ema(high-low,10),10))/(ts_delay(ts_ema(high-low,10),10)+1e-12)",exact,,legacy_expression,,,,{},20
+calendar2023_2_3_2_u5e73_5747_771f_5b9e_6ce2_5e45,2023,2.3.2,平均真实波幅,量价技术类,技术因子-波动型,技术因子-波动型,量价技术类,factors2023.md,254,263,1d,1d,T_close,high|low|close,"TR = MAX(HIGH-LOW,ABS(HIGH-CLOSE\[1]),ABS(LOW-CLOSE\[1]))
+ATR = EMA(TR,N)
+默认: N = 20","ta_atr(high,low,close,14)",exact,,legacy_expression,,,,{},15
+calendar2023_2_3_3_u76f8_5bf9_6ce2_52a8_7387_6307_6807,2023,2.3.3,相对波动率指标,量价技术类,技术因子-波动型,技术因子-波动型,量价技术类,factors2023.md,263,280,1d,1d,T_close,high|low,"UM(PRICE,N1) = IF(PRICE>PRICE\[1],STD(PRICE,N1),0)
+DM(PRICE,N1) = IF(PRICE<PRICE\[1],STD(PRICE,N1),0)
+UA(N2) = (UA\[1]\*(N-1)+UM)/N2
+DA(N2) = (DA\[1]\*(N-1)+DM)/N2
+RS(PRICE) = 100\*UA/(UA+DA)
+RVI = (RS(HIGH)+RS(LOW))/2
+UA初始值 = SMA(UM,N)
+DA初始值 = SMA(DM,N)
+若分母为 0，则令 RVI = 0
+默认: N = 5、N1 = 10、N2 = 20","50*(ts_ema(ts_where(high>ts_delay(high,1),ts_std(high,10),0),20)/(ts_ema(ts_where(high>ts_delay(high,1),ts_std(high,10),0),20)+ts_ema(ts_where(high<ts_delay(high,1),ts_std(high,10),0),20)+1e-12)+ts_ema(ts_where(low>ts_delay(low,1),ts_std(low,10),0),20)/(ts_ema(ts_where(low>ts_delay(low,1),ts_std(low,10),0),20)+ts_ema(ts_where(low<ts_delay(low,1),ts_std(low,10),0),20)+1e-12))",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},30
+calendar2023_2_3_4_u533a_57df_6307_6570,2023,2.3.4,区域指数,量价技术类,技术因子-波动型,技术因子-波动型,量价技术类,factors2023.md,280,292,1d,1d,T_close,high|low|close,"TR = MAX(HIGH-LOW,ABS(CLOSE\[1]-HIGH),ABS(CLOSE\[1]-LOW))
+W = IF(CLOSE>CLOSE\[1],TR/(CLOSE-CLOSE\[1]),TR)
+SR(N1) = IF(MAX(W,N1)-MIN(W,N1)>0, (W-MIN(W,N1))/(MAX(W,N1)-MIN(W,N1))\*100, (W-MIN(W,N1))\*100)
+RI(N1,N2) = EMA(SR(N1),N2)
+默认: N1 = 20、N2 = 5","ts_ema(100*(ts_where(close>ts_delay(close,1),ts_greater(ts_greater(high-low,ts_abs(ts_delay(close,1)-high)),ts_abs(ts_delay(close,1)-low))/(close-ts_delay(close,1)+1e-12),ts_greater(ts_greater(high-low,ts_abs(ts_delay(close,1)-high)),ts_abs(ts_delay(close,1)-low)))-ts_min(ts_where(close>ts_delay(close,1),ts_greater(ts_greater(high-low,ts_abs(ts_delay(close,1)-high)),ts_abs(ts_delay(close,1)-low))/(close-ts_delay(close,1)+1e-12),ts_greater(ts_greater(high-low,ts_abs(ts_delay(close,1)-high)),ts_abs(ts_delay(close,1)-low))),20))/(ts_max(ts_where(close>ts_delay(close,1),ts_greater(ts_greater(high-low,ts_abs(ts_delay(close,1)-high)),ts_abs(ts_delay(close,1)-low))/(close-ts_delay(close,1)+1e-12),ts_greater(ts_greater(high-low,ts_abs(ts_delay(close,1)-high)),ts_abs(ts_delay(close,1)-low))),20)-ts_min(ts_where(close>ts_delay(close,1),ts_greater(ts_greater(high-low,ts_abs(ts_delay(close,1)-high)),ts_abs(ts_delay(close,1)-low))/(close-ts_delay(close,1)+1e-12),ts_greater(ts_greater(high-low,ts_abs(ts_delay(close,1)-high)),ts_abs(ts_delay(close,1)-low))),20)+1e-12),5)",exact,,legacy_expression,,,,{},26
+calendar2023_2_3_5_u8521_91d1_6ce2_52a8_7387_6307_6807,2023,2.3.5,蔡金波动率指标,量价技术类,技术因子-波动型,技术因子-波动型,量价技术类,factors2023.md,292,301,1d,1d,T_close,high|low,"CVI(N) = (EMA(HIGH-LOW,N)-EMA(HIGH-LOW,N)\[N])/EMA(HIGH-LOW,N)\*100
+默认: N = 20","100*((high-low)-ts_delay(high-low,10))/(ts_delay(high-low,10)+1e-12)",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},10
+calendar2023_2_4_1_u7d2f_8ba1_632f_52a8_5347_964d_6307_6807,2023,2.4.1,累计振动升降指标,量价技术类,技术因子-趋势型,技术因子-趋势型,量价技术类,factors2023.md,303,322,1d,1d,T_close,open|high|low|close|volume,"A = ABS(HIGH-CLOSE\[1])
+B = ABS(LOW-CLOSE\[1])
+C = ABS(HIGH-LOW\[1])
+D = ABS(CLOSE\[1]-OPEN\[1])
+E = CLOSE-CLOSE\[1]
+F = CLOSE-OPEN
+G = CLOSE\[1]-OPEN\[1]
+X = E+0.5F+G
+K = MAX(A,B)
+R = IF(A>B AND A>C, A+0.5B+0.25D, IF(B>A AND B>C, B+0.5A+0.25D, C+0.25D))
+SI = 16\*X/R\*K
+ASI(N) = SUM(SI,N)","sum(16*X/R*K,20)",exact,,daily_technical_metric,,,,"{'metric': 'asi', 'window': 20}",20
+calendar2023_2_4_2_u591a_7a7a_6307_6570,2023,2.4.2,多空指数,量价技术类,技术因子-趋势型,技术因子-趋势型,量价技术类,factors2023.md,322,332,1d,1d,T_close,close,"BBI = (MA(CLOSE,M1)+MA(CLOSE,M2)+MA(CLOSE,M3)+MA(CLOSE,M4))/4
+默认: M1 = 3、M2 = 6、M3 = 12、M4 = 20","(ts_mean(close,3)+ts_mean(close,6)+ts_mean(close,12)+ts_mean(close,24))/4",exact,,legacy_expression,,,,{},24
+calendar2023_2_4_3_u4f30_6ce2_6307_6807,2023,2.4.3,估波指标,量价技术类,技术因子-趋势型,技术因子-趋势型,量价技术类,factors2023.md,332,345,1d,1d,T_close,close,"R(N1) = ((CLOSE-CLOSE\[N1])/CLOSE\[N1])\*100
+R(N2) = ((CLOSE-CLOSE\[N2])/CLOSE\[N2])\*100
+RC(N1,N2) = R(N1)+R(N2)
+COPPOCK(N1,N2,N3) = WMA(RC(N1,N2),N3)
+默认: N1 = 14、N2 = 11、N3 = 10","ta_wma(100*((close-ts_delay(close,14))/(ts_delay(close,14)+1e-12)+(close-ts_delay(close,11))/(ts_delay(close,11)+1e-12)),10)",exact,,legacy_expression,,,,{},24
+calendar2023_2_4_4_u6210_4ea4_91cf_5e73_6ed1_5f02_540c_5747_7ebf,2023,2.4.4,成交量平滑异同均线指标,量价技术类,技术因子-趋势型,技术因子-趋势型,量价技术类,factors2023.md,345,358,1d,1d,T_close,volume,"SHORT = EMA(VOL,N1)
+LONG = EMA(VOL,N2)
+DIFF = SHORT-LONG
+DEA = EMA(DIFF,M)
+VMACD = DIFF-DEA
+默认: N1 = 12、N2 = 26、M = 9","(ts_ema(volume,12)-ts_ema(volume,26))-ts_ema(ts_ema(volume,12)-ts_ema(volume,26),9)",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},35
+calendar2023_2_4_5_u5782_76f4_6c34_5e73_8fc7_6ee4_6307_6807,2023,2.4.5,垂直水平过滤指标,量价技术类,技术因子-趋势型,技术因子-趋势型,量价技术类,factors2023.md,358,372,1d,1d,T_close,close,"HCP = MAX(HIGH,N)
+LCP = MIN(LOW,N)
+A = ABS(HCP-LCP)
+B = SUM(ABS(CLOSE-CLOSE\[1]),N)
+VHF = A/B
+若分母为 0，则令 IMI = 0
+默认: N = 20","(ts_max(close,28)-ts_min(close,28))/(ts_sum(ts_abs(close-ts_delay(close,1)),28)+1e-12)",exact,,legacy_expression,,,,{},29
+calendar2023_2_4_6_u4e09_91cd_6307_6570_79fb_52a8_5e73_5747_6307,2023,2.4.6,三重指数移动平均指标,量价技术类,技术因子-趋势型,技术因子-趋势型,量价技术类,factors2023.md,372,384,1d,1d,T_close,close,"EMA1 = EMA(REAL,N)
+EMA2 = EMA(EMA1,N)
+EMA3 = EMA(EMA2,N)
+TEMA = 3\*EMA1-3\*EMA2+EMA3
+默认: N = 5, REAL为任意序列，如CLOSE、VOL等","100*(ta_tema(close,12)-ts_delay(ta_tema(close,12),1))/(ts_delay(ta_tema(close,12),1)+1e-12)",exact,,legacy_expression,,,,{},36
+calendar2023_2_4_7_u5e73_6ed1_5f02_540c_5747_7ebf_6307_6807,2023,2.4.7,平滑异同均线指标,量价技术类,技术因子-趋势型,技术因子-趋势型,量价技术类,factors2023.md,384,394,1d,1d,T_close,close,"DIF = EMA(CLOSE,N1)-EMA(CLOSE,N2)
+DEA = EMA(DIF,N3)
+MACD = 2*(DIF-DEA)
+默认: N1 = 12、N2 = 26、N3 = 9","ts_ema(close,12)-ts_ema(close,26)",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},26
+calendar2023_2_5_1_u8521_91d1_8d27_5e01_6d41_91cf_6307_6807,2023,2.5.1,蔡金货币流量指标,量价技术类,技术因子-成交量型,技术因子-成交量型,量价技术类,factors2023.md,395,404,1d,1d,T_close,high|low|close|volume,"CLV = VOL*((CLOSE-LOW)-(HIGH-CLOSE))/(HIGH-CLOSE)
+CMF(N) = SUM(CLV,N)/SUM(VOL,N)\*100
+默认: N = 20","100*ts_sum(volume*((close-low)-(high-close))/(high-low+1e-12),20)/(ts_sum(volume,20)+1e-12)",exact,,legacy_expression,,,,{},20
+calendar2023_2_5_2_u7d2f_79ef_6d3e_53d1_7ebf,2023,2.5.2,累积/派发线,量价技术类,技术因子-成交量型,技术因子-成交量型,量价技术类,factors2023.md,404,411,1d,1d,T_close,high|low|close|volume,"AD = SUM(VOL\*(2\*CLOSE-HIGH-LOW)/(HIGH+LOW),0)",ts_cumsum(((close-low)-(high-close))/(high-low+1e-12)*volume),exact,,legacy_expression,,,,{},1
+calendar2023_2_5_3_u4f73_5e86_6307_6807,2023,2.5.3,佳庆指标,量价技术类,技术因子-成交量型,技术因子-成交量型,量价技术类,factors2023.md,411,421,1d,1d,T_close,high|low|close|volume,"MID = SUM(VOL\*(2\*CLOSE-HIGH-LOW)/(HIGH+LOW),0)
+CHO = EMA(MID,N1)-EMA(MID,N2)
+默认: N1 = 10、N2 = 3","ts_ema(ts_cumsum(volume*(2*close-high-low)/(high+low+1e-12)),10)-ts_ema(ts_cumsum(volume*(2*close-high-low)/(high+low+1e-12)),3)",exact,,legacy_expression,,,,{},10
+calendar2023_2_5_4_u6210_4ea4_91cf_76f8_5bf9_5f3a_5f31_6307_6807,2023,2.5.4,成交量相对强弱指标,量价技术类,技术因子-成交量型,技术因子-成交量型,量价技术类,factors2023.md,421,433,1d,1d,T_close,close|volume,"U = IF(CLOSE>CLOSE\[1],VOL,IF(CLOSE=CLOSE\[1],VOL/2,0))
+D = IF(CLOSE<CLOSE\[1],VOL,IF(CLOSE=CLOSE\[1],VOL/2,0))
+UU = ((N-1)U\[1]+U)/N
+DD = ((N-1)D\[1]+D)/N
+VRSI = 100\*UU/(UU+DD)
+默认: N = 20","100*ts_ema(ts_where(close>ts_delay(close,1),volume,ts_where(close==ts_delay(close,1),volume/2,0)),20)/(ts_ema(ts_where(close>ts_delay(close,1),volume,ts_where(close==ts_delay(close,1),volume/2,0)),20)+ts_ema(ts_where(close<ts_delay(close,1),volume,ts_where(close==ts_delay(close,1),volume/2,0)),20)+1e-12)",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},21
+calendar2023_2_5_5_u6210_4ea4_91cf_6bd4_7387_6307_6807,2023,2.5.5,成交量比率指标,量价技术类,技术因子-成交量型,技术因子-成交量型,量价技术类,factors2023.md,433,444,1d,1d,T_close,close|volume,"A = IF(CLOSE>CLOSE\[1],VOL,0)
+B = IF(CLOSE<CLOSE\[1],VOL,0)
+VR = SUM(A,N)/SUM(B,N)\*100
+默认: N = 20","100*ts_sum(ts_where(close>ts_delay(close,1),volume,0),20)/(ts_sum(ts_where(close<ts_delay(close,1),volume,0),20)+1e-12)",exact,,legacy_expression,,,,{},21
+calendar2023_2_5_6_u4ef7_91cf_8d8b_52bf_6307_6807,2023,2.5.6,价量趋势指标,量价技术类,技术因子-成交量型,技术因子-成交量型,量价技术类,factors2023.md,444,452,1d,1d,T_close,close|volume,"PVT = (CLOSE-CLOSE\[1])/CLOSE\[1]\*VOL + PVT\[1]
+PVT 初始值 = (CLOSE-CLOSE\[1])/CLOSE\[1]\*VOL","ts_cumsum((close/ts_delay(close,1)-1)*volume)",exact,,legacy_expression,,research_report_factors:concept_overlap,concept_overlap,{},2
+calendar2023_2_5_7_u80fd_91cf_6307_6807,2023,2.5.7,能量指标,量价技术类,技术因子-成交量型,技术因子-成交量型,量价技术类,factors2023.md,452,461,1d,1d,T_close,close|volume,"OBV = OBV\[1]+IF(CLOSE>CLOSE\[1],VOL,IF(CLOSE<CLOSE\[1],-VOL,0))","ts_cumsum(ts_where(close>ts_delay(close,1),volume,ts_where(close<ts_delay(close,1),-1*volume,0)))",exact,,legacy_expression,,,,{},2
+calendar2023_2_5_8_u6210_4ea4_91cf_6446_52a8_6307_6807,2023,2.5.8,成交量摆动指标,量价技术类,技术因子-成交量型,技术因子-成交量型,量价技术类,factors2023.md,461,474,1d,1d,T_close,volume,"TR = IF(HIGH+LOW+CLOSE>HIGH\[1]+LOW\[1]+CLOSE\[1],1,-1)
+DM = HIGH-LOW
+CM = IF(TR=TR\[1],CM\[1]+DM,DM\[1]+DM)
+VF = VOL\*ABS(2\*(DM/CM-1))\*TR\*100
+KVO(N1,N2) = EMA(VF,N1)-EMA(VF,N2)
+默认: N1 = 34、N2 = 55","100*(ts_mean(volume,12)-ts_mean(volume,26))/(ts_mean(volume,26)+1e-12)",exact,,legacy_expression,,,,{},26
+calendar2023_3_1_1_u5ba1_67e5_671f_6708_6570_5e73_5747,2023,3.1.1,审查期月数平均,另类因子,创新与专利类,创新与专利类,另类因子,factors2023.md,476,488,1d,1d,T_close,patent,mean(\text{截止日前5年内新生成的有效的发明授权专利的审查期月数}),,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,,,{},0
+calendar2023_3_1_2_u72ec_7acb_6743_5229_8981_6c42_9879_9879_6570,2023,3.1.2,独立权利要求项项数平均值,另类因子,创新与专利类,创新与专利类,另类因子,factors2023.md,488,500,1d,1d,T_close,patent,mean(\text{截止日前5年内新生成的有效的发明公开审查中专利的独立权利要求项项数}),,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,,,{},0
+calendar2023_3_1_3_u79d1_6280_52a8_91cf,2023,3.1.3,科技动量,另类因子,创新与专利类,创新与专利类,另类因子,factors2023.md,500,524,1d,1d,T_close,patent,"TECH_{ijt} = \frac{T_{it}T'_{jt}}{(T_{it}T'_{it})^{1/2}(T_{jt}T'_{jt})^{1/2}}
+
+TECHRET_{it} = \frac{\sum_{j \neq i} TECH_{ijt} \times RET_{jt}}{\sum_{j \neq i} TECH_{ijt}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_3_1_4_u6743_5229_8981_6c42_9879_9879_6570_5e73_5747,2023,3.1.4,权利要求项项数平均值,另类因子,创新与专利类,创新与专利类,另类因子,factors2023.md,524,536,1d,1d,T_close,patent,mean(\text{截止日前5年内新生成的有效的发明公开审查中专利的权利要求项项数}),,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,,,{},0
+calendar2023_3_1_5_u5bff_547d_6708_6570_5e73_5747_503c,2023,3.1.5,寿命月数平均值,另类因子,创新与专利类,创新与专利类,另类因子,factors2023.md,536,548,1d,1d,T_close,patent,mean(\text{截止日前5年内新生成的有效的发明公开审查中专利的寿命月数}),,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,,,{},0
+calendar2023_3_2_1_u5ba2_6237_52a8_91cf_56e0_5b50_57fa_4e8e_9500,2023,3.2.1,客户动量因子-基于销售占比,另类因子,供应链与客户关系类,供应链与客户关系类,另类因子,factors2023.md,549,567,1d,1d,T_close,supply_chain,"\text{cmom}_i^{1M} = \sum_{j=1}^{N_i} w_{ij}^{\text{sales}} \text{mom}_j^{1M}, i=1,2,\dots,N",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_3_2_2_u5ba2_6237_52a8_91cf_56e0_5b50_57fa_4e8e_5355,2023,3.2.2,客户动量因子-基于单层客户关系,另类因子,供应链与客户关系类,供应链与客户关系类,另类因子,factors2023.md,567,586,1d,1d,T_close,supply_chain,"\text{cmom}_i^{1M} = \sum_{j=1}^{N_i} w_{ij}^{\text{centrality}} \text{mom}_j^{1M}, i=1,2,\dots,N",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_3_2_3_u5ba2_6237_52a8_91cf_56e0_5b50_57fa_4e8e_591a,2023,3.2.3,客户动量因子-基于多层客户关系,另类因子,供应链与客户关系类,供应链与客户关系类,另类因子,factors2023.md,586,609,1d,1d,T_close,supply_chain,"\text{cmom}_i^{TM} = \sum_{l=1}^{L} \sum_{(m,n) \in G_l} w_{mn}^{\text{centrality}} \text{mom}_n^{TM}, i=1,2,\dots,N
+
+w_{mn}^{\text{centrality}} = c_{mn} / \sum_{l=1}^{L} \sum_{(m,n) \in G_l} c_{mn}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_3_2_4_u4f9b_5e94_94fe_5730_4f4d_56e0_5b50,2023,3.2.4,供应链地位因子,另类因子,供应链与客户关系类,供应链与客户关系类,另类因子,factors2023.md,609,635,1d,1d,T_close,supply_chain,"\text{客户集中度} = \frac{\text{前五大客户年度销售额}}{\text{公司年度销售总额}}
+
+\text{供应商集中度} = \frac{\text{前五大供应商年度采购额}}{\text{公司年度采购总额}}
+
+\text{占资水平} = \frac{\text{应付账款}+\text{预收账款}-\text{应收账款}-\text{预付账款}-\text{存货}}{\text{营业收入}}
+
+\text{获现率} = \frac{\text{经营活动产生的现金净流量}}{\text{净利润}+\text{折旧摊销}+\text{财务费用}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2023_3_3_1_u57fa_91d1_5173_8054_7f51_7edc_7275_5f15_56e0,2023,3.3.1,基金关联网络牵引因子,另类因子,关联网络与另类数据类,关联网络与另类数据类,另类因子,factors2023.md,636,664,1d,1d,T_close,network,Exp_{ave}^A = \frac{1}{N_A} \sum_{i=1}^{N_A} K_i^A * (chg_i - med),,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,,,{},0
+calendar2023_3_3_2_u6d88_8d39_6307_6570_53d8_52a8,2023,3.3.2,消费指数变动,另类因子,关联网络与另类数据类,关联网络与另类数据类,另类因子,factors2023.md,664,688,1d,1d,T_close,macro_external,"SALESINDEX(i, t) = \sum_{\theta_t} DailyTotalSales(i, \theta_t)
+
+\Delta SALES(i, t) = \frac{SALESINDEX(i, t) - SALESINDEX(i, t-12)}{SALESINDEX(i, t-12)}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: macro_external,,,,,{},0
+calendar2023_3_3_3_u65b0_95fb_6570_91cf,2023,3.3.3,新闻数量,另类因子,关联网络与另类数据类,关联网络与另类数据类,另类因子,factors2023.md,688,700,1d,1d,T_close,news,"nc_{i,t} = \text{过去 } [t-d+1, t] \text{ 天提及过股票 } i \text{ 的新闻总量}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2023_3_3_4_u5916_8d44_5238_5546_5173_8054_7f51_7edc_7275,2023,3.3.4,外资券商关联网络牵引因子,另类因子,关联网络与另类数据类,关联网络与另类数据类,另类因子,factors2023.md,700,727,1d,1d,T_close,northbound,Exp_{ave}^A = \frac{1}{N_A} \sum_{i=1}^{N_A} K_i^A * (chg_i - med),,blocked_data,精确实现依赖当前数据审计未发现的数据域: northbound,,,,,{},0
+calendar2023_3_4_1_u9694_591c_65b0_95fb_60c5_7eea,2023,3.4.1,隔夜新闻情绪,另类因子,舆情与新闻类,舆情与新闻类,另类因子,factors2023.md,728,745,1d,1d,T_close,news,"senti_i^t = \frac{1}{N} \sum_{j=1}^{N} (pos_{i,j}^t - neg_{i,j}^t) * (1 - neu_{i,j}^t) * relevance_{i,j}^t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2023_3_4_2_sentiment_beta,2023,3.4.2,Sentiment Beta (情绪贝塔),另类因子,舆情与新闻类,舆情与新闻类,另类因子,factors2023.md,745,767,1d,1d,T_close,sentiment_external,"r_t^i = \alpha^i + \beta^i * (\frac{CSMS_t}{CSMS_{t-1}} - 1) + \epsilon_t^i
+
+NewSentiBeta = -1 * abs(SentiBeta)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: sentiment_external,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2023_3_4_3_u65b0_95fb_52a8_91cf,2023,3.4.3,新闻动量,另类因子,舆情与新闻类,舆情与新闻类,另类因子,factors2023.md,767,783,1d,1d,T_close,analyst,\text{将上市公司过去一个月内有新闻的交易日的收益率综合计算得到当月新闻动量因子},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_3_4_4_u65b0_95fb_80a1_7968_5171_73b0,2023,3.4.4,新闻股票共现,另类因子,舆情与新闻类,舆情与新闻类,另类因子,factors2023.md,783,807,1d,1d,T_close,news,"w_{ij,t}^* = w_{ij,t} / w_{ii,t}
+
+aw_{ij,t} = w_{ij,t}^* - w_{ij,t-1}^*
+
+nco = \sum_{j=1}^N aw_{ij,t}^s",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2023_3_4_5_u65b0_95fb_80a1_7968_884c_4e1a_5171_73b0,2023,3.4.5,新闻股票行业共现,另类因子,舆情与新闻类,舆情与新闻类,另类因子,factors2023.md,807,823,1d,1d,T_close,news,"nco_{i,t} = a_{i,t} - a_{i,t-1}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2023_3_5_1_u5458_5de5_51c0_6d41_51fa_56e0_5b50,2023,3.5.1,员工净流出因子,另类因子,行为与流量类,行为与流量类,另类因子,factors2023.md,824,838,1d,1d,T_close,fundamental_raw,\text{员工净流出} = \frac{\text{月末员工总流出数} - \text{月末员工总流入数}}{\text{月初总员工数}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_3_5_2_u81ea_9009_80a1_5360_6bd4,2023,3.5.2,自选股占比,另类因子,行为与流量类,行为与流量类,另类因子,factors2023.md,838,850,1d,1d,T_close,news,\text{自选股占比} = \frac{\text{个股自选股用户数}}{\text{自选股用户数合计}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2023_3_5_3_u65b0_95fb_70b9_51fb_91cf_5360_6bd4,2023,3.5.3,新闻点击量占比,另类因子,行为与流量类,行为与流量类,另类因子,factors2023.md,850,862,1d,1d,T_close,news,\text{个股的新闻点击量} / \text{A股所有上市公司新闻点击量合计值},,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2023_3_5_4_u4e2a_80a1_70b9_51fb_91cf_5360_6bd4,2023,3.5.4,个股点击量占比,另类因子,行为与流量类,行为与流量类,另类因子,factors2023.md,862,874,1d,1d,T_close,news,\text{个股点击量占比} = \frac{\text{个股当天点击量}}{\text{全市场所有个股当天点击量之和}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2023_4_1_1_u6bcf_80a1_8d44_672c_516c_79ef_91d1,2023,4.1.1,每股资本公积金,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,877,889,1d,1d,T_close,capital_reserve_per_share_ttm,\frac{\text{最近报告期资本公积金}}{\text{最近同期总股本}},capital_reserve_per_share_ttm,exact,供应商日频PIT衍生字段,alias:capital_reserve_per_share_ttm,,,,{},0
+calendar2023_4_1_2_u6bcf_80a1_672a_5206_914d_5229_6da6,2023,4.1.2,每股未分配利润,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,889,901,1d,1d,T_close,undistributed_profit_per_share_ttm,\frac{\text{最近报告期未分配利润总额}}{\text{最近同期总股本}},undistributed_profit_per_share_ttm,exact,供应商日频PIT衍生字段,alias:undistributed_profit_per_share_ttm,,,,{},0
+calendar2023_4_1_3_u6bcf_80a1_7559_5b58_6536_76ca,2023,4.1.3,每股留存收益,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,901,913,1d,1d,T_close,retained_earnings_per_share_ttm,\frac{\text{最近报告期留存收益}}{\text{最近同期总股本}},retained_earnings_per_share_ttm,exact,供应商日频PIT衍生字段,alias:retained_earnings_per_share_ttm,,,,{},0
+calendar2023_4_1_4_u6bcf_80a1_8d27_5e01_8d44_91d1,2023,4.1.4,每股货币资金,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,913,925,1d,1d,T_close,cash_equivalent_per_share_ttm,\frac{\text{最近报告期货币资金}}{\text{最近同期总股本}},cash_equivalent_per_share_ttm,exact,供应商日频PIT衍生字段,alias:cash_equivalent_per_share_ttm,,,,{},0
+calendar2023_4_1_5_u6bcf_80a1_6536_76ca_644a_8584,2023,4.1.5,每股收益（摊薄）,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,925,942,1d,1d,T_close,diluted_earnings_per_share_ttm,"\frac{\text{最近12个月归属母公司净利润}(TTM)}{\text{平均总股本}}
+
+\text{平均总股本} = \frac{\text{期初总股本} + \text{期末总股本}}{2}",diluted_earnings_per_share_ttm,exact,供应商日频PIT衍生字段,alias:diluted_earnings_per_share_ttm,,,,{},0
+calendar2023_4_1_6_u6bcf_80a1_6536_76ca_6263_9664_644a_8584,2023,4.1.6,每股收益（扣除+摊薄）,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,942,959,1d,1d,T_close,adjusted_fully_diluted_earnings_per_share_ttm,"\frac{\text{最近12个月扣除非经常损益的净利润}(TTM)}{\text{平均总股本}}
+
+\text{平均总股本} = \frac{\text{期初总股本} + \text{期末总股本}}{2}",adjusted_fully_diluted_earnings_per_share_ttm,exact,供应商日频PIT衍生字段,alias:adjusted_fully_diluted_earnings_per_share_ttm,,,,{},0
+calendar2023_4_1_7_u6bcf_80a1_8425_4e1a_6536_5165,2023,4.1.7,每股营业收入,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,959,976,1d,1d,T_close,operating_revenue_per_share_ttm,"\frac{\text{最近12个月营业收入}(TTM)}{\text{平均总股本}}
+
+\text{平均总股本} = \frac{\text{期初总股本} + \text{期末总股本}}{2}",operating_revenue_per_share_ttm,exact,供应商日频PIT衍生字段,alias:operating_revenue_per_share_ttm,,,,{},0
+calendar2023_4_1_8_u6bcf_80a1_7ecf_8425_73b0_91d1_6d41,2023,4.1.8,每股经营现金流,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,976,993,1d,1d,T_close,operating_cash_flow_per_share_ttm,"\frac{\text{最近12个月经营活动产生的现金流量净额}(TTM)}{\text{平均总股本}}
+
+\text{平均总股本} = \frac{\text{期初总股本} + \text{期末总股本}}{2}",operating_cash_flow_per_share_ttm,exact,供应商日频PIT衍生字段,alias:operating_cash_flow_per_share_ttm,,,,{},0
+calendar2023_4_1_9_u6bcf_80a1_4f01_4e1a_81ea_7531_73b0_91d1_6d41,2023,4.1.9,每股企业自由现金流,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,993,1010,1d,1d,T_close,free_cash_flow_company_per_share_ttm,"\frac{\text{最近12个月企业自由现金流量}(TTM)}{\text{平均总股本}}
+
+\text{平均总股本} = \frac{\text{期初总股本} + \text{期末总股本}}{2}",free_cash_flow_company_per_share_ttm,exact,供应商日频PIT衍生字段,alias:free_cash_flow_company_per_share_ttm,,,,{},0
+calendar2023_4_1_10_u6bcf_80a1_51c0_8d44_4ea7,2023,4.1.10,每股净资产,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,1010,1022,1d,1d,T_close,book_value_per_share_ttm,\frac{\text{最近报告期归属母公司股东权益合计}}{\text{最近同期总股本}},book_value_per_share_ttm,exact,供应商日频PIT衍生字段,alias:book_value_per_share_ttm,,,,{},0
+calendar2023_4_1_11_u6bcf_80a1_76c8_4f59_516c_79ef_91d1,2023,4.1.11,每股盈余公积金,财务质量因子,每股指标,每股指标,财务质量因子,factors2023.md,1022,1034,1d,1d,T_close,earned_reserve_per_share_ttm,\frac{\text{最近报告期盈余公积金}}{\text{最近同期总股本}},earned_reserve_per_share_ttm,exact,供应商日频PIT衍生字段,alias:earned_reserve_per_share_ttm,,,,{},0
+calendar2023_4_2_1_roe,2023,4.2.1,净资产收益率 (ROE),财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1036,1053,1d,1d,T_close,return_on_equity_ttm,"\frac{\text{最近12个月归属母公司净利润}(TTM)}{\text{平均净资产}}
+
+\text{平均净资产} = \frac{\text{期初归属母公司股东权益合计} + \text{期末归属母公司股东权益合计}}{2}",return_on_equity_ttm,exact,供应商日频PIT衍生字段,alias:return_on_equity_ttm,,,,{},0
+calendar2023_4_2_2_diluted_roe,2023,4.2.2,摊薄净资产收益率 (Diluted ROE),财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1053,1065,1d,1d,T_close,return_on_equity_diluted_ttm,\frac{\text{最近12个月归属母公司净利润}(TTM)}{\text{期末归属母公司股东权益合计}},return_on_equity_diluted_ttm,exact,供应商日频PIT衍生字段,alias:return_on_equity_diluted_ttm,,,,{},0
+calendar2023_4_2_3_u5355_5b63_5ea6_9500_552e_6210_672c_7387,2023,4.2.3,单季度销售成本率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1065,1077,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度营业成本}}{\text{同期单季度营业收入}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_2_4_u6240_5f97_7a0e_8d39_7528_7387,2023,4.2.4,所得税费用率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1077,1089,1d,1d,T_close,income_tax_to_profit_before_tax_ttm,\frac{\text{最近12个月所得税}(TTM)}{\text{最近12个月利润总额}(TTM)},income_tax_to_profit_before_tax_ttm,exact,供应商日频PIT衍生字段,alias:income_tax_to_profit_before_tax_ttm,,,,{},0
+calendar2023_4_2_5_u76c8_5229_73b0_91d1_6bd4_7387,2023,4.2.5,盈利现金比率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1089,1101,1d,1d,T_close,operating_cash_flow_per_share_ttm|diluted_earnings_per_share_ttm,\frac{\text{最近12个月经营性活动产生的现金流净额}(TTM)}{\text{最近12个月净利润}(TTM)},operating_cash_flow_per_share_ttm/(diluted_earnings_per_share_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_4_2_6_u9500_552e_73b0_91d1_6bd4_7387,2023,4.2.6,销售现金比率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1101,1113,1d,1d,T_close,operating_cash_flow_per_share_ttm|operating_revenue_per_share_ttm,\frac{\text{最近12个月经营性活动产生的现金流净额}(TTM)}{\text{最近12个月营业收入}(TTM)},operating_cash_flow_per_share_ttm/(operating_revenue_per_share_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_4_2_7_u5168_90e8_8d44_4ea7_73b0_91d1_56de_6536_7387,2023,4.2.7,全部资产现金回收率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1113,1130,1d,1d,T_close,operating_cash_flow_per_share_ttm|book_value_per_share_ttm|book_value_per_share_lyr|equity_ratio_ttm|equity_ratio_lyr,"\frac{\text{最近12个月的经营性活动产生的现金流净额}(TTM)}{\text{平均总资产}}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",operating_cash_flow_per_share_ttm/((book_value_per_share_ttm/(equity_ratio_ttm+1e-12)+book_value_per_share_lyr/(equity_ratio_lyr+1e-12))/2+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_4_2_8_u8425_4e1a_8d39_7528_7387,2023,4.2.8,营业费用率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1130,1142,1d,1d,T_close,expense_to_revenue_ttm,\frac{\text{最近12个月销售费用}(TTM)}{\text{最近12个月营业收入}(TTM)},expense_to_revenue_ttm,exact,供应商日频PIT衍生字段,alias:expense_to_revenue_ttm,,,,{},0
+calendar2023_4_2_9_u8d22_52a1_8d39_7528_7387,2023,4.2.9,财务费用率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1142,1154,1d,1d,T_close,fundamental_raw,\frac{\text{最近12个月财务费用}(TTM)}{\text{最近12个月营业收入}(TTM)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_2_10_u6bdb_5229_7387,2023,4.2.10,毛利率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1154,1166,1d,1d,T_close,gross_profit_margin_ttm,\frac{\text{最近12个月营业收入}(TTM) - \text{最近12个月营业成本}(TTM)}{\text{最近12个月营业收入}(TTM)},gross_profit_margin_ttm,exact,供应商日频PIT衍生字段,alias:gross_profit_margin_ttm,,,,{},0
+calendar2023_4_2_11_u51c0_5229_7387,2023,4.2.11,净利率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1166,1178,1d,1d,T_close,net_profit_margin_ttm,\frac{\text{最近12个月净利润}(TTM)}{\text{最近12个月营业收入}(TTM)},net_profit_margin_ttm,exact,供应商日频PIT衍生字段,alias:net_profit_margin_ttm,,,,{},0
+calendar2023_4_2_12_u6bdb_5229_6da6_4e0e_51c0_5229_6da6_4e4b_6bd4,2023,4.2.12,毛利润与净利润之比,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1178,1190,1d,1d,T_close,gross_profit_margin_ttm|net_profit_margin_ttm,\frac{\text{最近12个月营业收入}(TTM) - \text{最近12个月营业成本}(TTM)}{\text{最近12个月净利润}(TTM)},gross_profit_margin_ttm/(net_profit_margin_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_4_2_13_u8425_4e1a_5229_6da6_7387,2023,4.2.13,营业利润率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1190,1202,1d,1d,T_close,profit_from_operation_to_revenue_ttm,\frac{\text{最近12个月营业利润}(TTM)}{\text{最近12个月营业收入}(TTM)},profit_from_operation_to_revenue_ttm,exact,供应商日频PIT衍生字段,alias:profit_from_operation_to_revenue_ttm,,,,{},0
+calendar2023_4_2_14_u603b_8425_4e1a_8d39_7528_7387,2023,4.2.14,总营业费用率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1202,1214,1d,1d,T_close,fundamental_raw,\frac{\text{最近12个月销售费用}(TTM) + \text{最近12个月管理费用}(TTM)}{\text{最近12个月营业收入}(TTM)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_2_15_u6210_672c_8d39_7528_5229_6da6_7387,2023,4.2.15,成本费用利润率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1214,1231,1d,1d,T_close,net_profit_margin_ttm|cost_to_sales_ttm|expense_to_revenue_ttm,"\frac{\text{最近12个月净利润}(TTM)}{\text{最近12个月成本费用}(TTM)}
+
+\text{成本费用} = \text{营业成本} + \text{销售费用} + \text{管理费用} + \text{财务费用}",net_profit_margin_ttm/(cost_to_sales_ttm+expense_to_revenue_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_4_2_16_u603b_8d44_4ea7_6bdb_5229_7387,2023,4.2.16,总资产毛利率,财务质量因子,盈利能力,盈利能力,财务质量因子,factors2023.md,1231,1248,1d,1d,T_close,gross_profit_margin_ttm|total_asset_turnover_ttm,"\frac{\text{最近12个月营业收入}(TTM) - \text{最近12个月营业成本}(TTM)}{\text{平均总资产}}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",gross_profit_margin_ttm*total_asset_turnover_ttm,exact,,legacy_expression,,,,{},0
+calendar2023_4_3_1_u666e_901a_80a1_56de_62a5_7387,2023,4.3.1,普通股回报率,财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1250,1271,1d,1d,T_close,return_on_equity_ttm,"\frac{\text{最近12个月净利润}(TTM) - \text{最近12个月优先股股利}(TTM)}{\text{平均普通股总股本}}
+
+\text{平均总股本} = \frac{\text{本期普通股总股本} + \text{上年同期普通股总股本}}{2}
+
+\text{优先股股利用 0 代替}",return_on_equity_ttm,exact,供应商ROE TTM字段对应普通股权益回报率,alias:return_on_equity_ttm,,,,{},0
+calendar2023_4_3_2_roic,2023,4.3.2,投入资本回报率 (ROIC),财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1271,1296,1d,1d,T_close,return_on_invested_capital_ttm,"\frac{\text{最近12个月扣非后EBIT}(TTM) * (1 - \text{税率} 0.25)}{\text{期末资本总投入}}
+
+\text{扣非后EBIT} = \text{营业利润} + \text{利息费用}
+
+\text{资本总投入} = \text{股东权益合计} + \text{有息负债}
+
+\text{有息负债} = \text{短期借款} + \text{长期借款} + \text{应付债券} + \text{一年内到期的非流动负债}",return_on_invested_capital_ttm,exact,供应商日频PIT衍生字段,alias:return_on_invested_capital_ttm,,,,{},0
+calendar2023_4_3_3_u5355_5b63_5ea6_6295_5165_8d44_672c_56de_62a5,2023,4.3.3,单季度投入资本回报率,财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1296,1321,1d,1d,T_close,fundamental_raw,"\frac{\text{最近单季度扣非后EBIT}(TTM) * (1 - \text{税率} 0.25)}{\text{期末资本总投入}}
+
+\text{扣非后EBIT} = \text{营业利润} + \text{利息费用}
+
+\text{资本总投入} = \text{股东权益合计} + \text{有息负债}
+
+\text{有息负债} = \text{短期借款} + \text{长期借款} + \text{应付债券} + \text{一年内到期的非流动负债}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_3_4_u6709_5f62_8d44_672c_56de_62a5_7387,2023,4.3.4,有形资本回报率,财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1321,1346,1d,1d,T_close,ebit_ttm|invested_capital_ttm,"\frac{\text{最近12个月息税前利润}(TTM)}{\text{期末有形资本}}
+
+\text{有形资本} = \text{净营运资本} + \text{净固定资本}
+
+\text{净营运资本} \approx \text{流动资产} - \text{流动负债}
+
+\text{净固定资本} \approx \text{固定资产}",ebit_ttm/(invested_capital_ttm+1e-12),exact,供应商投入资本字段对应净营运资本与长期经营资本口径,legacy_expression,,,,{},0
+calendar2023_4_3_5_u6263_975e_51c0_8d44_4ea7_6536_76ca_7387,2023,4.3.5,扣非净资产收益率,财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1346,1363,1d,1d,T_close,adjusted_return_on_equity_ttm,"\frac{\text{最近12个月扣除非经常损益后归属母公司净利润}(TTM)}{\text{平均净资产}}
+
+\text{平均净资产} = \frac{\text{期初归属母公司股东权益合计} + \text{期末归属母公司股东权益合计}}{2}",adjusted_return_on_equity_ttm,exact,供应商日频PIT衍生字段,alias:adjusted_return_on_equity_ttm,,,,{},0
+calendar2023_4_3_6_u644a_8584_6263_975e_51c0_8d44_4ea7_6536_76ca,2023,4.3.6,摊薄扣非净资产收益率,财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1363,1375,1d,1d,T_close,adjusted_return_on_equity_diluted_ttm,\frac{\text{最近12个月归属母公司净利润}(TTM)}{\text{期末归属母公司股东权益合计}},adjusted_return_on_equity_diluted_ttm,exact,供应商日频PIT衍生字段,alias:adjusted_return_on_equity_diluted_ttm,,,,{},0
+calendar2023_4_3_7_u51c0_7ecf_8425_8d44_4ea7_6536_76ca_7387,2023,4.3.7,净经营资产收益率,财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1375,1400,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月的经营利润}(TTM)}{\text{平均净经营资产}}
+
+\text{平均净经营资产} = \frac{\text{期初净经营资产} + \text{期末净经营资产}}{2}
+
+\text{经营利润} = \text{净利润(含少数股东损益)} - \text{非经常性损益} + (\text{财务费用} - \text{利息净收入}) * (1 - 25\%)
+
+\text{净经营资产} = \text{股东权益合计(含少数股东权益)} + \text{金融负债} - \text{金融资产} = \text{经营性资产} - \text{经营性负债}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_3_8_u603b_8d44_4ea7_51c0_5229_7387,2023,4.3.8,总资产净利率,财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1400,1417,1d,1d,T_close,return_on_asset_net_profit_ttm,"\frac{\text{最近12个月净利润}(TTM)}{\text{平均总资产}}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",return_on_asset_net_profit_ttm,exact,供应商日频PIT衍生字段,alias:return_on_asset_net_profit_ttm,,,,{},0
+calendar2023_4_3_9_u603b_8d44_4ea7_62a5_916c_7387,2023,4.3.9,总资产报酬率,财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1417,1434,1d,1d,T_close,return_on_asset_ttm,"\frac{\text{最近12个月息税前利润}(TTM)}{\text{平均总资产}}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",return_on_asset_ttm,exact,供应商日频PIT衍生字段,alias:return_on_asset_ttm,,,,{},0
+calendar2023_4_3_10_u603b_8d44_4ea7_8425_4e1a_5229_6da6,2023,4.3.10,总资产营业利润,财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1434,1451,1d,1d,T_close,profit_from_operation_to_revenue_ttm|total_asset_turnover_ttm,"\frac{\text{最近12个月营业利润}(TTM)}{\text{平均总资产}}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",profit_from_operation_to_revenue_ttm*total_asset_turnover_ttm,exact,,legacy_expression,,,,{},0
+calendar2023_4_3_11_u51c0_8d44_4ea7_8425_4e1a_5229_6da6,2023,4.3.11,净资产营业利润,财务质量因子,投资回报类,投资回报类,财务质量因子,factors2023.md,1451,1468,1d,1d,T_close,profit_from_operation_to_revenue_ttm|total_asset_turnover_ttm|equity_ratio_ttm,"\frac{\text{最近12个月营业利润}(TTM)}{\text{平均净资产}}
+
+\text{平均净资产} = \frac{\text{期初归属母公司股东权益合计} + \text{期末归属母公司股东权益合计}}{2}",profit_from_operation_to_revenue_ttm*total_asset_turnover_ttm/(equity_ratio_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_4_4_1_u975e_64cd_7eb5_6027_603b_5e94_8ba1_76c8_4f59,2023,4.4.1,非操纵性总应计盈余,财务质量因子,盈余质量,盈余质量,财务质量因子,factors2023.md,1470,1498,1d,1d,T_close,fundamental_raw,"\frac{TA_{i,t}}{A_{i,t-1}} = \alpha_{i,1} \frac{1}{A_{i,t-1}} + \alpha_{i,2} \frac{\Delta REV_{i,t}}{A_{i,t-1}} + \alpha_{i,3} \frac{PPE_{i,t}}{A_{i,t-1}} + \epsilon_{i,t}
+
+NDTAC_{i,t} = \alpha_{i,1} \frac{1}{A_{i,t-1}} + \alpha_{i,2} \frac{\Delta REV_{i,t} - \Delta REC_{i,t}}{A_{i,t-1}} + \alpha_{i,3} \frac{PPE_{i,t}}{A_{i,t-1}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_4_2_accruals,2023,4.4.2,盈余质量 (Accruals),财务质量因子,盈余质量,盈余质量,财务质量因子,factors2023.md,1498,1519,1d,1d,T_close,fundamental_raw,Accruals = \frac{(\Delta CA - \Delta Cash) - (\Delta CL - \Delta STD - \Delta TP) - Dep}{AverageTotalAssets},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_4_3_u603b_5e94_8ba1_76c8_4f59_5e38_89c4_7248,2023,4.4.3,总应计盈余（常规版）,财务质量因子,盈余质量,盈余质量,财务质量因子,factors2023.md,1519,1539,1d,1d,T_close,fundamental_raw,Accruals = \frac{(\Delta CA - \Delta Cash) - (\Delta CL - \Delta STD - \Delta TP) - Dep}{AverageTotalAssets},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_4_4_u64cd_7eb5_6027_603b_5e94_8ba1_76c8_4f59,2023,4.4.4,操纵性总应计盈余,财务质量因子,盈余质量,盈余质量,财务质量因子,factors2023.md,1539,1573,1d,1d,T_close,fundamental_raw,"\frac{TA_{i,t}}{A_{i,t-1}} = \alpha_{i,1} \frac{1}{A_{i,t-1}} + \alpha_{i,2} \frac{\Delta REV_{i,t}}{A_{i,t-1}} + \alpha_{i,3} \frac{PPE_{i,t}}{A_{i,t-1}} + \epsilon_{i,t}
+
+NDTAC_{i,t} = \alpha_{i,1} \frac{1}{A_{i,t-1}} + \alpha_{i,2} \frac{\Delta REV_{i,t} - \Delta REC_{i,t}}{A_{i,t-1}} + \alpha_{i,3} \frac{PPE_{i,t}}{A_{i,t-1}}
+
+DTAC_{i,t} = \frac{TA_{i,t}}{A_{i,t-1}} - NDTAC_{i,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_4_5_u76c8_4f59_6301_7eed_6027,2023,4.4.5,盈余持续性,财务质量因子,盈余质量,盈余质量,财务质量因子,factors2023.md,1573,1590,1d,1d,T_close,fundamental_raw,"X_{j,t} = \phi_{0,j} + \phi_{1,j}X_{j,t-1} + v_{j,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_4_6_u76c8_4f59_53ef_9884_6d4b_6027,2023,4.4.6,盈余可预测性,财务质量因子,盈余质量,盈余质量,财务质量因子,factors2023.md,1590,1611,1d,1d,T_close,fundamental_raw,"X_{j,t} = \phi_{0,j} + \phi_{1,j}X_{j,t-1} + v_{j,t}
+
+Predictability = \sqrt{\hat{\sigma}^2(v_j)}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_5_1_u51c0_7ecf_8425_8d44_4ea7_5468_8f6c_7387,2023,4.5.1,净经营资产周转率,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1613,1634,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月的营业收入}(TTM)}{\text{平均净经营资产}}
+
+\text{平均净经营资产} = \frac{\text{期初净经营资产} + \text{期末净经营资产}}{2}
+
+\text{净经营资产} = \text{股东权益合计(含少数股东权益)} + \text{金融负债} - \text{金融资产} = \text{经营性资产} - \text{经营性负债}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_5_2_u5b58_8d27_5468_8f6c_7387,2023,4.5.2,存货周转率,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1634,1651,1d,1d,T_close,inventory_turnover_ttm,"\frac{\text{最近12个月的营业成本}(TTM)}{\text{平均存货}}
+
+\text{平均存货} = \frac{\text{期初存货} + \text{期末存货}}{2}",inventory_turnover_ttm,exact,供应商日频PIT衍生字段,alias:inventory_turnover_ttm,,,,{},0
+calendar2023_4_5_3_u5e94_6536_8d26_6b3e_5468_8f6c_7387,2023,4.5.3,应收账款周转率,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1651,1668,1d,1d,T_close,account_receivable_turnover_rate_ttm,"\frac{\text{最近12个月营业收入}(TTM)}{\text{平均应收账款}}
+
+\text{平均应收账款} = \frac{\text{期初应收账款} + \text{期末应收账款}}{2}",account_receivable_turnover_rate_ttm,exact,供应商日频PIT衍生字段,alias:account_receivable_turnover_rate_ttm,,,,{},0
+calendar2023_4_5_4_u5e94_6536_8d26_6b3e_5468_8f6c_5929_6570,2023,4.5.4,应收账款周转天数,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1668,1680,1d,1d,T_close,account_receivable_turnover_days_ttm,\frac{360}{\text{应收账款周转率}},account_receivable_turnover_days_ttm,exact,供应商日频PIT衍生字段,alias:account_receivable_turnover_days_ttm,,,,{},0
+calendar2023_4_5_5_u5e94_4ed8_8d26_6b3e_5468_8f6c_5929_6570,2023,4.5.5,应付账款周转天数,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1680,1692,1d,1d,T_close,account_payable_turnover_days_ttm,\frac{360}{\text{应付账款周转率}},account_payable_turnover_days_ttm,exact,供应商日频PIT衍生字段,alias:account_payable_turnover_days_ttm,,,,{},0
+calendar2023_4_5_6_u603b_8d44_4ea7_5468_8f6c_7387,2023,4.5.6,总资产周转率,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1692,1709,1d,1d,T_close,total_asset_turnover_ttm,"\frac{\text{最近12个月营业成本}(TTM)}{\text{平均总资产}}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",total_asset_turnover_ttm,exact,供应商日频PIT衍生字段,alias:total_asset_turnover_ttm,,,,{},0
+calendar2023_4_5_7_u80a1_4e1c_6743_76ca_5468_8f6c_7387,2023,4.5.7,股东权益周转率,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1709,1726,1d,1d,T_close,equity_turnover_ratio_ttm,"\frac{\text{最近12个月营业收入}(TTM)}{\text{平均股东权益合计}}
+
+\text{平均股东权益合计} = \frac{\text{期初股东权益合计} + \text{期末股东权益合计}}{2}",equity_turnover_ratio_ttm,exact,供应商日频PIT衍生字段,alias:equity_turnover_ratio_ttm,,,,{},0
+calendar2023_4_5_8_u56fa_5b9a_8d44_4ea7_5468_8f6c_7387,2023,4.5.8,固定资产周转率,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1726,1743,1d,1d,T_close,fixed_asset_turnover_ttm,"\frac{\text{最近12个月营业收入}(TTM)}{\text{平均固定资产}}
+
+\text{平均固定资产} = \frac{\text{期初固定资产} + \text{期末固定资产}}{2}",fixed_asset_turnover_ttm,exact,供应商日频PIT衍生字段,alias:fixed_asset_turnover_ttm,,,,{},0
+calendar2023_4_5_9_u5e94_6536_5468_8f6c_7387,2023,4.5.9,应收周转率,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1743,1755,1d,1d,T_close,account_receivable_turnover_rate_ttm,\frac{\text{最近12个月营业收入}(TTM)}{\text{期末应收账款} + \text{期末应收票据}},account_receivable_turnover_rate_ttm,exact,供应商日频PIT衍生字段,alias:account_receivable_turnover_rate_ttm,,,,{},0
+calendar2023_4_5_10_u5e94_4ed8_8d26_6b3e_5468_8f6c_7387,2023,4.5.10,应付账款周转率,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1755,1772,1d,1d,T_close,account_payable_turnover_rate_ttm,"\frac{\text{最近12个月营业成本}(TTM)}{\text{平均应付账款}}
+
+\text{平均应付账款} = \frac{\text{期初应付账款} + \text{期末应付账款}}{2}",account_payable_turnover_rate_ttm,exact,供应商日频PIT衍生字段,alias:account_payable_turnover_rate_ttm,,,,{},0
+calendar2023_4_5_11_u73b0_91d1_5faa_73af_5468_671f,2023,4.5.11,现金循环周期,财务质量因子,营运能力,营运能力,财务质量因子,factors2023.md,1772,1797,1d,1d,T_close,cash_conversion_cycle_ttm,"\text{存货周转天数} + \text{应收账款周转天数} - \text{应付账款周转天数}
+
+\text{应收账款周转天数} = \frac{360}{\text{应收账款周转率}}
+
+\text{应付账款周转天数} = \frac{360}{\text{应付账款周转率}}
+
+\text{存货周转天数} = \frac{360}{\text{存货周转率}}",cash_conversion_cycle_ttm,exact,供应商日频PIT衍生字段,alias:cash_conversion_cycle_ttm,,,,{},0
+calendar2023_4_6_1_u5229_606f_4fdd_969c_500d_6570,2023,4.6.1,利息保障倍数,财务质量因子,偿债能力,偿债能力,财务质量因子,factors2023.md,1799,1816,1d,1d,T_close,time_interest_earned_ratio_ttm,"\frac{\text{最近12个月息税前利润}EBIT(TTM)}{\text{最近12个月利息费用}(TTM)}
+
+\text{利息费用} = \text{财务费用中的利息支出} - \text{财务费用中的利息收入}",time_interest_earned_ratio_ttm,exact,供应商日频PIT衍生字段,alias:time_interest_earned_ratio_ttm,,,,{},0
+calendar2023_4_6_2_u73b0_91d1_6d41_8986_76d6_7387,2023,4.6.2,现金流覆盖率,财务质量因子,偿债能力,偿债能力,财务质量因子,factors2023.md,1816,1833,1d,1d,T_close,ocf_to_debt_ttm,"\frac{\text{最近12个月经营性活动产生的现金流量净额}(TTM)}{\text{最近12个月利息费用}(TTM)}
+
+\text{利息费用} = \text{财务费用中的利息支出} - \text{财务费用中的利息收入}",ocf_to_debt_ttm,exact,供应商日频PIT衍生字段,alias:ocf_to_debt_ttm,,,,{},0
+calendar2023_4_6_3_u7ecf_8425_73b0_91d1_6d41_91cf_6bd4_7387,2023,4.6.3,经营现金流量比率,财务质量因子,偿债能力,偿债能力,财务质量因子,factors2023.md,1833,1850,1d,1d,T_close,cash_flow_ratio_ttm,"\frac{\text{最近12个月经营性活动产生的现金流量净额}(TTM)}{\text{平均流动负债合计}}
+
+\text{平均流动负债合计} = \frac{\text{期初流动负债合计} + \text{期末流动负债合计}}{2}",cash_flow_ratio_ttm,exact,供应商日频PIT衍生字段,alias:cash_flow_ratio_ttm,,,,{},0
+calendar2023_4_6_4_u6709_5f62_51c0_503c_503a_52a1_7387,2023,4.6.4,有形净值债务率,财务质量因子,偿债能力,偿债能力,财务质量因子,factors2023.md,1850,1867,1d,1d,T_close,liabilities_per_share_ttm|tangible_asset_per_share_ttm,"\frac{\text{最近报告期负债合计}}{\text{最近报告期有形净值}}
+
+\text{有形净值} = \text{归属母公司股东权益} - \text{无形资产} - \text{开发支出} - \text{商誉} - \text{长期待摊费用} - \text{递延所得税资产}",liabilities_per_share_ttm/(tangible_asset_per_share_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_4_7_1_u6d41_52a8_8d44_4ea7_5360_6bd4,2023,4.7.1,流动资产占比,财务质量因子,资本结构,资本结构,财务质量因子,factors2023.md,1869,1881,1d,1d,T_close,current_asset_to_total_asset_lf,\frac{\text{最近报告期的流动资产合计}}{\text{最近同期的总资产}},current_asset_to_total_asset_lf,exact,供应商日频PIT衍生字段,alias:current_asset_to_total_asset_lf,,,,{},0
+calendar2023_4_7_2_u6d41_52a8_8d1f_503a_7387,2023,4.7.2,流动负债率,财务质量因子,资本结构,资本结构,财务质量因子,factors2023.md,1881,1893,1d,1d,T_close,current_debt_to_total_debt_ttm,\frac{\text{最近报告期的流动负债合计}}{\text{最近同期负债合计}},current_debt_to_total_debt_ttm,exact,供应商日频PIT衍生字段,alias:current_debt_to_total_debt_ttm,,,,{},0
+calendar2023_4_7_3_u957f_671f_8d1f_503a_6bd4_7387,2023,4.7.3,长期负债比率,财务质量因子,资本结构,资本结构,财务质量因子,factors2023.md,1893,1905,1d,1d,T_close,non_current_debt_to_total_debt_ttm,\frac{\text{最近报告期的非流动负债}}{\text{最近同期总资产}},non_current_debt_to_total_debt_ttm,exact,供应商日频PIT衍生字段,alias:non_current_debt_to_total_debt_ttm,,,,{},0
+calendar2023_4_7_4_u56fa_5b9a_8d44_4ea7_6bd4_4f8b,2023,4.7.4,固定资产比例,财务质量因子,资本结构,资本结构,财务质量因子,factors2023.md,1905,1917,1d,1d,T_close,fixed_asset_ratio_ttm,\frac{\text{最近报告期的固定资产}}{\text{最近同期总资产}},fixed_asset_ratio_ttm,exact,供应商日频PIT衍生字段,alias:fixed_asset_ratio_ttm,,,,{},0
+calendar2023_4_7_5_u8d44_672c_56fa_5b9a_5316_7387,2023,4.7.5,资本固定化率,财务质量因子,资本结构,资本结构,财务质量因子,factors2023.md,1917,1929,1d,1d,T_close,non_current_asset_to_total_asset_ttm|equity_ratio_ttm,\frac{\text{最近报告期的总资产} - \text{最近同期的流动资产合计}}{\text{最近同期股东权益合计}},non_current_asset_to_total_asset_ttm/(equity_ratio_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_4_7_6_u7ecf_8425_6027_73b0_91d1_6d41_91cf_51c0_989d,2023,4.7.6,经营性现金流量净额占比,财务质量因子,资本结构,资本结构,财务质量因子,factors2023.md,1929,1941,1d,1d,T_close,fundamental_raw,\frac{\text{最近12个月经营性现金流量净额}(TTM)}{\text{最近12个月现金及现金等价物净增加额}(TTM)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_8_1_u76c8_5229_5e02_503c_6bd4_53bb_6760_6746_540e,2023,4.8.1,盈利市值比（去杠杆后）,财务质量因子,改进型因子,改进型因子,财务质量因子,factors2023.md,1943,1960,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月的毛利润}(TTM)}{\text{当日经营性净资产市值}}
+
+\text{经营性净资产市值} = \text{金融负债} - \text{金融资产} + \text{市值}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_8_2_u8d26_9762_5e02_503c_6bd4_53bb_6760_6746_540e,2023,4.8.2,账面市值比（去杠杆后）,财务质量因子,改进型因子,改进型因子,财务质量因子,factors2023.md,1960,1981,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期的经营性净资产}}{\text{当日经营性净资产市值}}
+
+\text{经营性净资产} = \text{股东权益} + \text{净负债} = \text{股东权益合计(含少数股东权益)} + \text{金融负债} - \text{金融资产}
+
+\text{经营性净资产市值} = \text{金融负债} - \text{金融资产} + \text{市值}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_8_3_u73b0_91d1_6d41_5e02_503c_6bd4_53bb_6760_6746,2023,4.8.3,现金流市值比（去杠杆后）,财务质量因子,改进型因子,改进型因子,财务质量因子,factors2023.md,1981,1998,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月的经营性活动产生的现金流净额}(TTM)}{\text{当日经营性净资产市值}}
+
+\text{经营性净资产市值} = \text{金融负债} - \text{金融资产} + \text{市值}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_8_4_u6807_51c6_5316_8425_4e1a_5229_6da6,2023,4.8.4,标准化营业利润,财务质量因子,改进型因子,改进型因子,财务质量因子,factors2023.md,1998,2015,1d,1d,T_close,fundamental_raw,"\frac{\text{营业利润}(TTM)\text{的当期值} - mean(\text{过去}T\text{期的营业利润}(TTM))}{std(\text{过去}T\text{期的营业利润}(TTM))}
+
+\text{默认 } T = 6 \text{ 个季度。}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_8_5_roe,2023,4.8.5,规模调整后的ROE,财务质量因子,改进型因子,改进型因子,财务质量因子,factors2023.md,2015,2025,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2023_4_8_6_u4e1a_7ee9_8d8b_52bf,2023,4.8.6,业绩趋势,财务质量因子,改进型因子,改进型因子,财务质量因子,factors2023.md,2025,2042,1d,1d,T_close,fundamental_raw,NetProfit_t = \alpha * t^2 + \beta * t + c,,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_8_7_u8425_4e1a_80fd_529b_6539_5584,2023,4.8.7,营业能力改善,财务质量因子,改进型因子,改进型因子,财务质量因子,factors2023.md,2042,2059,1d,1d,T_close,fundamental_raw,Revenue_i = a_i + \beta_i Cost_i + \epsilon_i,,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_8_8_u4ea7_80fd_5229_7528_7387_63d0_5347,2023,4.8.8,产能利用率提升,财务质量因子,改进型因子,改进型因子,财务质量因子,factors2023.md,2059,2076,1d,1d,T_close,fundamental_raw,TotalOperationCost_i = a_i + \beta_i FixedAssets_i + \epsilon_i,,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_8_9_roe,2023,4.8.9,ROE增长减净资产增长,财务质量因子,改进型因子,改进型因子,财务质量因子,factors2023.md,2076,2097,1d,1d,T_close,inc_return_on_equity_ttm|net_asset_growth_ratio_ttm,"ROE环比增速 = \frac{\text{本期}ROE(TTM) - \text{上季度}ROE(TTM)}{abs(\text{上季度}ROE(TTM))}
+
+\text{净资产同比增速} = \frac{\text{最近报告期的归属母公司股东权益} - \text{上年同期值}}{\text{上年同期值}}
+
+ROE\text{环比增速} - \text{净资产同比增速}",inc_return_on_equity_ttm-net_asset_growth_ratio_ttm,exact,,legacy_expression,,,,{},0
+calendar2023_4_9_1_u5f02_5e38_6bdb_5229_6da6,2023,4.9.1,异常毛利润,财务质量因子,异常与盈余质量类,异常与盈余质量类,财务质量因子,factors2023.md,2099,2117,1d,1d,T_close,fundamental_raw,"\text{异常毛利润} = \frac{\text{当前季度毛利润} - \text{去年同期毛利润} \times \text{正常增长乘数}}{\text{当前季度末总资产}}
+
+\text{正常增长乘数} = \frac{\text{最新季度销售商品、提供劳务收到的现金}}{\text{去年同期销售商品、提供劳务收到的现金}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_9_2_u5f02_5e38_9884_6536_6b3e,2023,4.9.2,异常预收款,财务质量因子,异常与盈余质量类,异常与盈余质量类,财务质量因子,factors2023.md,2117,2139,1d,1d,T_close,supply_chain,"\text{异常预收款} = \text{当前季度预收款项} - \text{去年同期预收款项} \times \text{正常增长乘数}
+
+\text{正常增长乘数} = \frac{\text{最新季度销售商品、提供劳务收到的现金}}{\text{去年同期销售商品、提供劳务收到的现金}}
+
+\text{当前季度末总资产}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2023_4_9_3_u5f02_5e38_8d22_52a1_56e0_5b50,2023,4.9.3,异常财务因子,财务质量因子,异常与盈余质量类,异常与盈余质量类,财务质量因子,factors2023.md,2139,2161,1d,1d,T_close,fundamental_raw,"\text{异常}F = \frac{\text{当前季度末的}F - \text{去年同期}F \times \text{正常增长乘数}}{\text{当前季度末总资产}} \times (-1)
+
+\text{正常增长乘数} = \frac{\text{最新季度销售商品、提供劳务收到的现金}}{\text{去年同期销售商品、提供劳务收到的现金}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_9_4_u6807_51c6_5316_8c03_6574_7684_8425_4e1a_5229,2023,4.9.4,标准化调整的营业利润,财务质量因子,异常与盈余质量类,异常与盈余质量类,财务质量因子,factors2023.md,2161,2182,1d,1d,T_close,fundamental_raw,"\frac{\text{调整的营业利润}(TTM)\text{的当期值} - mean(\text{过去}T\text{期调整的营业利润}(TTM))}{std(\text{过去}T\text{期调整的营业利润}(TTM))}
+
+\text{调整的营业利润} = \text{营业利润} + \text{预收账款}
+
+\text{默认 } T = 6 \text{ 个季度。}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_4_9_5_u8d22_52a1_8d28_91cf_56e0_5b50,2023,4.9.5,财务质量因子,财务质量因子,异常与盈余质量类,异常与盈余质量类,财务质量因子,factors2023.md,2182,2213,1d,1d,T_close,fundamental_raw,"\text{单季度所得税费用}
+
+\text{单季度营业收入}
+
+\text{单季度营业费用}
+
+\text{单季度营业收入}
+
+\text{应收账款周转率同比增量}
+
+\frac{\text{单季度所得税费用}}{\text{单季度营业收入}} \text{ 的同比增量}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_5_1_1_u6b8b_5dee_8d44_91d1_6d41_5f3a_5ea6_56e0_5b50,2023,5.1.1,残差资金流强度因子,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2216,2236,1m,1d,T_close,tick_trade,"S_t = \frac{\sum_{t-T}^t (buy_t - sell_t)}{\sum_{t-T}^t |buy_t - sell_t|}
+
+S_t = a + bRet20_t + \varepsilon_t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_1_2_u806a_660e_94b1_56e0_5b50,2023,5.1.2,聪明钱因子,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2236,2256,1m,1d,T_close,close|volume,\text{聪明钱因子} = \frac{VWAP_{smart}}{VWAP_{all}},"VWAP(top_S_until_20pct_volume,last10d)/VWAP(all,last10d)",exact,,intraday_smart_money,,,,{'window': 10},10
+calendar2023_5_1_3_u5f00_76d8_540e_5927_5355_51c0_4e70_5165_5360,2023,5.1.3,开盘后大单净买入占比,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2256,2276,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^N (\text{大买单成交额}_{i,j,n} - \text{大卖单成交额}_{i,j,n})}{\sum_{j=1}^N \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_1_4_u5f00_76d8_540e_5927_5355_51c0_4e70_5165_5f3a,2023,5.1.4,开盘后大单净买入强度,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2276,2295,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{mean(\text{大买单成交额}_{i,j,n} - \text{大卖单成交额}_{i,j,n})}{std(\text{大买单成交额}_{i,j,n} - \text{大卖单成交额}_{i,j,n})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_1_5_u5c0f_5355_548c_5c0f_5355_7684_9519_4f4d_76f8,2023,5.1.5,小单和小单的错位相关性,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2295,2310,1m,1d,T_close,tick_trade,"RankCorr(S_t, S_{t+1})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_1_6_u5f00_76d8_540e_4e70_5165_610f_613f_5f3a_5ea6,2023,5.1.6,开盘后买入意愿强度,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2310,2341,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{mean(\text{买入意愿}_{i,j,n})}{std(\text{买入意愿}_{i,j,n})}
+
+\text{买入意愿}_{i,j,n} = \text{净主买成交额}_{i,j,n} - \text{净委买增额}_{i,j,n}
+
+\text{净主买成交额}_{i,j,n} = \text{主动买入成交额}_{i,j,n} - \text{主动卖出成交额}_{i,j,n}
+
+\text{净委买增额}_{i,j,n} = \text{委托买单增加量}_{i,j,n} - \text{委托卖单增加量}_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2023_5_1_7_u5f00_76d8_540e_51c0_59d4_4e70_589e_989d_5360,2023,5.1.7,开盘后净委买增额占比,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2341,2366,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^N (\text{净委买增额}_{i,j,n})}{\sum_{j=1}^N \text{成交额}_{i,j,n}}
+
+\text{净委买增额}_{i,j,n} = \text{委托买单增加量}_{i,j,n} - \text{委托卖单增加量}_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2023_5_1_8_u5f00_76d8_540e_51c0_4e3b_4e70_5360_6bd4,2023,5.1.8,开盘后净主买占比,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2366,2389,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^N \text{净主买成交额}_{i,j,n}}{\sum_{j=1}^N \text{成交额}_{i,j,n}}
+
+\text{净主买成交额}_{i,j,n} = \text{主动买入成交额}_{i,j,n} - \text{主动卖出成交额}_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_1_9_u5f00_76d8_540e_51c0_4e3b_4e70_5f3a_5ea6,2023,5.1.9,开盘后净主买强度,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2389,2412,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{mean(\text{净主买成交额}_{i,j,n})}{std(\text{净主买成交额}_{i,j,n})}
+
+\text{净主买成交额}_{i,j,n} = \text{主动买入成交额}_{i,j,n} - \text{主动卖出成交额}_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_1_10_u5e73_5747_5355_7b14_6d41_51fa_91d1_989d_5360,2023,5.1.10,平均单笔流出金额占比,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2412,2431,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^N Amt_{i,j,n} \cdot I_{r_{i,j,n}<0} / \sum_{j=1}^N TrdNum_{i,j,n} \cdot I_{r_{i,j,n}<0}}{\sum_{j=1}^N Amt_{i,j,n} / \sum_{j=1}^N TrdNum_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2023_5_1_11_u4e3b_529b_4ea4_6613_60c5_7eea,2023,5.1.11,主力交易情绪,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2431,2448,1m,1d,T_close,tick_trade,"TE = RankCorr(A_{order}, C_{minute})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_1_12_u4e3b_529b_4ea4_6613_5f3a_5ea6,2023,5.1.12,主力交易强度,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2448,2465,1m,1d,T_close,tick_trade,"TS = RankCorr(A_{order}, A_{minute})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_1_13_u5355_7b14_6210_4ea4_91d1_989d_5206_4f4d_6570,2023,5.1.13,单笔成交金额分位数,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2465,2481,1m,1d,T_close,tick_trade,S = \frac{A_{0.1} - A_{min}}{A_{max} - A_{min}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_1_14_u6563_6237_7f8a_7fa4_6548_5e94,2023,5.1.14,散户羊群效应,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2481,2496,1m,1d,T_close,tick_trade,"RankCorr(R_t, S_{t+1})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_1_15_u5f00_76d8_540e_4e70_5165_610f_613f_5360_6bd4,2023,5.1.15,开盘后买入意愿占比,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2496,2526,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^N (\text{买入意愿}_{i,j,n})}{\sum_{j=1}^N \text{成交额}_{i,j,n}}
+
+\text{买入意愿}_{i,j,n} = \text{净主买成交额}_{i,j,n} - \text{净委买增额}_{i,j,n}
+
+\text{净主买成交额}_{i,j,n} = \text{主动买入成交额}_{i,j,n} - \text{主动卖出成交额}_{i,j,n}
+
+\text{净委买增额}_{i,j,n} = \text{委托买单增加量}_{i,j,n} - \text{委托卖单增加量}_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2023_5_1_16_u4e3b_52a8_4e70_5356_56e0_5b50,2023,5.1.16,主动买卖因子,高频因子,资金流因子,资金流因子,高频因子,factors2023.md,2526,2550,1m,1d,T_close,tick_trade,"ACT_{正向,t} = \frac{\text{主动买入金额(大单+中单)} - \text{主动卖出金额(大单+中单)}}{\text{主动买入金额(大单+中单)} + \text{主动卖出金额(大单+中单)}}
+
+ACT_{负向,t} = \frac{\text{主动买入金额(小单)} - \text{主动卖出金额(小单)}}{\text{主动买入金额(小单)} + \text{主动卖出金额(小单)}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_2_1_apm,2023,5.2.1,APM因子,高频因子,价格行为与动量类,价格行为与动量类,高频因子,factors2023.md,2552,2574,1m,1d,T_close,close|market_minute_ret,\text{stat} = \frac{\mu(\delta_t)}{\sigma(\delta_t)/\sqrt{N}},"residual(tstat(epsilon_am-epsilon_pm,20),return20)",exact,,intraday_apm,,,,{'window': 20},20
+calendar2023_5_2_2_u5927_5355_63a8_52a8_6da8_5e45,2023,5.2.2,大单推动涨幅,高频因子,价格行为与动量类,价格行为与动量类,高频因子,factors2023.md,2574,2597,1m,1d,T_close,tick_trade,"\sum_{n=t}^{t-T+1} \prod (prod(1 + r_{i,j,n} \cdot I_{\{j \in IdxSet\}})) - 1
+
+\text{平均单笔成交金额} = \sum_{j=1}^N Amt_{i,j,n} / \sum_{j=1}^N TrdNum_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_2_3_u7406_60f3_53cd_8f6c_56e0_5b50,2023,5.2.3,理想反转因子,高频因子,价格行为与动量类,价格行为与动量类,高频因子,factors2023.md,2597,2609,1m,1d,T_close,tick_trade,3. 计算理想反转因子：$M = M_{high} - M_{low}$。,,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_5_2_4_u4ef7_683c_81ea_76f8_5173_6027_5408_6210_56e0,2023,5.2.4,价格自相关性合成因子 (双序列差分),高频因子,价格行为与动量类,价格行为与动量类,高频因子,factors2023.md,2609,2625,1m,1d,T_close,close|a_share_market_val_in_circulation,CDPDP = \frac{dP^+dP^+Corr - mean(dP^+dP^+Corr)}{std(dP^+dP^+Corr)} + \frac{dP^-dP^-Corr - mean(dP^-dP^-Corr)}{std(dP^-dP^-Corr)},"z(mean(corr(delta_price,lead_delta_price)|both_positive,20))+z(...both_negative)",exact,,intraday_autocorrelation_composite,,,,"{'mode': 'price_double', 'window': 20}",20
+calendar2023_5_2_5_u65f6_95f4_52a0_6743_5e73_5747_7684_80a1_7968,2023,5.2.5,时间加权平均的股票相对价格位置,高频因子,价格行为与动量类,价格行为与动量类,高频因子,factors2023.md,2625,2650,1m,1d,T_close,open|high|low|close|volume|turnover,"RPP_{i,t} = \frac{(P_{i,t} - L_i)}{(H_i - L_i)}
+
+ARPP_i = \int_0^T RPP_{i,t} \cdot dt \Rightarrow ARPP_{i,t} = \frac{(\int_0^T P_{i,t} \cdot dt - L_i)}{(H_i - L_i)}",(mean((open+high+low+close)/4)-low)/(high-low),exact,,intraday_path_metric,,,,{'metric': 'time_weighted_relative_price'},0
+calendar2023_5_2_6_u4ef7_91cf_76f8_5173_6027_8d8b_52bf_56e0_5b50,2023,5.2.6,价量相关性趋势因子,高频因子,价格行为与动量类,价格行为与动量类,高频因子,factors2023.md,2650,2662,1m,1d,T_close,open|high|low|close|volume|turnover,"2. 将每只股票的20个相关系数 $\rho_t$ 对时间 $t$ 回归，取回归系数 $\beta$，即 $\rho_t = \beta t + \varepsilon_t$，其中 $t=1,2,3,...,20$；","slope(corr(close_1m,volume_1m),20)",exact,,intraday_path_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'price_volume_corr', 'post_window': 20, 'post_stat': 'slope'}",20
+calendar2023_5_2_7_u6b8b_5dee_53cd_8f6c_56e0_5b50,2023,5.2.7,残差反转因子,高频因子,价格行为与动量类,价格行为与动量类,高频因子,factors2023.md,2662,2683,1m,1d,T_close,tick_trade,"S_t = \frac{\sum_{t-T}^t (buy_t - sell_t)}{\sum_{t-T}^t |buy_t - sell_t|}
+
+Ret20_t = a + b * S_t + \varepsilon_t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_5_3_1_u975e_6d41_52a8_6027,2023,5.3.1,非流动性,高频因子,交易行为与微观结构因子,交易行为与微观结构因子,高频因子,factors2023.md,2685,2711,1m,1d,T_close,open|high|low|close|volume|turnover,"\text{shortcut} = 2 * (high - low) - |close - open|
+
+ILLIQ_t = \frac{1}{d} \sum_{i=1}^d \left( \sum_{j=1}^p \frac{\text{ShortCut}_j}{\text{Value}_j} \right)_{t-i}","mean(sum((2*(high-low)-abs(close-open))/turnover),20)",exact,,intraday_path_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'shortcut_illiquidity', 'post_window': 20, 'post_stat': 'mean'}",20
+calendar2023_5_3_2_u6362_624b_7387_5206_5e03_5747_5300_5ea6_56e0,2023,5.3.2,换手率分布均匀度因子,高频因子,交易行为与微观结构因子,交易行为与微观结构因子,高频因子,factors2023.md,2711,2735,1m,1d,T_close,close|volume|a_share_market_val_in_circulation,"TurnVolDaily = std(\text{分钟换手率})
+
+\text{分钟换手率} = \frac{\text{分钟成交量}}{\text{当日流通股本}}
+
+UTD = \frac{std(TurnVolDaily)}{mean(TurnVolDaily)}","std(std(volume_1m/float_shares),20)/mean(std(volume_1m/float_shares),20)",exact,,intraday_turnover_uniformity,,alpha101/158/191/360:concept_overlap,concept_overlap,{'window': 20},20
+calendar2023_5_3_3_u4e70_5355_975e_6d41_52a8_6027,2023,5.3.3,买单非流动性,高频因子,交易行为与微观结构因子,交易行为与微观结构因子,高频因子,factors2023.md,2735,2754,1m,1d,T_close,tick_trade,"r_{i,t} = \alpha + \beta_1 * S_{i,t} + \beta_2 * B_{i,t} + \epsilon_{it}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2023_5_3_4_u4e00_81f4_5356_51fa_4ea4_6613,2023,5.3.4,一致卖出交易,高频因子,交易行为与微观结构因子,交易行为与微观结构因子,高频因子,factors2023.md,2754,2780,unknown,1d,T_close,,"|close - open| <= \alpha |high - low|
+
+NCV_t = \frac{1}{d} \sum_{i=1}^d (\frac{ConsistentVolume_{fall}}{Volume})_{t-i}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_5_3_5_u4e00_81f4_4e70_5165_4ea4_6613,2023,5.3.5,一致买入交易,高频因子,交易行为与微观结构因子,交易行为与微观结构因子,高频因子,factors2023.md,2780,2806,unknown,1d,T_close,,"|close - open| <= \alpha |high - low|
+
+PCV_t = \frac{1}{d} \sum_{i=1}^d (\frac{ConsistentVolume_{rise}}{Volume})_{t-i}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_5_3_6_u4e00_81f4_4ea4_6613,2023,5.3.6,一致交易,高频因子,交易行为与微观结构因子,交易行为与微观结构因子,高频因子,factors2023.md,2806,2832,unknown,1d,T_close,,"|close - open| <= \alpha |high - low|
+
+TCV_t = \frac{1}{d} \sum_{i=1}^d (\frac{ConsistentVolume}{Volume})_{t-i}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_5_3_7_u6210_4ea4_91cf_5360_6bd4,2023,5.3.7,成交量占比,高频因子,交易行为与微观结构因子,交易行为与微观结构因子,高频因子,factors2023.md,2832,2862,1m,1d,T_close,call_auction,"OCVP_t = \frac{1}{d} \sum_{i=1}^d (\frac{\text{每日开盘集合竞价阶段成交量} VOL_{call}}{\text{日内个股总成交量} VOL_{total}})_{t-i}
+
+BCVP_t = \frac{1}{d} \sum_{i=1}^d (\frac{\text{收盘前5分钟内个股成交量} VOL_{call}}{\text{日内个股总成交量} VOL_{total}})_{t-i}
+
+OBCVP_t = \alpha OCVP_t + (1 - \alpha) BCVP_t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: call_auction,,,,,{},0
+calendar2023_5_3_8_u5c3e_76d8_6210_4ea4_5360_6bd4,2023,5.3.8,尾盘成交占比,高频因子,交易行为与微观结构因子,交易行为与微观结构因子,高频因子,factors2023.md,2862,2880,1m,1d,T_close,volume,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{Vol_{i, 14:30-15:00, n}}{Vol_{i,n}}","sum(volume,last30m)/sum(volume,day)",exact,,intraday_tail_share,,,,"{'field': 'volume', 'minutes': 30}",0
+calendar2023_5_3_9_u5356_5355_975e_6d41_52a8_6027,2023,5.3.9,卖单非流动性,高频因子,交易行为与微观结构因子,交易行为与微观结构因子,高频因子,factors2023.md,2880,2898,1m,1d,T_close,tick_trade,"r_{i,t} = \alpha + \beta_1 * S_{i,t} + \beta_2 * B_{i,t} + \epsilon_{it}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2023_5_3_10_u4ef7_683c_51b2_51fb_504f_5dee,2023,5.3.10,价格冲击偏差,高频因子,交易行为与微观结构因子,交易行为与微观结构因子,高频因子,factors2023.md,2898,2926,1m,1d,T_close,tick_trade,"return_i = gamma^{up} \cdot I_i \cdot MF_i + gamma^{down} \cdot (1 - I_i) \cdot MF_i
+
+MF_i = MoneyFlow_i / Amount_i
+
+gammabias = \frac{gamma_{up} - gamma_{down}}{(gamma_{up} - gamma_{down})\text{的估计标准差}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2023_5_4_1_u9ad8_9891_4e0a_884c_6ce2_52a8_5360_6bd4,2023,5.4.1,高频上行波动占比,高频因子,波动率与分布类,波动率与分布类,高频因子,factors2023.md,2928,2945,1m,1d,T_close,close,\text{高频上行波动占比} = \frac{\sum_t (r_t^i I_{\{r_t^i > 0\}})^2}{\sum_t (r_t^i)^2},sum(r_1m**2 where r_1m>0)/sum(r_1m**2),exact,,intraday_return_measure,,alpha101/158/191/360:concept_overlap,concept_overlap,{'measure': 'up_share'},0
+calendar2023_5_4_2_u9ad8_9891_6536_76ca_504f_5ea6,2023,5.4.2,高频收益偏度,高频因子,波动率与分布类,波动率与分布类,高频因子,factors2023.md,2945,2965,1m,1d,T_close,close,"RSkew_i = \frac{\sqrt{N} \sum_{j=1}^N (r_{ij} - \bar{r}_i)^3}{RVar_i^{3/2}}
+
+RVar_i = \sum_{j=1}^N (r_{ij} - \bar{r}_i)^2",intraday_skew(log(close/lag(close))),exact,,intraday_return_stat,,,,{'stat': 'skew'},0
+calendar2023_5_4_3_u7406_60f3_632f_5e45_56e0_5b50,2023,5.4.3,理想振幅因子,高频因子,波动率与分布类,波动率与分布类,高频因子,factors2023.md,2965,2979,1d,1d,T_close,high|low|close,"对单只股票，回溯取其最近N个交易日（默认N=20）的数据，计算每日的振幅（最高价/最低价-1）；
+计算理想振幅因子：$V(\lambda) = V_{high}(\lambda) - V_{low}(\lambda)$。","mean(amplitude|top25pct(close),20)-mean(amplitude|bottom25pct(close),20)",exact,,daily_ideal_amplitude,,,,"{'window': 20, 'fraction': 0.25}",20
+calendar2023_6_1_1_u51c0_6d41_5165_5f3a_5ea6,2023,6.1.1,净流入强度,流动性因子,北向资金类,北向资金类,流动性因子,factors2023.md,2981,2993,1d,1d,T_close,northbound,\text{净流入强度} = \frac{\text{当日陆股通净流入金额}}{\text{当日陆股通买入成交额} + \text{当日陆股通卖出成交额}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: northbound,,,,,{},0
+calendar2023_6_1_2_u5317_4e0a_6301_4ed3_56e0_5b50,2023,6.1.2,北上持仓因子,流动性因子,北向资金类,北向资金类,流动性因子,factors2023.md,2993,3011,1d,1d,T_close,northbound,"HoldPER = \frac{\text{月末持仓市值}}{\text{月末流通市值}}
+
+MHoldPER = mean(\text{过去20个交易日的} \frac{\text{月末持仓市值}}{\text{月末流通市值}})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: northbound,,,,,{},0
+calendar2023_6_1_3_u5317_4e0a_4ea4_6613_884c_4e3a_56e0_5b50,2023,6.1.3,北上交易行为因子,流动性因子,北向资金类,北向资金类,流动性因子,factors2023.md,3011,3037,1d,1d,T_close,northbound,"MHold = mean(\text{过去20交易日的日度持仓市值})
+
+DV2DV\_STD = \frac{mean(\text{过去20个交易日的日度净流入量})}{std(\text{过去20个交易日的日度净流入量})}
+
+DV2Hold\_MAXCP = \frac{mean(\text{股价最高3个交易日的日度净流入量})}{mean(\text{过去20交易日日度持仓量})}
+
+DV2ABSDV\_MAXVOL = \frac{mean(\text{交易量最高3个交易日的日度净流入量})}{mean(\text{过去20交易日的日度净流入量绝对值})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: northbound,,,,,{},0
+calendar2023_6_2_1_u6708_5747_6362_624b_7387,2023,6.2.1,月均换手率,流动性因子,换手率与成交类,换手率与成交类,流动性因子,factors2023.md,3038,3057,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,"mean(\text{当月各交易日度换手率序列})
+
+\text{日度换手率} = \frac{\text{成交量}}{\text{流通股本}}","mean(volume*close/float_market_cap,20)",exact,,daily_liquidity_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'turnover_mean', 'window': 20, 'long_window': 250}",21
+calendar2023_6_2_2_u5e02_503c_8c03_6574_6362_624b_7387,2023,6.2.2,市值调整换手率,流动性因子,换手率与成交类,换手率与成交类,流动性因子,factors2023.md,3057,3074,1d,1d,T_close,volume|close|a_share_market_val_in_circulation,"ln(Turnover_{i,t}) = \alpha_t + \beta_t ln(MktValue_{i,t}) + \varepsilon_t","neutralize(log(volume*close/float_market_cap),log(float_market_cap))",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'base_expression': 'ts_log(volume*close/(a_share_market_val_in_circulation+1e-12))', 'post_neutralize_market_cap': True}",0
+calendar2023_6_2_3_u6210_4ea4_989d,2023,6.2.3,成交额,流动性因子,换手率与成交类,换手率与成交类,流动性因子,factors2023.md,3074,3088,1d,1d,T_close,turnover,mean(\text{最近K个月日度成交额序列}),turnover,exact,,alias:turnover,,,,{},0
+calendar2023_6_2_4_u6210_4ea4_989d_6ce2_52a8,2023,6.2.4,成交额波动,流动性因子,换手率与成交类,换手率与成交类,流动性因子,factors2023.md,3088,3102,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,std(\text{最近K个月日度成交额序列}),"std(turnover,20)",exact,,daily_liquidity_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'amount_std', 'window': 20, 'long_window': 250}",21
+calendar2023_6_2_5_u6210_4ea4_989d_6ce2_52a8_7cfb_6570,2023,6.2.5,成交额波动系数,流动性因子,换手率与成交类,换手率与成交类,流动性因子,factors2023.md,3102,3114,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,\frac{mean(\text{最近K个月日度成交额序列})}{std(\text{最近K个月日度成交额序列})},"mean(turnover,20)/std(turnover,20)",exact,,daily_liquidity_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'amount_mean_over_std', 'window': 20, 'long_window': 250}",21
+calendar2023_6_2_6_u6708_5ea6_5f02_5e38_6362_624b_7387,2023,6.2.6,月度异常换手率,流动性因子,换手率与成交类,换手率与成交类,流动性因子,factors2023.md,3114,3126,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,\frac{mean(\text{过去20个交易日的日度换手率序列})}{mean(\text{过去250个交易日的日度换手率序列})},"mean(turnover_rate,20)/mean(turnover_rate,250)",exact,,daily_liquidity_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'turnover_abnormal', 'window': 20, 'long_window': 250}",251
+calendar2023_6_2_7_u6362_624b_7387,2023,6.2.7,换手率,流动性因子,换手率与成交类,换手率与成交类,流动性因子,factors2023.md,3126,3145,1d,1d,T_close,volume|close|a_share_market_val_in_circulation,"mean(\text{最近K个月日度换手率序列})
+
+\text{日度换手率} = \frac{\text{成交量}}{\text{流通股本}}",volume*close/a_share_market_val_in_circulation,exact,,turnover_rate,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_6_2_8_u6362_624b_6ce2_52a8,2023,6.2.8,换手波动,流动性因子,换手率与成交类,换手率与成交类,流动性因子,factors2023.md,3145,3164,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,"std(\text{最近K个月日度换手率序列})
+
+\text{日度换手率} = \frac{\text{成交量}}{\text{流通股本}}","std(volume*close/float_market_cap,20)",exact,,daily_liquidity_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'turnover_std', 'window': 20, 'long_window': 250}",21
+calendar2023_6_2_9_u6362_624b_7387_53d8_5f02_7cfb_6570,2023,6.2.9,换手率变异系数,流动性因子,换手率与成交类,换手率与成交类,流动性因子,factors2023.md,3164,3181,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,"\frac{std(\text{最近K个月日度换手率序列})}{mean(\text{相同时间区间的换手率序列})}
+
+\text{日度换手率} = \frac{\text{成交量}}{\text{流通股本}}","std(turnover_rate,20)/mean(turnover_rate,20)",exact,,daily_liquidity_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'turnover_cv', 'window': 20, 'long_window': 250}",21
+calendar2023_6_2_10_u80a1_7968_4ea4_6613_5468_8f6c_7387,2023,6.2.10,股票交易周转率,流动性因子,换手率与成交类,换手率与成交类,流动性因子,factors2023.md,3181,3198,1d,1d,T_close,turnover|market_cap_2,"\text{一段时间内的股票交易总额} \over \text{平均总市值}
+
+\text{平均总市值} = \frac{\text{期初总市值} + \text{期末总市值}}{2}","ts_sum(turnover,20)/((market_cap_2+ts_delay(market_cap_2,20))/2+1e-12)",exact,,legacy_expression,,,,{},20
+calendar2023_6_3_1_u5e26_6761_4ef6_7684_6d41_52a8_6027_51b2_51fb,2023,6.3.1,带条件的流动性冲击,流动性因子,冲击与其它,冲击与其它,流动性因子,factors2023.md,3199,3215,1d,1d,T_close,close|turnover,"ILLIQ_{i,t} = \alpha_{0,i} + \alpha_{1,i}ILLIQ_{i,t-1} + \alpha_{2,i}\varepsilon_{i,t-1} + \varepsilon_{i,t}","-innovation(ARMA(1,1),monthly_amihud,rolling=60,min=24,MLE)",exact,,daily_liquidity_shock,,,,{'metric': 'conditional'},504
+calendar2023_6_3_2_u6d41_52a8_6027_51b2_51fb,2023,6.3.2,流动性冲击,流动性因子,冲击与其它,冲击与其它,流动性因子,factors2023.md,3215,3230,1d,1d,T_close,close|turnover,"LIQU_{i,t} = - (ILLIQ_{i,t} - AVGILLIQ_{i|t-12,t-1})","-(monthly_amihud-mean(lag(monthly_amihud,1:12)))",exact,,daily_liquidity_shock,,,,{'metric': 'simple'},273
+calendar2023_6_3_3_amihud,2023,6.3.3,Amihud 非流动性因子,流动性因子,冲击与其它,冲击与其它,流动性因子,factors2023.md,3230,3246,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,"ILLIQ_{i,t} = Avg \left[ \frac{|R_{i,d}|}{VOLD_{i,d}} \right]","mean(abs(return)/turnover,20)",exact,,daily_liquidity_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'amihud', 'window': 20, 'long_window': 250}",21
+calendar2023_6_3_4_u8d1f_6536_76ca_975e_6d41_52a8_6027,2023,6.3.4,负收益非流动性,流动性因子,冲击与其它,冲击与其它,流动性因子,factors2023.md,3246,3265,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,"ILLIQ_{i,t} = \frac{1}{n_d} \sum_{k \in d} \frac{|r_{d_{i,t-k}}|}{Amount_{i,t-k}}","mean(abs(return)/turnover where return<0,20)",exact,,daily_liquidity_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'negative_amihud', 'window': 20, 'long_window': 250}",21
+calendar2023_6_3_5_u975e_6d41_52a8_6027_7684_53d8_5f02_7cfb_6570,2023,6.3.5,非流动性的变异系数,流动性因子,冲击与其它,冲击与其它,流动性因子,factors2023.md,3265,3286,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,"ILLIQ_{i,t} = \frac{|r_{i,t}|}{Amount_{i,t}}
+
+CVILLIQ_i = \frac{\sigma(ILLIQ_i)}{\overline{ILLIQ_i}}","std(abs(return)/turnover,20)/mean(abs(return)/turnover,20)",exact,,daily_liquidity_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'amihud_cv', 'window': 20, 'long_window': 250}",21
+calendar2023_6_3_6_u6563_6237_7684_4e70_5356_975e_5e73_8861_6027,2023,6.3.6,散户的买卖非平衡性,流动性因子,冲击与其它,冲击与其它,流动性因子,factors2023.md,3286,3302,1d,1d,T_close,trade_direction,BSI = \frac{B - S}{B + S},,blocked_data,精确实现依赖当前数据审计未发现的数据域: trade_direction,,,,,{},0
+calendar2023_7_1_1_u7279_5f02_5e02_503c,2023,7.1.1,特异市值,规模因子,规模类,规模类,规模因子,factors2023.md,3304,3321,1d,1d,T_close,fundamental_raw,"m_{i,t} = \alpha_{0jt} IND_{it} + \alpha_{1jt} b_{it} + \alpha_{2jt} ln(NI)^+_{it} + \alpha_{3jt} I_{<0} ln(NI)^+_{it} + \alpha_{4jt} LEV_{it} + \varepsilon_{it}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_7_1_2_u603b_5e02_503c,2023,7.1.2,总市值,规模因子,规模类,规模类,规模因子,factors2023.md,3321,3333,1d,1d,T_close,market_cap_2,\text{总市值} = \text{当日收盘价} \times \text{当日总股本},market_cap_2,exact,供应商日频PIT衍生字段,alias:market_cap_2,,,,{},0
+calendar2023_7_1_3_u81ea_7531_6d41_901a_80a1_5e02_503c,2023,7.1.3,自由流通股市值,规模因子,规模类,规模类,规模因子,factors2023.md,3333,3345,1d,1d,T_close,a_share_market_val_in_circulation,\text{自由流通股市值} = \text{当日收盘价} \times \text{当日自由流通股本},a_share_market_val_in_circulation,exact,供应商日频PIT衍生字段,alias:a_share_market_val_in_circulation,,,,{},0
+calendar2023_7_1_4_u5bf9_6570_603b_5e02_503c,2023,7.1.4,对数总市值,规模因子,规模类,规模类,规模因子,factors2023.md,3345,3357,1d,1d,T_close,market_cap_2,ln(\text{当日收盘价} \times \text{当日总股本}),log(market_cap_2),exact,,log,,,,{},0
+calendar2023_7_1_5_u975e_7ebf_6027_5e02_503c,2023,7.1.5,非线性市值,规模因子,规模类,规模类,规模因子,factors2023.md,3357,3373,1d,1d,T_close,market_cap_2|a_share_market_val_in_circulation,"LNCAP^3_{i,t} = \alpha_t + \beta_t LNCAP_{i,t} + \epsilon_{i,t}","neutralize(log(market_cap)**3,log(market_cap))",exact,,legacy_expression,,,,"{'base_expression': 'ts_log(market_cap_2)**3', 'post_neutralize_market_cap': True}",0
+calendar2023_7_1_6_u5bf9_6570_6d41_901a_5e02_503c,2023,7.1.6,对数流通市值,规模因子,规模类,规模类,规模因子,factors2023.md,3373,3386,1d,1d,T_close,a_share_market_val_in_circulation,ln(\text{当日收盘价} \times \text{当日自由流通股本}),log(a_share_market_val_in_circulation),exact,,log,,,,{},0
+calendar2023_8_1_1_u8d44_4ea7_589e_957f_7387_5355_5b63_5ea6,2023,8.1.1,资产增长率-单季度,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3388,3400,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期总资产} - \text{上一报告期总资产}}{\text{上一报告期总资产}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_2_u5f02_5e38_8d44_672c_6295_8d44,2023,8.1.2,异常资本投资,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3400,3419,1d,1d,T_close,fundamental_raw,"CI_{t-1} = \frac{CE_{t-1}}{(CE_{t-2} + CE_{t-3} + CE_{t-4})/3} - 1
+
+CE = \frac{\text{资本性支出}}{\text{营业收入}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_3_u8d26_9762_4ef7_503c_589e_957f_7387_5355_5b63,2023,8.1.3,账面价值增长率-单季度,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3419,3431,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期的股东权益合计} - \text{上一报告期的股东权益合计}}{\text{上一报告期的股东权益合计}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_4_u80a1_7968_53d1_884c_6570_91cf_589e_957f_7387,2023,8.1.4,股票发行数量增长率,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3431,3456,1d,1d,T_close,fundamental_raw,"issuance_t = \alpha + \beta t + \varepsilon_t
+
+IGRO = - mean(issuance_{t \in \{1,2,3,4,5\}})
+
+\beta",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_5_u8d1f_503a_589e_957f_7387,2023,8.1.5,负债增长率,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3456,3468,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期负债合计} - \text{上年同期负债合计}}{\text{上年同期负债合计}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_6_u5b58_8d27_53d8_52a8,2023,8.1.6,存货变动,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3468,3485,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期存货} - \text{上年同期存货}}{\text{平均总资产}}
+
+\text{平均总资产} = \frac{\text{本期总资产} + \text{上年同期值}}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_7_u975e_6d41_52a8_6027_7ecf_8425_8d44_4ea7_53d8,2023,8.1.7,非流动性经营资产变动,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3485,3503,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期的非流动性经营资产} - \text{上年同期值}}{\text{平均总资产}}
+
+\text{非流动性经营资产} = \text{非流动资产} \text{剔除金融资产相关科目后剩余的部分} \approx \text{非流动资产} - \text{长期投资}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2023_8_1_8_u5b58_8d27_589e_957f_7387,2023,8.1.8,存货增长率,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3503,3515,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期存货} - \text{上年同期值}}{\text{上年同期值}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_9_u51c0_7ecf_8425_8d44_4ea7_53d8_52a8,2023,8.1.9,净经营资产变动,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3515,3532,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期的净经营资产} - \text{上年同期值}}{\text{最近报告期的总资产}}
+
+\text{净经营资产} = \text{股东权益合计(含少数股东权益)} + \text{金融负债} - \text{金融资产} = \text{经营性资产} - \text{经营性负债}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_10_u603b_5e94_8ba1_76c8_4f59,2023,8.1.10,总应计盈余,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3532,3553,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月总应计盈余(TTM)}}{\text{平均总资产}}
+
+\text{总应计盈余} = \text{净利润} - \text{经营活动产生的现金流量净额}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_11_u603b_5e94_8ba1_76c8_4f59_5360_6bd4,2023,8.1.11,总应计盈余占比,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3553,3570,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月总应计盈余(TTM)}}{\text{最近12个月净利润(TTM)}}
+
+\text{总应计盈余} = \text{净利润} - \text{经营活动产生的现金流量净额}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_12_u80a1_7968_53d1_884c,2023,8.1.12,股票发行,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3570,3582,1d,1d,T_close,fundamental_raw,ln \left( \frac{\text{当前最新拆分调整后的总股本}}{\text{上年同期拆分调整后的总股本}} \right),,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_13_u7efc_5408_80a1_6743_53d1_884c_5e74_5ea6,2023,8.1.13,综合股权发行-年度,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3582,3594,1d,1d,T_close,fundamental_raw,ln \left( \frac{\text{当前最新总市值}}{\text{上年同期的总市值}} \right) - \text{相同时间区间内的对数累计收益率},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_14_u7efc_5408_503a_52a1_53d1_884c_5e74_5ea6,2023,8.1.14,综合债务发行-年度,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3594,3606,1d,1d,T_close,fundamental_raw,\text{最近1年的总负债对数增长率} = ln \left( \frac{\text{最近报告期总负债}}{\text{上年同期总负债}} \right),,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_15_u5458_5de5_603b_6570_589e_957f_7387_5e74_5ea6,2023,8.1.15,员工总数增长率-年度,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3606,3623,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期的员工总数} - \text{上年同期的员工总数}}{\text{平均员工人数}}
+
+\text{平均员工人数} = \frac{\text{最近报告期的员工总数} + \text{上年同期的员工总数}}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_16_n,2023,8.1.16,资本支出增长率-n年,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3623,3644,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月的资本性支出(TTM)} - \text{前置n年的同期值}}{\text{前置n年的同期值}}
+
+n = 2\text{年}(2 \times 12\text{个月}), 3\text{年}(3 \times 12\text{个月})
+
+\text{资本性支出} = \text{购建固定资产、无形资产和其他长期资产支付的现金} - \text{处置固定资产、无形资产和其他长期资产收回的现金净额}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_17_u91d1_878d_8d1f_503a_53d8_52a8,2023,8.1.17,金融负债变动,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3644,3661,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期的金融负债} - \text{上年同期值}}{\text{平均总资产}}
+
+\text{金融负债} = \text{短期借款} + \text{交易性金融负债} + \text{应付票据} + \text{一年内到期的非流动负债} + \text{长期借款} + \text{应付债券}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_18_u6d41_52a8_6027_7ecf_8425_8d44_4ea7_53d8_52a8,2023,8.1.18,流动性经营资产变动,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3661,3678,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期的流动性经营资产} - \text{上年同期值}}{\text{平均总资产}}
+
+\text{流动性经营资产} = \text{流动资产中剔除金融资产相关科目后的剩余部分} \approx \text{应收账款} + \text{应收票据} + \text{预付账款} + \text{其他应收款} + \text{存货} + \text{待摊费用}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_8_1_19_u6d41_52a8_6027_7ecf_8425_8d1f_503a_53d8_52a8,2023,8.1.19,流动性经营负债变动,投资因子,成长与投资类,成长与投资类,投资因子,factors2023.md,3678,3695,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期的流动性经营负债} - \text{上年同期值}}{\text{平均总资产}}
+
+\text{流动性经营负债} = \text{流动负债中剔除金融负债相关科目后的剩余部分} \approx \text{流动负债} - (\text{短期借款} + \text{交易性金融负债} + \text{应付票据} + \text{一年内到期的非流动负债})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_9_1_1_52,2023,9.1.1,最近52周的最高价,动量因子,动量类,动量类,动量因子,factors2023.md,3697,3709,1d,1d,T_close,close,\frac{\text{当前收盘价}}{\text{最近52周最高价}},"close / ts_max(close, 250)",exact,,rolling_high_ratio,,,,{'window': 250},250
+calendar2023_9_1_2_ff3,2023,9.1.2,残差动量-基于FF3,动量因子,动量类,动量类,动量因子,factors2023.md,3709,3728,1d,1d,T_close,factor_returns,"residualmom_{i,t} = \frac{\sum_{t=T-12}^{T-2} \epsilon_{i,t}}{\sqrt{\sum_{t=T-12}^{T-2} \epsilon_{i,t}^2}}
+
+r_{i,t} = \alpha_i + \beta_{1,i} RMRF_t + \beta_{2,i} SMB_t + \beta_{3,i} HML_t + \epsilon_{i,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_9_1_3_u52a8_91cf_52a0_901f_5ea6,2023,9.1.3,动量加速度,动量因子,动量类,动量类,动量因子,factors2023.md,3728,3740,1d,1d,T_close,close,\text{最近后6个月(t-6至t-1)的累计日收益率} - \text{最近前6个月(t-12至t-7)的累计日收益率},"return(t-6m,t)-return(t-12m,t-6m)",exact,,momentum_acceleration_halves,,alpha101/158/191/360:concept_overlap,concept_overlap,{'window': 126},252
+calendar2023_9_1_4_capm,2023,9.1.4,残差动量-基于CAPM,动量因子,动量类,动量类,动量因子,factors2023.md,3740,3758,1d,1d,T_close,risk_free_rate,"IMOM_{i,t} = \prod_{j=2}^{12} (1 + \epsilon_{i,t-j})
+
+r_{i,t} - r_{f,t} = \alpha + \beta(r_{m,t} - r_{f,t}) + \epsilon_{i,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: risk_free_rate,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_9_1_5_u8d8b_52bf_52a8_91cf,2023,9.1.5,趋势动量,动量因子,动量类,动量类,动量因子,factors2023.md,3758,3771,unknown,1d,T_close,,"MA_{j,t,L} = \frac{Pt}{\frac{P_{j,d-L+1} + P_{j,d-L+2} + ... + P_{j,d-1} + P_{j,d}}{L}}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_9_1_6_u6807_51c6_5316_7684_672a_9884_671f_76c8_4f59,2023,9.1.6,标准化的未预期盈余,动量因子,动量类,动量类,动量因子,factors2023.md,3771,3787,1d,1d,T_close,earnings_event,"\text{盈余预差} = \text{当前第t季度的每股收益} - \text{第(t-4)季度的每股收益}
+
+\text{标准化的未预期盈余} = \frac{\text{最近1个季度盈余预差}}{std(\text{最近8个季度盈余预差})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: earnings_event,,,,,{},0
+calendar2023_9_1_7_u65f6_95f4_5e8f_5217_52a8_91cf,2023,9.1.7,时间序列动量,动量因子,动量类,动量类,动量因子,factors2023.md,3787,3808,1d,1d,T_close,close,"TSMOM_{mi} = sign \left( \frac{1}{N} \sum_{j=1}^{12} r_{m-j,i} \right) \times \frac{r_{m,i}}{\sigma_{m,i}}
+
+\text{① m为月份，i代表股票；}
+
+\text{② } r_{m,i} \text{表示股票i第m月相对时间序列上的超额收益，计算方法为个股收益率减去之前月收益率的指数移动平均值；}","close / ts_delay(close, 252) - 1",exact,,return,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'window': 252, 'sign': 1.0}",252
+calendar2023_9_1_8_u6536_76ca_5b63_8282_6027,2023,9.1.8,收益季节性,动量因子,动量类,动量类,动量因子,factors2023.md,3808,3826,unknown,1d,T_close,,"\text{在 t 月的月末，计算过去2-5年(即 t-12 月)的月超额收益率，即得到 2-5 年期的收益季节性。}
+
+\text{在 t 月的月末，计算过去2-5年(t-12月)的月超额收益率，即得到 2-5 年期的收益季节性。}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_9_1_9_u8d8b_52bf_56e0_5b50,2023,9.1.9,趋势因子,动量因子,动量类,动量类,动量因子,factors2023.md,3826,3848,unknown,1d,T_close,,"M\tilde{A}_{j,t,L} = \frac{MA_{j,t,L}}{P_{t}^{jd}}
+
+MA_{j,t,L} = \frac{Pt}{\frac{P_{j,d-L+1} + \dots + P_{j,d}}{L}}
+
+E[r_{i,t+1}] = \sum_{m=1}^{12} \frac{1}{12} \beta_{i,t+1-m} M\tilde{A}_{j,t,L}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_9_1_10_u6536_76ca_5b63_8282_6027_53cd_8f6c,2023,9.1.10,收益季节性反转,动量因子,动量类,动量类,动量因子,factors2023.md,3848,3861,unknown,1d,T_close,,\text{在 t 月的月末，计算滞后 2-5 年区间内所有非同月的月超额收益均值（不包含同期日历月的收益），取均值，即得到 2-5 年期的收益率季节性反转。},,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_9_1_11_u4ef7_5dee_504f_79bb_5ea6,2023,9.1.11,价差偏离度,动量因子,动量类,动量类,动量因子,factors2023.md,3861,3879,1m,1d,T_close,news,"PriceSpead_{i,t} = ln(StockPrice_{i,t}) - ln(ReferencePrice_{i,t})
+
+SpreadBias_{i,t} = \frac{PriceSpead_{i,t} - mean(PriceSpead_{i,t})}{std(PriceSpead_{i,t})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2023_9_1_12_u957f_671f_53cd_8f6c,2023,9.1.12,长期反转,动量因子,动量类,动量类,动量因子,factors2023.md,3879,3891,1d,1d,T_close,close,\text{t月末，计算第 (t-59) 月至第 (t-12) 月的日度累计收益率},"-1 * (close / ts_delay(close, 250) - 1)",exact,,return,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'window': 250, 'sign': -1.0}",250
+calendar2023_9_1_13_u6807_51c6_5316_7684_672a_9884_671f_6536_5165,2023,9.1.13,标准化的未预期收入,动量因子,动量类,动量类,动量因子,factors2023.md,3891,3907,1d,1d,T_close,earnings_event,"\text{收入预差} = \text{当前第t季度的营业收入} - \text{第(t-4)季度的营业收入}
+
+\text{标准化的未预期收入} = \frac{\text{最近1个季度收入预差}}{std(\text{最近8个季度收入预差})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: earnings_event,,,,,{},0
+calendar2023_9_1_14_u672a_9884_671f_7a0e_8d39_652f_51fa,2023,9.1.14,未预期税费支出,动量因子,动量类,动量类,动量因子,factors2023.md,3907,3919,1d,1d,T_close,fundamental_raw,\text{最近单季度所得税费用} - \text{上年同期单季度所得税费用},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_9_1_15_u8d44_672c_6536_76ca_8fc7_5269,2023,9.1.15,资本收益过剩,动量因子,动量类,动量类,动量因子,factors2023.md,3919,3935,1d,1d,T_close,close|volume|a_share_market_val_in_circulation,"CGO_t = \frac{P_{t-1} - RP_t}{P_{t-1}}
+
+RP_t = \frac{1}{k} \sum_{n=1}^{T} (V_{t-n} \prod_{\tau=1}^{n-1} (1-V_{t-n+\tau})) P_{t-n}",(lag(close)-reference_price_from_turnover_survival)/lag(close),exact,,daily_capital_gain_overhang,,,,{},1
+calendar2023_9_1_16_u52a0_901f_5ea6_52a8_91cf,2023,9.1.16,加速度动量,动量因子,动量类,动量类,动量因子,factors2023.md,3935,3958,1d,1d,T_close,close,"P_{i,t} = \alpha + \beta t + \gamma t^2
+
+\text{① } P_{i,t} \text{为股票i在t日的价格，如收盘价等；}
+
+\text{② } t \text{为时间等差序列，} t=1,2,3,...,n \text{，表示过去的n, ..., 3,2,1天；}
+
+\text{③ } n \text{估计得到的 } \gamma \text{ 即为加速度动量，} \beta \text{ 为价格涨跌强弱。}","quadratic_coef(close~1+t+t**2,60)",exact,,daily_price_acceleration,,alpha101/158/191/360:concept_overlap,concept_overlap,{'window': 60},60
+calendar2023_9_1_17_u76c8_4f59_516c_544a_56de_62a5,2023,9.1.17,盈余公告回报,动量因子,动量类,动量类,动量因子,factors2023.md,3958,3974,1d,1d,T_close,earnings_event,"\text{预期累计收益率} = \text{大盘指数的累计收益率}
+
+\text{公告当天及前后交易日共3天的个股累计收益} - \text{对应时间段上的预期累计收益}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: earnings_event,,,,,{},0
+calendar2023_9_1_18_u8d22_52a1_52a8_91cf,2023,9.1.18,财务动量,动量因子,动量类,动量类,动量因子,factors2023.md,3974,3987,1d,1d,T_close,fundamental_raw,"F\text{-}Momen \ it = \sum_{j \neq i} F\text{-}link \ ijt \cdot Ret \ jt
+
+F\text{-}link \ ijt = \frac{C_{it} \cdot C_{jt}}{\sqrt{C_{it} \cdot C_{it}} \sqrt{C_{jt} \cdot C_{jt}}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_9_1_19_u884c_4e1a_52a8_91cf_6a2a_5411_5207_5272,2023,9.1.19,行业动量-横向切割,动量因子,动量类,动量类,动量因子,factors2023.md,3987,4012,unknown,1d,T_close,,"\text{① 对各行业，回溯过去20日的成分股数据；}
+
+\text{② 将成分股按近20日成交金额从大到小排序，逐一累积成交金额；}
+
+\text{③ 取累计成交金额占比达到 } \lambda \% \text{ (如 } \lambda=60 \text{ )，认定为龙头股，其余下的为普通股；}
+
+\text{④ 分别计算龙头股、普通股的近20日平均涨幅：} R\_\text{龙头} \text{，} R\_\text{普通} \text{；}
+
+\text{⑤ 可以进一步构建牵引力因子 } G = R\_\text{龙头} - R\_\text{普通} \text{。}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_9_1_20_u4fe1_606f_79bb_6563_5ea6,2023,9.1.20,信息离散度,动量因子,动量类,动量类,动量因子,factors2023.md,4012,4032,1d,1d,T_close,close,"ID = sign(PRET) \times [\%neg - \%pos]
+
+\text{① } PRET \text{ 为过去12个月的累计收益率，剔除最近1个月的收益数据；}
+
+\text{② } \%neg \text{、} \%pos \text{ 分别为这段时间内下跌交易日的占比、上涨交易日的占比。}","ts_sign(ts_delay(close,21)/(ts_delay(close,252)+1e-12)-1)*(ts_mean(ts_where(ts_delay(close/(ts_delay(close,1)+1e-12)-1,21)<0,1,0),231)-ts_mean(ts_where(ts_delay(close/(ts_delay(close,1)+1e-12)-1,21)>0,1,0),231))",exact,,legacy_expression,,,,{},252
+calendar2023_9_1_21_u5206_6790_5e08_5171_540c_8986_76d6_5173_8054,2023,9.1.21,分析师共同覆盖关联股票动量,动量因子,动量类,动量类,动量因子,factors2023.md,4032,4055,1d,1d,T_close,analyst,"CS_{it} = \sum_{j=1}^{N} \frac{N_{i,j}}{N_i} Ret_{j,20}
+
+\text{① } N_{i,j} \text{ 为共同覆盖股票 i 和股票 j 的分析师数量；}
+
+\text{② } Ret_{j,20} \text{ 为股票 j 过去1个月 (20个交易日) 的收益率；}
+
+\text{③ N 为股票池中的股票数量。}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_9_1_22_u57fa_4e8e_6392_5e8f_7684_52a8_91cf,2023,9.1.22,基于排序的动量,动量因子,动量类,动量类,动量因子,factors2023.md,4055,4076,unknown,1d,T_close,,"rank_{i,d} = \frac{y(R_{i,d}) - \frac{N_d+1}{2}}{\sqrt{\frac{(N_d+1)(N_d-1)}{12}}}
+
+rank_{i,t}(N, M) = \frac{1}{M} \sum_{j=t-M}^{t} rank_{i,j}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_9_1_23_u77ed_671f_53cd_8f6c,2023,9.1.23,短期反转,动量因子,动量类,动量类,动量因子,factors2023.md,4076,4088,1d,1d,T_close,close,\text{计算上个月（如过去20个交易日）的累计收益率},"-1 * (close / ts_delay(close, 20) - 1)",exact,,return,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'window': 20, 'sign': -1.0}",20
+calendar2023_9_1_24_u76c8_4f59_516c_544a_80a1_7968_8df3_52a8,2023,9.1.24,盈余公告股票跳动,动量因子,动量类,动量类,动量因子,factors2023.md,4088,4100,1d,1d,T_close,earnings_event,\text{公告披露后下一日开盘价} - \text{公告日收盘价},,blocked_data,精确实现依赖当前数据审计未发现的数据域: earnings_event,,,,,{},0
+calendar2023_9_1_25_u884c_4e1a_52a8_91cf_7eb5_5411_5207_5272,2023,9.1.25,行业动量-纵向切割,动量因子,动量类,动量类,动量因子,factors2023.md,4100,4119,unknown,1d,T_close,,"\text{日内收益率} = \text{今收盘价} - \text{今开盘价}
+
+\text{隔夜收益率} = \text{今开盘价} - \text{昨收盘价}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_9_1_26_u57fa_672c_9762_9690_542b_6536_76ca,2023,9.1.26,基本面隐含收益,动量因子,动量类,动量类,动量因子,factors2023.md,4119,4140,1d,1d,T_close,fundamental_raw,"FIR_{i,t} = \sum_{k=1}^{K} \sum_{L \in \{1,2,4,8\}} E_t[\beta_{i,t+1}^{k,L}] MA_{i,t,L}^k
+
+MA_{i,t,L}^k = \frac{1}{L} (F_{i,t}^k + F_{i,t-1}^k + \dots + F_{i,t-L+1}^k)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_9_1_27_u57fa_4e8e_632f_5e45_5207_5272_7684_52a8_91cf,2023,9.1.27,基于振幅切割的动量,动量因子,动量类,动量类,动量因子,factors2023.md,4140,4154,unknown,1d,T_close,,\text{以160个交易日作为窗口期，将振幅较低的 } \lambda \% \text{ 个交易日的涨跌幅加总，得到动量因子。},,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2023_10_1_1_e,2023,10.1.1,异常尾部概率E,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4156,4173,unknown,1d,T_close,,E_{\varphi} = \int_{k}^{+\infty} f(x)dx - \int_{-\infty}^{-k} f(x)dx = P(x \ge k) - P(x \le -k),,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_10_1_2_s,2023,10.1.2,异常尾部概率S,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4173,4200,unknown,1d,T_close,,"S_{\varphi} = Sign(E_{\varphi}) * \frac{1}{2} \left\{ \int_{-\infty}^{-k} (f_1^{\frac{1}{2}} - f_2^{\frac{1}{2}})^2 dx + \int_{k}^{+\infty} (f_1^{\frac{1}{2}} - f_2^{\frac{1}{2}})^2 dx \right\}
+
+\widehat{f(x)} = \frac{1}{nh} \sum_{i=1}^{n} \kappa \left( \frac{r_i - x}{h} \right)
+
+\kappa(z) = \frac{1}{\sqrt{2\pi}} e^{-\frac{1}{2}z^2}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_10_1_3_u6700_5c0f_6536_76ca_7387,2023,10.1.3,最小收益率,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4200,4214,1d,1d,T_close,close,- min(\text{最近K个月日度收益率序列}),"ts_min(log(close/ts_delay(close,1)),20)",exact,,rolling_return_stat,,,,"{'window': 20, 'stat': 'min'}",21
+calendar2023_10_1_4_beta,2023,10.1.4,尾部Beta,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4214,4246,1d,1d,T_close,close|market_ret,"R_j^e = \beta_j^T R_m^e + \varepsilon_j, R_m^e < -VaR_m(\bar{p})
+
+\widehat{\beta_j^T} = \tau_j(k/n)^{1/\widehat{\alpha_m}} \frac{\widehat{VaR}_j(k/n)}{\widehat{VaR}_m(k/n)}
+
+\frac{1}{\widehat{\alpha_m}} = \frac{1}{k} \sum_{i=1}^{k} \log X_{n,n-i+1}^{(m)} - \log X_{n,n-k}^{(m)}
+
+\tau_j(k/n) = \frac{1}{k} \sum_{t=1}^{n} 1_{\{ x_t^{(j)} > X_{n,n-k}^{(j)} \text{ and } X_t^{(m)} > X_{n,n-k}^{(m)} \}}","beta(return,market_return where market_return<=q10,252)",exact,,daily_rolling_risk,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'tail_beta', 'window': 252, 'min_samples': 126}",253
+calendar2023_10_1_5_u5c3e_90e8_98ce_9669,2023,10.1.5,尾部风险,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4246,4269,unknown,1d,T_close,,"\lambda_t = \frac{1}{K_t} \sum_{k=1}^{K_t} \frac{r_{kt}}{\mu_t}
+
+r_{i,t} = \alpha + \beta_i \lambda_t + \varepsilon_i",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_10_1_6_u5728_9669_4ef7_503c,2023,10.1.6,在险价值,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4269,4284,1d,1d,T_close,close|market_ret,Prob(\Delta P < -VaR) = 1 - \alpha,"quantile(return,0.05,252)",exact,,daily_rolling_risk,,,,"{'metric': 'var', 'window': 252, 'min_samples': 126}",253
+calendar2023_10_1_7_u6761_4ef6_98ce_9669_4ef7_503c,2023,10.1.7,条件风险价值,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4284,4302,1d,1d,T_close,close|market_ret,"CVaR_{\alpha} = - \frac{\int_{0}^{\alpha} VaR_{\gamma}(X)d\gamma}{\alpha}
+
+CVaR_{\alpha} = E[X|X < VaR_{\alpha}]","mean(return where return<=q05,252)",exact,,daily_rolling_risk,,,,"{'metric': 'cvar', 'window': 252, 'min_samples': 126}",253
+calendar2023_10_1_8_u6781_7aef_4e0b_884c_98ce_9669,2023,10.1.8,极端下行风险,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4302,4325,unknown,1d,T_close,,"H(x) = 1 - \exp \left[ - \left( 1 - \gamma * \frac{x - \mu}{\sigma} \right)^{- \frac{1}{\gamma}} \right]
+
+1 - \gamma * \frac{x - \mu}{\sigma} > 0, \quad \gamma \ne 0",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_10_1_9_u6700_5927_6536_76ca_7387,2023,10.1.9,最大收益率,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4325,4339,1d,1d,T_close,close,max(\text{最近K个月日度收益率序列}),"ts_max(log(close/ts_delay(close,1)),20)",exact,,rolling_return_stat,,,,"{'window': 20, 'stat': 'max'}",21
+calendar2023_10_1_10_u4ef7_683c_65f6_6ede,2023,10.1.10,价格时滞,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4339,4364,unknown,1d,T_close,,"r_{i,t} = \alpha_i + \beta_i MKT_t + \sum_{k=1}^{n} \delta_i^{(k)} MKT_{t-k} + \varepsilon_{i,t}
+
+PriceDelay = 1 - \frac{R^2_{\delta_i^{(k)}=0}}{R^2}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_10_1_11_u534f_504f_5ea6_6731_5251_6d9b_7248,2023,10.1.11,协偏度 (朱剑涛版),波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4364,4380,1d,1d,T_close,close|market_ret,"CS = \frac{\sum_{t=1}^{n} [(r_{1,t} - \bar{r}_1)(r_{2,t} - \bar{r}_2)^2]}{\sum_{t=1}^{n} [(r_{2,t} - \bar{r}_2)^3]}",sum((stock_ret-mean)*(market_ret-mean)**2)/sum((market_ret-mean)**3),exact,,daily_rolling_risk,,,,"{'metric': 'coskew_zhu', 'window': 20, 'min_samples': 15}",21
+calendar2023_10_1_12_u603b_504f_5ea6,2023,10.1.12,总偏度,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4380,4394,1d,1d,T_close,close,Skew_i = \frac{\frac{1}{T} \sum_{t=1}^{T} (r_{it} - \bar{r}_i)^3}{\left( \frac{1}{T} \sum_{t=1}^{T} (r_{it} - \bar{r}_i)^2 \right)^{\frac{3}{2}}},"ts_skew(log(close/ts_delay(close,1)),20)",exact,,rolling_return_stat,,,,"{'window': 20, 'stat': 'skew'}",21
+calendar2023_10_1_13_u8d1f_504f_5ea6_7cfb_6570,2023,10.1.13,负偏度系数,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4394,4410,1d,1d,T_close,close,NCSKEW_i = \frac{-(n(n-1))^{1.5} \sum (r_{it} - \bar{r}_i)^3}{(n-1)(n-2) (\sum (r_{it} - \bar{r}_i)^2)^{1.5}},"-ts_skew(log(close/ts_delay(close,1)),20)",exact,,rolling_return_stat,,,,"{'window': 20, 'stat': 'skew', 'sign': -1.0}",21
+calendar2023_10_1_14_beta,2023,10.1.14,市场Beta,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4410,4430,1d,1d,T_close,close|market_ret,"\beta_i = \frac{cov(r_i, r_m)}{var(r_m)}
+
+r_i - r_f = \alpha + \beta_i (r_m - r_f) + \epsilon_i","beta(log_return,market_return,252)",exact,,daily_rolling_risk,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'beta', 'window': 252, 'min_samples': 126}",253
+calendar2023_10_1_15_u4e0b_884c_8d1d_5854,2023,10.1.15,下行贝塔,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4430,4446,1d,1d,T_close,close|market_ret,"\beta^{-} = \frac{Cov(r_i, r_m | r_m < \mu_m)}{Var(r_m | r_m < \mu_m)}","beta(return,market_return where market_return<0,252)",exact,,daily_rolling_risk,,,,"{'metric': 'downside_beta', 'window': 252, 'min_samples': 126}",253
+calendar2023_10_1_16_u7279_8d28_6ce2_52a8_7387,2023,10.1.16,特质波动率,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4446,4469,1d,1d,T_close,close|market_ret,"std(\varepsilon_{i,t})
+
+r_{i,t} - r_{f,t} = \alpha_i + \beta_i (r_{m,t} - r_{f,t}) + \varepsilon_{i,t}
+
+r_{i,t} = \alpha_i + \beta_{1,i} MKT_t + \beta_{2,i} SMB_t + \beta_{3,i} HML_t + \varepsilon_{i,t}","std(residual(return~market_return),252)",exact,,daily_rolling_risk,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'idio_vol', 'window': 252, 'min_samples': 126}",253
+calendar2023_10_1_17_u603b_6ce2_52a8_7387,2023,10.1.17,总波动率,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4469,4483,1d,1d,T_close,close,std(\text{最近K个月的日度收益率序列}),"ts_std(log(close/ts_delay(close,1)),20)",exact,,rolling_return_stat,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'window': 20, 'stat': 'std'}",21
+calendar2023_10_1_18_u4e0a_4e0b_884c_6ce2_52a8_7387,2023,10.1.18,上下行波动率,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4483,4500,1d,1d,T_close,open|high|low|close|volume,DUVOL_i = \log \left( \frac{(n_u - 1) \sum_d (r_{it} - \bar{r}_i)^2}{(n_d - 1) \sum_u (r_{it} - \bar{r}_i)^2} \right),log(((n_up-1)*downside_ss)/((n_down-1)*upside_ss)),exact,,daily_technical_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'duvol', 'window': 20}",20
+calendar2023_10_1_19_u534f_504f_5ea6_7cfb_7edf_504f_5ea6,2023,10.1.19,协偏度 (系统偏度),波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4500,4516,1d,1d,T_close,close|market_ret,"CS = \frac{E[\varepsilon_i, \varepsilon_m^2]}{\sqrt{E[\varepsilon_i^2]} E[\varepsilon_m^2]}","coskew(return,market_return,252)",exact,,daily_rolling_risk,,,,"{'metric': 'coskew', 'window': 252, 'min_samples': 126}",253
+calendar2023_10_1_20_u7279_5f02_5ea6,2023,10.1.20,特异度,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4516,4535,1d,1d,T_close,close|market_ret,"\text{特异度} = 1 - \text{上述回归模型的拟合优度} R^2
+
+r_{i,t} = \alpha_i + \beta_{1,i} MKT_t + \beta_{2,i} SMB_t + \beta_{3,i} HML_t + \varepsilon_{i,t}",var(residual)/var(return) = 1-R**2,exact,,daily_rolling_risk,,,,"{'metric': 'idiosyncrasy', 'window': 252, 'min_samples': 126}",253
+calendar2023_10_1_21_u7279_8d28_504f_5ea6,2023,10.1.21,特质偏度,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4535,4565,1d,1d,T_close,close|market_ret,"IdoSkew_i = \frac{\frac{1}{T} \sum_{t=1}^{T} \varepsilon_{it}^3}{\left( \frac{1}{T} \sum_{t=1}^{T} \varepsilon_{it}^2 \right)^{\frac{3}{2}}}
+
+r_{i,t} - r_{f,t} = \alpha_i + \beta_i (r_{m,t} - r_{f,t}) + \varepsilon_{i,t}
+
+r_{i,t} = \alpha_i + \beta_{1,i} MKT_t + \beta_{2,i} SMB_t + \beta_{3,i} HML_t + \varepsilon_{i,t}
+
+IdoSkew_i = \frac{\frac{1}{T} \sum_{t=1}^{T} \varepsilon_{it}^3}{\left( \frac{1}{T} \sum_{t=1}^{T} \varepsilon_{it}^2 \right)^{\frac{3}{2}}}","skew(residual(return~market_return),252)",exact,,daily_rolling_risk,,,,"{'metric': 'idio_skew', 'window': 252, 'min_samples': 126}",253
+calendar2023_10_1_22_frazzini_pedersen,2023,10.1.22,Frazzini-Pedersen贝塔,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4565,4582,1d,1d,T_close,close|market_ret,betaFP = \hat{\rho} \frac{\widehat{\sigma}_i}{\widehat{\sigma}_m},"corr(stock_3d,market_3d,5y)*std(stock_return,12m)/std(market_return,12m)",exact,,daily_frazzini_pedersen_beta,,,,{},1260
+calendar2023_10_1_23_dimson,2023,10.1.23,Dimson贝塔,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4582,4602,unknown,1d,T_close,,"r_{id} - r_{fd} = \alpha_i + \hat{\beta}_{i1} (r_{md-1} - r_{fd-1}) + \hat{\beta}_{i2} (r_{md} - r_{fd}) + \hat{\beta}_{i3} (r_{md+1} - r_{fd+1}) + \epsilon_{id}
+
+betaDM = \hat{\beta}_{i1} + \hat{\beta}_{i2} + \hat{\beta}_{i3}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_10_1_24_u6708_5ea6_7279_8d28_6ce2_52a8_7387,2023,10.1.24,月度特质波动率,波动率因子,波动率与风险类,波动率与风险类,波动率因子,factors2023.md,4602,4621,1d,1d,T_close,close|market_ret,"(IV_{i,t}^{WM})^2 = \frac{1}{\sum w_k} \sum_{k=1}^{T} w_k (\epsilon_{i,t+1-k})^2","std(residual(stock_ret ~ market_ret),20)",exact,,market_residual_stat,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'window': 20, 'stat': 'std'}",20
+calendar2023_11_1_1_u5e02_573a_6760_6746,2023,11.1.1,市场杠杆,杠杆因子,杠杆类,杠杆类,杠杆因子,factors2023.md,4623,4636,1d,1d,T_close,market_leverage_ttm,\frac{\text{最近报告期的总资产}}{\text{总市值}},market_leverage_ttm,exact,供应商日频PIT衍生字段,alias:market_leverage_ttm,,,,{},0
+calendar2023_11_1_2_u8d44_4ea7_8d1f_503a_7387,2023,11.1.2,资产负债率,杠杆因子,杠杆类,杠杆类,杠杆因子,factors2023.md,4636,4648,1d,1d,T_close,debt_to_asset_ratio_ttm,\frac{\text{最近报告期的负债合计}}{\text{最近同期的总资产}},debt_to_asset_ratio_ttm,exact,供应商日频PIT衍生字段,alias:debt_to_asset_ratio_ttm,,,,{},0
+calendar2023_11_1_3_u6743_76ca_4e58_6570,2023,11.1.3,权益乘数,杠杆因子,杠杆类,杠杆类,杠杆因子,factors2023.md,4648,4669,1d,1d,T_close,equity_multiplier_ttm,"\frac{\text{最近报告期平均总资产}}{\text{最近同期平均归属母公司股东权益合计}}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}
+
+\text{平均归属母公司股东权益合计} = \frac{\text{期初归属母公司股东权益合计} + \text{期末归属母公司股东权益合计}}{2}",equity_multiplier_ttm,exact,供应商日频PIT衍生字段,alias:equity_multiplier_ttm,,,,{},0
+calendar2023_11_1_4_u8d1f_503a_6743_76ca_6bd4,2023,11.1.4,负债权益比,杠杆因子,杠杆类,杠杆类,杠杆因子,factors2023.md,4669,4681,1d,1d,T_close,debt_to_equity_ratio_ttm,\frac{\text{最近报告期负债合计}}{\text{最近报告期股东权益合计}},debt_to_equity_ratio_ttm,exact,供应商日频PIT衍生字段,alias:debt_to_equity_ratio_ttm,,,,{},0
+calendar2023_11_1_5_u503a_52a1_6743_76ca_6bd4,2023,11.1.5,债务权益比,杠杆因子,杠杆类,杠杆类,杠杆因子,factors2023.md,4681,4698,1d,1d,T_close,debt_to_equity_ratio_ttm,"\frac{\text{最近报告期债务总额}}{\text{最近报告期股东权益合计}}
+
+\text{总债务} = \text{短期借款} + \text{长期借款}",debt_to_equity_ratio_ttm,exact,供应商日频PIT衍生字段,alias:debt_to_equity_ratio_ttm,,,,{},0
+calendar2023_11_1_6_u80a1_4e1c_6743_76ca_6bd4_7387,2023,11.1.6,股东权益比率,杠杆因子,杠杆类,杠杆类,杠杆因子,factors2023.md,4698,4711,1d,1d,T_close,equity_ratio_ttm,\frac{\text{最近报告期股东权益合计}}{\text{最近同期总资产}},equity_ratio_ttm,exact,供应商日频PIT衍生字段,alias:equity_ratio_ttm,,,,{},0
+calendar2023_11_1_7_u6d41_52a8_6bd4_7387,2023,11.1.7,流动比率,杠杆因子,杠杆类,杠杆类,杠杆因子,factors2023.md,4711,4723,1d,1d,T_close,current_ratio_ttm,\frac{\text{最近报告期流动资产合计}}{\text{最近同期流动负债合计}},current_ratio_ttm,exact,供应商日频PIT衍生字段,alias:current_ratio_ttm,,,,{},0
+calendar2023_11_1_8_u901f_52a8_6bd4_7387,2023,11.1.8,速动比率,杠杆因子,杠杆类,杠杆类,杠杆因子,factors2023.md,4723,4740,1d,1d,T_close,quick_ratio_ttm,"\frac{\text{最近报告期速动资产}}{\text{最近同期流动负债合计}}
+
+\text{速动资产} = \text{流动资产} - \text{存货} - (\text{应付账款} + \text{待摊费用})",quick_ratio_ttm,exact,供应商日频PIT衍生字段,alias:quick_ratio_ttm,,,,{},0
+calendar2023_11_1_9_u73b0_91d1_6bd4_7387,2023,11.1.9,现金比率,杠杆因子,杠杆类,杠杆类,杠杆因子,factors2023.md,4740,4752,1d,1d,T_close,cash_ratio_ttm,\frac{\text{最近报告期货币资金} + \text{最近报告期交易性金融资产}}{\text{最近同期流动负债合计}},cash_ratio_ttm,exact,供应商日频PIT衍生字段,alias:cash_ratio_ttm,,,,{},0
+calendar2023_11_1_10_u8d26_9762_6760_6746,2023,11.1.10,账面杠杆,杠杆因子,杠杆类,杠杆类,杠杆因子,factors2023.md,4752,4764,1d,1d,T_close,book_leverage_ttm,\frac{\text{最近报告期总资产}}{\text{最近同期股东权益合计}},book_leverage_ttm,exact,供应商日频PIT衍生字段,alias:book_leverage_ttm,,,,{},0
+calendar2023_12_1_1_u4f30_503c_8d8b_52bf_504f_79bb_5ea6,2023,12.1.1,估值趋势偏离度,估值因子,估值类,估值类,估值因子,factors2023.md,4766,4806,unknown,1d,T_close,,"VR_t^i = Trend_t^i + Deviation_t^i
+
+Trend_t^i \triangleq C^i \times SVR_t^i
+
+\Delta VR_t^i = \alpha^i \times \Delta SVR_t^i + \lambda^i \times ECM_{t-1} + \varepsilon_t^i
+
+ECM_{t-1} = (VR_{t-1}^i - C^i \times SVR_{t-1}^i)
+
+DR \triangleq (VR_t^i - C^i \times SVR_t^i) / VR_t^i",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_12_1_2_u8425_8fd0_8d44_672c_540c_6bd4_589e_901f,2023,12.1.2,营运资本同比增速,估值因子,估值类,估值类,估值因子,factors2023.md,4806,4823,1d,1d,T_close,working_capital_ttm|working_capital_lyr,"\frac{\text{最近报告期营运资本} - \text{上年同期营运资本}}{abs(\text{上年同期营运资本})}
+
+\text{营运资本} = \text{流动资产合计} - \text{货币资金} - (\text{流动负债合计} - \text{应付票据} - \text{一年内到期的非流动负债})",(working_capital_ttm-working_capital_lyr)/(ts_abs(working_capital_lyr)+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_12_1_3_u8d26_9762_5e02_503c_6bd4,2023,12.1.3,账面市值比,估值因子,估值类,估值类,估值因子,factors2023.md,4823,4836,1d,1d,T_close,book_to_market_ratio_ttm,\frac{\text{最近报告期归属于母公司股东权益合计}}{\text{总市值}},book_to_market_ratio_ttm,exact,供应商日频PIT衍生字段,alias:book_to_market_ratio_ttm,,,,{},0
+calendar2023_12_1_4_u4f01_4e1a_4ef7_503c,2023,12.1.4,企业价值,估值因子,估值类,估值类,估值因子,factors2023.md,4836,4848,1d,1d,T_close,ev_ttm,\text{总市值} + \text{总负债} + \text{优先股账面价值} - (\text{货币资金} + \text{短期投资}),ev_ttm,exact,供应商日频PIT衍生字段,alias:ev_ttm,,,,{},0
+calendar2023_12_1_5_u4f01_4e1a_4ef7_503c_500d_6570,2023,12.1.5,企业价值倍数,估值因子,估值类,估值类,估值因子,factors2023.md,4848,4870,1d,1d,T_close,ev_to_ebitda_ttm,"\text{息税折旧摊销前利润EBITDA}
+
+\text{企业价值} = \text{总市值} + \text{总负债} + \text{优先股账面价值} - (\text{货币资金} + \text{短期投资})
+
+\frac{\text{企业价值}}{\text{息税折旧摊销前利润EBITDA}}",ev_to_ebitda_ttm,exact,供应商日频PIT衍生字段,alias:ev_to_ebitda_ttm,,,,{},0
+calendar2023_12_1_6_u73b0_91d1_6d41_5e02_503c_6bd4,2023,12.1.6,现金流市值比,估值因子,估值类,估值类,估值因子,factors2023.md,4870,4885,1d,1d,T_close,cfp_ratio_ttm,\frac{\text{最近12个月经营性活动产生的现金流净额(TTM)}}{\text{总市值}},cfp_ratio_ttm,exact,供应商日频PIT衍生字段,alias:cfp_ratio_ttm,,,,{},0
+calendar2023_12_1_7_u76c8_5229_5e02_503c_6bd4,2023,12.1.7,盈利市值比,估值因子,估值类,估值类,估值因子,factors2023.md,4885,4898,1d,1d,T_close,ep_ratio_ttm,\frac{\text{最近12个月归属母公司净利润(TTM)}}{\text{总市值}},ep_ratio_ttm,exact,供应商日频PIT衍生字段,alias:ep_ratio_ttm,,,,{},0
+calendar2023_12_1_8_u9500_552e_6536_5165_5e02_503c_6bd4,2023,12.1.8,销售收入市值比,估值因子,估值类,估值类,估值因子,factors2023.md,4898,4910,1d,1d,T_close,sp_ratio_ttm,\frac{\text{最近12个月营业收入(TTM)}}{\text{总市值}},sp_ratio_ttm,exact,供应商日频PIT衍生字段,alias:sp_ratio_ttm,,,,{},0
+calendar2023_12_1_9_u80a1_606f_7387,2023,12.1.9,股息率,估值因子,估值类,估值类,估值因子,factors2023.md,4910,4922,1d,1d,T_close,dividend_yield_ttm,\frac{\text{最近12个月现金红利(TTM)}}{\text{总市值}},dividend_yield_ttm,exact,供应商日频PIT衍生字段,alias:dividend_yield_ttm,,,,{},0
+calendar2023_12_1_10_u5e02_76c8_7387_589e_957f_7387,2023,12.1.10,市盈率增长率,估值因子,估值类,估值类,估值因子,factors2023.md,4922,4935,1d,1d,T_close,peg_ratio_ttm,\frac{\text{最近报告期市盈率(TTM)}}{\text{归属母公司净利润(TTM)同比增速}},peg_ratio_ttm,exact,日历定义即PE/盈利增速，映射供应商PEG TTM字段,alias:peg_ratio_ttm,,,,{},0
+calendar2023_12_1_11_u80a1_4e1c_76c8_4f59_5e02_503c_6bd4,2023,12.1.11,股东盈余市值比,估值因子,估值类,估值类,估值因子,factors2023.md,4935,4954,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月的股东盈余(TTM)}}{\text{总市值}}
+
+\text{股东盈余} = \text{净利润} + \text{折旧摊销} + \text{资产减值准备} + \text{研发费用} + \text{递延所得税费用} - \text{维护性资本支出}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_12_1_12_ebit,2023,12.1.12,EBIT/企业价值,估值因子,估值类,估值类,估值因子,factors2023.md,4954,4971,1d,1d,T_close,ebit_ttm|ev_ttm,"\frac{\text{息税前利润EBIT}}{\text{企业价值}}
+
+\text{企业价值} = \text{总市值} + \text{总负债} + \text{优先股账面价值} - (\text{货币资金} + \text{短期投资})",ebit_ttm/(ev_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_12_1_13_60,2023,12.1.13,盈利市值比60日变动,估值因子,估值类,估值类,估值因子,factors2023.md,4971,4983,1d,1d,T_close,ep_ratio_ttm,\text{最新盈利市值比} EP_t - 60 \text{个交易日前盈利市值比} EP_{t-60},"ep_ratio_ttm-ts_delay(ep_ratio_ttm,60)",exact,,legacy_expression,,,,{},60
+calendar2023_12_1_14_sale,2023,12.1.14,Sale/企业价值,估值因子,估值类,估值类,估值因子,factors2023.md,4983,4995,1d,1d,T_close,operating_revenue_per_share_ttm|weighted_common_stock_ttm|ev_ttm,\frac{\text{最近12个月营业收入(TTM)}}{\text{企业价值}},operating_revenue_per_share_ttm*weighted_common_stock_ttm/(ev_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_12_1_15_u603b_8d44_4ea7_5e02_503c_6bd4,2023,12.1.15,总资产市值比,估值因子,估值类,估值类,估值因子,factors2023.md,4995,5007,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期总资产}}{\text{总市值}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_12_1_16_u8d1f_503a_5e02_503c_6bd4,2023,12.1.16,负债市值比,估值因子,估值类,估值类,估值因子,factors2023.md,5007,5019,1d,1d,T_close,liabilities_per_share_ttm|weighted_common_stock_ttm|market_cap_2,\frac{\text{最近报告期负债合计}}{\text{总市值}},liabilities_per_share_ttm*weighted_common_stock_ttm/(market_cap_2+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_12_1_17_u5e02_76c8_7387_589e_957f_7387_80a1_606f_7387,2023,12.1.17,市盈率增长率/股息率,估值因子,估值类,估值类,估值因子,factors2023.md,5019,5031,1d,1d,T_close,peg_ratio_ttm|dividend_yield_ttm,\text{EPGY} = \frac{\text{市盈率增长率(PEG)}}{\text{股息率}},peg_ratio_ttm/(dividend_yield_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_13_1_1_u65e0_5f62_8d44_4ea7_5f3a_5ea6,2023,13.1.1,无形资产强度,无形资产因子,无形资产类,无形资产类,无形资产因子,factors2023.md,5033,5049,1d,1d,T_close,intangible_asset_ratio_ttm,IAI_{it} = \frac{KC_{it} + OC_{it}}{TA_{it} + KC_{it} + OC_{it} - GW_{it}},intangible_asset_ratio_ttm,exact,供应商日频PIT衍生字段,alias:intangible_asset_ratio_ttm,,,,{},0
+calendar2023_13_1_2_u9500_552e_6536_5165_589e_957f_51cf_5b58_8d27,2023,13.1.2,销售收入增长减存货增长,无形资产因子,无形资产类,无形资产类,无形资产因子,factors2023.md,5049,5061,1d,1d,T_close,fundamental_raw,\text{最近单季度营业收入的同比增速} - \text{同期单季度存货的同比增速},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_13_1_3_u6bdb_5229_6da6_589e_957f_51cf_9500_552e_6536,2023,13.1.3,毛利润增长减销售收入增长,无形资产因子,无形资产类,无形资产类,无形资产因子,factors2023.md,5061,5073,1d,1d,T_close,fundamental_raw,\text{最近单季度毛利润的同比增速} - \text{同期单季度营业收入的同比增速},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_13_1_4_u4f01_4e1a_5e74_9f84,2023,13.1.4,企业年龄,无形资产因子,无形资产类,无形资产类,无形资产因子,factors2023.md,5073,5085,1d,1d,T_close,listing_metadata,\text{当前时刻与公司IPO日之间的月份数量},,blocked_data,精确实现依赖当前数据审计未发现的数据域: listing_metadata,,,,,{},0
+calendar2023_13_1_5_u521b_65b0_80fd_529b_56e0_5b50,2023,13.1.5,创新能力因子,无形资产因子,无形资产类,无形资产类,无形资产因子,factors2023.md,5085,5105,1d,1d,T_close,patent,"\text{① 最近12个月研发费用(TTM)}
+
+\text{② 最近12个月营业收入(TTM)}
+
+\text{③ 最近一年申请发明专利数量}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,,,{},0
+calendar2023_13_1_6_u7814_53d1_8d39_7528_5e02_503c_6bd4,2023,13.1.6,研发费用市值比,无形资产因子,无形资产类,无形资产类,无形资产因子,factors2023.md,5105,5117,1d,1d,T_close,fundamental_raw,\frac{\text{最近12个月的研发费用(TTM)}}{\text{总市值}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_13_1_7_u5185_90e8_521b_9020_7684_65e0_5f62_8d44_4ea7,2023,13.1.7,内部创造的无形资产,无形资产因子,无形资产类,无形资产类,无形资产因子,factors2023.md,5117,5149,1d,1d,T_close,analyst,"INT_{i,t} = KC_{i,t} + OC_{i,t}
+
+KC_{i,t} = (1 - \delta_{R\&D}) KC_{i,t-1} + R\&D_{i,t}
+
+OC_{i,t} = (1 - \delta_{SG\&A}) OC_{i,t-1} + \theta * SG\&A_{i,t}
+
+OC_{i,0} = \frac{SG\&A_{i,1}}{g + \delta_{SG\&A}} \quad , \quad KC_{i,0} = \frac{R\&D_{i,1}}{g + \delta_{R\&D}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_13_1_8_u7814_53d1_8d39_7528_6536_5165_6bd4,2023,13.1.8,研发费用收入比,无形资产因子,无形资产类,无形资产类,无形资产因子,factors2023.md,5149,5162,1d,1d,T_close,fundamental_raw,\frac{\text{最近12个月研发费用(TTM)}}{\text{最近12个月营业收入(TTM)}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_13_1_9_u73b0_91d1_4e0e_603b_8d44_4ea7_6bd4,2023,13.1.9,现金与总资产比,无形资产因子,无形资产类,无形资产类,无形资产因子,factors2023.md,5162,5179,1d,1d,T_close,cash_equivalent_per_share_ttm|equity_ratio_ttm|book_value_per_share_ttm,"\frac{\text{最近12个月的现金及现金等价物(TTM)}}{\text{平均总资产}}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",cash_equivalent_per_share_ttm*equity_ratio_ttm/(book_value_per_share_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2023_14_1_1_u673a_6784_6301_80a1_6bd4_4f8b,2023,14.1.1,机构持股比例,股东因子,股东类,股东类,股东因子,factors2023.md,5181,5194,1d,1d,T_close,shareholder,\frac{\text{机构持股数量}}{\text{总股本}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2023_14_1_2_u5341_5927_80a1_4e1c_5360_6bd4_5206_6563_5ea6,2023,14.1.2,十大股东占比分散度,股东因子,股东类,股东类,股东因子,factors2023.md,5194,5206,1d,1d,T_close,shareholder,std(\text{十大股东各自的持仓占比序列}),,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2023_14_1_3_u6301_4ed3_673a_6784_4e2a_6570,2023,14.1.3,持仓机构个数,股东因子,股东类,股东类,股东因子,factors2023.md,5206,5218,1d,1d,T_close,shareholder,\text{持仓机构个数},,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2023_14_1_4_u80a1_6743_96c6_4e2d_5ea6,2023,14.1.4,股权集中度,股东因子,股东类,股东类,股东因子,factors2023.md,5218,5230,1d,1d,T_close,shareholder,\frac{\text{前三大流通股东持股数}}{\text{流通股股本}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2023_14_1_5_u80a1_4e1c_6237_6570,2023,14.1.5,股东户数,股东因子,股东类,股东类,股东因子,factors2023.md,5230,5242,1d,1d,T_close,shareholder,\text{股东户数},,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2023_14_1_6_u80a1_6743_96c6_4e2d_5ea6_6d41_901a,2023,14.1.6,股权集中度（流通）,股东因子,股东类,股东类,股东因子,factors2023.md,5242,5254,1d,1d,T_close,shareholder,\frac{\text{前三大流通股东持股数}}{\text{流通股股本}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2023_14_1_7_u6237_5747_6301_80a1_6bd4_4f8b,2023,14.1.7,户均持股比例,股东因子,股东类,股东类,股东因子,factors2023.md,5254,5266,1d,1d,T_close,shareholder,\frac{\text{总股本} / \text{股东户数}}{\text{总股本}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2023_15_1_1_u5355_5b63_5ea6_9500_552e_6536_5165_540c_6bd4,2023,15.1.1,单季度销售收入同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5268,5280,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度营业收入} - \text{上年同期值}}{abs(\text{上年同期值})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_2_u5355_5b63_5ea6_51c0_5229_6da6_540c_6bd4_589e,2023,15.1.2,单季度净利润同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5280,5292,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度净利润} - \text{上年同期值}}{abs(\text{上年同期值})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_3_u5355_5b63_5ea6_8425_4e1a_5229_6da6_540c_6bd4,2023,15.1.3,单季度营业利润同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5292,5304,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度营业利润} - \text{上年同期值}}{abs(\text{上年同期值})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_4_u5355_5b63_5ea6_8425_4e1a_603b_6210_672c_540c,2023,15.1.4,单季度营业总成本同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5304,5316,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度营业总成本} - \text{上年同期值}}{\text{上年同期值}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_5_u5f52_5c5e_6bcd_516c_53f8_80a1_4e1c_6743_76ca,2023,15.1.5,归属母公司股东权益环比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5316,5328,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期归属母公司股东权益} - \text{上一报告期归属母公司股东权益}}{abs(\text{上一报告期归属母公司股东权益})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_6_u5355_5b63_5ea6_7ecf_8425_6027_6d3b_52a8_4ea7,2023,15.1.6,单季度经营性活动产生的现金流净额同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5328,5340,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度经营性活动产生的现金流净额}(TTM) - \text{上年同期值}}{abs(\text{上年同期值})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_7_u5355_5b63_5ea6_644a_8584_51c0_8d44_4ea7_6536,2023,15.1.7,单季度摊薄净资产收益率变动,成长因子,成长类,成长类,成长因子,factors2023.md,5340,5352,1d,1d,T_close,fundamental_raw,\text{最近报告期单季度摊薄净资产收益率}(TTM) - \text{上年同期单季度摊薄净资产收益率}(TTM),,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_8_u5355_5b63_5ea6_603b_8d44_4ea7_51c0_5229_7387,2023,15.1.8,单季度总资产净利率变动,成长因子,成长类,成长类,成长因子,factors2023.md,5352,5364,1d,1d,T_close,fundamental_raw,\text{最近报告期单季度总资产净利率} - \text{上年同期单季度总资产净利率},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_9_u5355_5b63_5ea6_603b_8d44_4ea7_62a5_916c_7387,2023,15.1.9,单季度总资产报酬率变动,成长因子,成长类,成长类,成长因子,factors2023.md,5364,5376,1d,1d,T_close,fundamental_raw,\text{最近报告期单季度总资产报酬率} - \text{上年同期单季度总资产报酬率},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_10_u6295_5165_8d44_672c_56de_62a5_7387_53d8_52a8,2023,15.1.10,投入资本回报率变动,成长因子,成长类,成长类,成长因子,factors2023.md,5376,5388,1d,1d,T_close,fundamental_raw,\text{最近报告期单季度投入资本回报率} - \text{上年同期单季度投入资本回报率},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_11_u5355_5b63_5ea6_6210_672c_8d39_7528_5229_6da6,2023,15.1.11,单季度成本费用利润率的同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5388,5400,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度成本费用利润率} - \text{上年同期单季度成本费用利润率}}{abs(\text{上年同期单季度成本费用利润率})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_12_u5355_5b63_5ea6_8425_4e1a_5229_6da6_7387_540c,2023,15.1.12,单季度营业利润率同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5400,5412,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度营业利润率} - \text{上年同期单季度营业利润率}}{abs(\text{上年同期单季度营业利润率})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_13_u5355_5b63_5ea6_51c0_5229_7387_540c_6bd4_589e,2023,15.1.13,单季度净利率同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5412,5424,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度净利率} - \text{上年同期单季度净利率}}{abs(\text{上年同期单季度净利率})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_14_u5355_5b63_5ea6_6bdb_5229_7387_540c_6bd4_589e,2023,15.1.14,单季度毛利率同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5424,5436,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度毛利率} - \text{上年同期单季度毛利率}}{abs(\text{上年同期单季度毛利率})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_15_u6709_5f62_8d44_672c_56de_62a5_7387_73af_6bd4,2023,15.1.15,有形资本回报率环比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5436,5448,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期有形资本回报率}(TTM) - \text{上一报告期有形资本回报率}(TTM)}{abs(\text{上一报告期有形资本回报率}(TTM))},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_16_u5355_5b63_5ea6_9500_552e_6210_672c_7387_540c,2023,15.1.16,单季度销售成本率同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5448,5460,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度销售成本率} - \text{上年同期单季度销售成本率}}{abs(\text{上年同期单季度销售成本率})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_17_u6bcf_80a1_51c0_8d44_4ea7_540c_6bd4_589e_957f,2023,15.1.17,每股净资产同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5460,5472,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期每股净资产} - \text{上年同期每股净资产}}{abs(\text{上年同期每股净资产})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_18_u57fa_672c_6bcf_80a1_6536_76ca_540c_6bd4_589e,2023,15.1.18,基本每股收益同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5472,5484,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期基本每股收益} - \text{上年同期基本每股收益}}{abs(\text{上年同期基本每股收益})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_19_u7a00_91ca_6bcf_80a1_6536_76ca_540c_6bd4_589e,2023,15.1.19,稀释每股收益同比增长率,成长因子,成长类,成长类,成长因子,factors2023.md,5484,5496,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期稀释每股收益}(TTM) - \text{上年同期稀释每股收益}(TTM)}{abs(\text{上年同期稀释每股收益}(TTM))},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_15_1_20_u52b3_52a8_529b_6548_5e94,2023,15.1.20,劳动力效应,成长因子,成长类,成长类,成长因子,factors2023.md,5496,5517,1d,1d,T_close,fundamental_raw,"\text{最近12个月的人均销售收入}(TTM) - \text{上年同期值}
+
+\text{人均销售收入}(TTM) = \frac{\text{最近12个月的营业收入}(TTM)}{\text{平均员工总数}}
+
+\text{平均员工总数} = \frac{\text{期初员工总数} + \text{期末员工总数}}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2023_16_1_1_u4e00_81f4_9884_671f_6536_76ca_7387,2023,16.1.1,一致预期收益率,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5519,5536,1d,1d,T_close,analyst,TR = \sum_{i=1}^N \frac{P_i^e}{P},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_2_eps,2023,16.1.2,预期EPS调整,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5536,5548,1d,1d,T_close,analyst,\frac{\text{当前预期EPS} - \text{三个月前预期EPS}}{abs(\text{三个月前预期EPS})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_3_u5206_6790_5e08_76c8_5229_9884_6d4b_4e0a_8c03,2023,16.1.3,分析师盈利预测上调的概率,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5548,5567,1d,1d,T_close,analyst,FOM = \frac{K - M}{N},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_4_eps,2023,16.1.4,预期EPS上调比例,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5567,5583,1d,1d,T_close,analyst,EpsDiffusion = \frac{up - down}{up + down},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_5_pe,2023,16.1.5,预期PE调整,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5583,5595,1d,1d,T_close,analyst,\frac{\text{当前预期PE} - \text{三个月前预期PE}}{abs(\text{三个月前预期PE})},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_6_u5206_6790_5e08_8986_76d6,2023,16.1.6,分析师覆盖,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5595,5606,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2023_16_1_7_u52a0_6743_9884_671f_6536_76ca_7387,2023,16.1.7,加权预期收益率,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5606,5624,1d,1d,T_close,analyst,WTR = \sum_i \frac{P_i^e}{P} w_i = \sum_i \frac{P_i^e}{P} \times \frac{P_i^e \times P/P_i^0}{\sum P_i^e \times P/P_i^0},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_8_u52a0_6743_7684_76c8_4f59_8c03_6574_5e45_5ea6,2023,16.1.8,加权的盈余调整幅度,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5624,5636,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2023_16_1_9_u8c03_6574_9884_671f_6536_76ca_7387,2023,16.1.9,调整预期收益率,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5636,5648,1d,1d,T_close,analyst,\text{当前最新加权预期收益率} - \text{去年同期值},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_10_u5206_6790_5e08_9884_6d4b_504f_5dee_540c_5411,2023,16.1.10,分析师预测偏差同向的概率,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5648,5665,1d,1d,T_close,analyst,FOM = \frac{K - M}{N},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_11_u603b_5206_6790_5e08_8986_76d6_7387,2023,16.1.11,总分析师覆盖率,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5665,5675,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2023_16_1_12_ep,2023,16.1.12,一致预期EP,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5675,5685,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2023_16_1_13_bp,2023,16.1.13,一致预期BP,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5685,5695,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2023_16_1_14_u5173_6ce8_5ea6_4fee_6b63_9884_671f_6536_76ca,2023,16.1.14,关注度修正预期收益率,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5695,5712,1d,1d,T_close,analyst,CTR = Rank(WTR) * Rank(C),,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_15_eps,2023,16.1.15,一致预期EPS,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5712,5724,1d,1d,T_close,analyst,\text{最终的一致预期EPS因子是通过对过去一段时间各机构在研究报告上披露的预测数据进行加权得到。},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_16_u5f02_5e38_5206_6790_5e08_8986_76d6,2023,16.1.16,异常分析师覆盖,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5724,5745,1d,1d,T_close,analyst,"\ln(1 + COV_{i,m}) = \beta_0 + \beta_1 SIZE_{i,m} + \beta_2 LNTO_{i,m} + \beta_3 MOM_{i,m} + \varepsilon_{i,m}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_17_peg,2023,16.1.17,一致预期PEG,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5745,5768,1d,1d,T_close,analyst,"\text{预期EPS上调比例} = \frac{\text{一致预期FY1净利润}}{\text{预期净利润增长率}}
+
+\text{一致预期FY1净利润}
+
+\text{预期净利润增长率}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_18_roe,2023,16.1.18,一致预期ROE,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5768,5780,1d,1d,T_close,analyst,\text{使用的一致预期基础指标是通过对过去一段时间各机构在研究报告上披露的预测数据进行加权得到，加权方式有算术平均（Wind的一致预期）、时间与机构双重加权（朝阳永续）、按预测精度加权（东方证券）等。},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_19_u76ee_6807_4ef7_9690_542b_6536_76ca_7387,2023,16.1.19,目标价隐含收益率,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5780,5796,1d,1d,T_close,analyst,"\frac{\text{隐含目标价} - \text{最近股价}}{\text{最近股价}}
+
+\text{目标价隐含收益率} = \text{一致预期目标价} - \text{最近股价}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_16_1_20_u4e1a_7ee9_8d85_9884_671f,2023,16.1.20,业绩超预期,分析师预期类,分析师预期类,分析师预期类,分析师预期类,factors2023.md,5796,5821,1d,1d,T_close,analyst,"\text{EarningSurprise} = \frac{A - F}{\hat{\sigma}}
+
+\hat{\sigma} = k * MAD
+
+MAD = median(|X_i - median_j(X_j)|)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2023_17_1_u8d28_91cf_56e0_5b50,2023,17.1,质量因子,综合质量类,综合质量类,综合质量类,综合质量类,factors2023.md,5823,5847,unknown,1d,T_close,,"\frac{Price}{BookValue} = \frac{(Profit/BookValue) * (Dividend/Profit)}{RequiredReturn - Growth}
+
+= \frac{Profitability * PayoutRatio}{RequiredReturn - Growth}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2023_17_2_u8d28_91cf_589e_957f,2023,17.2,质量增长,综合质量类,综合质量类,综合质量类,综合质量类,factors2023.md,5847,5864,unknown,1d,T_close,,"\text{质量增长} = \text{当前最新质量因子} - \text{去年同期值}
+
+\text{质量增长} = \frac{\text{当前最新质量因子} - \text{去年同期值}}{\text{去年同期值}}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0

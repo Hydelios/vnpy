@@ -1,0 +1,888 @@
+name,calendar_year,calendar_id,title,category,sub_category,raw_category,normalized_category,source_file,source_start_line,source_end_line,input_frequency,output_frequency,available_at,required_fields,original_formula,implemented_formula,implementation_status,implementation_notes,implementation_key,proxy_of,duplicate_refs,duplicate_type,default_params,warmup_requirement
+calendar2024_1_u8d44_672c_5229_5f97_7a81_51fa_91cf,2024,1,资本利得突出量,动量因子,,动量因子,动量因子,factors2024.md,8,39,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"RP_t = \frac{1}{k} \sum_{n=1}^{T} \left( V_{t-n} \prod_{\tau=1}^{n-1} (1 - V_{t-n+\tau}) \right) P_{t-n}
+
+CGO_t = \frac{P_{t-1} - RP_t}{P_{t-1}}",(close-reference_price)/close,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'capital_gain_overhang'},0
+calendar2024_2_u65f6_95f4_52a0_6743_5e73_5747_7684_80a1_7968,2024,2,时间加权平均的股票相对价格位置,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,40,75,1m,1d,T_close,open|high|low|close|volume|turnover,"RPP_{i,t} = \frac{(P_{i,t} - L_i)}{(H_i - L_i)}
+
+ARPP_i = \int_0^T RPP_{i,t} \cdot dt \Rightarrow ARPP_{i,t} = \frac{\left( \int_0^T P_{i,t} \cdot dt - L_i \right)}{(H_i - L_i)}",(mean((open+high+low+close)/4)-low)/(high-low),exact,,intraday_path_metric,,,,{'metric': 'time_weighted_relative_price'},0
+calendar2024_3_u6743_5229_8981_6c42_9879_9879_6570_5e73_5747,2024,3,权利要求项项数平均值,另类因子,,另类因子,另类因子,factors2024.md,76,91,1d,1d,T_close,patent,\text{mean}(\text{截止日前5年内新生成的有效的发明公开审查中专利的权利要求项项数}),,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,,,{},0
+calendar2024_4_u6807_51c6_5316_8c03_6574_7684_8425_4e1a_5229,2024,4,标准化调整的营业利润,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,92,118,1d,1d,T_close,fundamental_raw,\frac{\text{调整的营业利润}(TTM)\text{的当期值} - \text{mean}(\text{过去}T\text{期调整的营业利润}(TTM))}{\text{std}(\text{过去}T\text{期调整的营业利润}(TTM))},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_5_u9ad8_9891_4e0b_884c_6ce2_52a8_5360_6bd4,2024,5,高频下行波动占比,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,119,138,1m,1d,T_close,close,\text{高频下行波动占比} = \frac{\sum_t (r_i^t I_{\{r_i^t < 0\}})^2}{\sum_t (r_i^t)^2},sum(r_1m**2 where r_1m<0)/sum(r_1m**2),exact,,intraday_return_measure,,alpha101/158/191/360:concept_overlap,concept_overlap,{'measure': 'down_share'},0
+calendar2024_6_u4ef7_91cf_76f8_5173_6027_6ce2_52a8_6027_56e0,2024,6,价量相关性波动性因子,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,139,163,1m,1d,T_close,open|high|low|close|volume|turnover|a_share_market_val_in_circulation,"PV\_corr = corr(v_t, p_t)","neutralize(std(corr(close_1m,volume_1m),20),log(float_market_cap))",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap|research_report_factors:concept_overlap,concept_overlap,"{'metric': 'price_volume_corr', 'post_window': 20, 'post_stat': 'std', 'post_neutralize_market_cap': True}",20
+calendar2024_7_u5355_5b63_5ea6_9500_552e_6536_5165_540c_6bd4,2024,7,单季度销售收入同比增长率,未分类,,,未分类,factors2024.md,164,183,1d,1d,T_close,fundamental_raw,\frac{最近单季度营业收入 - 上年同期值}{abs(上年同期值)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_8_u6d41_52a8_6bd4_7387,2024,8,流动比率,杠杆因子,,杠杆因子,杠杆因子,factors2024.md,184,204,1d,1d,T_close,current_ratio_ttm,\frac{\text{最近报告期流动资产合计}}{\text{最近同期流动负债合计}},current_ratio_ttm,exact,供应商日频PIT衍生字段,alias:current_ratio_ttm,,,,{},0
+calendar2024_9_u4e3b_52a8_4e70_5356_56e0_5b50,2024,9,主动买卖因子,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,205,231,1m,1d,T_close,tick_trade,"ACT_{正向t} = \frac{主动买入金额(大单+中单) - 主动卖出金额(大单+中单)}{主动买入金额(大单 + 中单)+主动卖出金额(大单+中单)}
+
+ACT_{负向t} = \frac{主动买入金额(小单)-主动卖出金额(小单)}{主动买入金额(小单) +主动卖出金额(小单)}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_10_u53d8_52a8_901f_7387,2024,10,变动速率,技术因子,,技术因子,量价技术类,factors2024.md,232,246,1d,1d,T_close,close,"ROC = \frac{CLOSE - CLOSE[N]}{CLOSE[N]}
+
+ROCMA = SMA(ROC, M)","100*(close-ts_delay(close,12))/(ts_delay(close,12)+1e-12)",exact,,legacy_expression,,,,{},12
+calendar2024_11_u59d4_6258_6210_4ea4_76f8_5173_6027,2024,11,委托成交相关性,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,254,287,1m,1d,T_close,orderbook,"净委买变化率_{k,t}^T = \frac{净委买变化量_{k,t}^T}{流通股本_T}
+
+净委买变化量_{k,t}^T = \sum_{j=1}^{k} 委买变化量_{j,t}^T - \sum_{j=1}^{k} 委卖变化量_{j,t}^T
+
+委托成交相关性_T^i = corr(r_{T,t}^i, netBid_{T,t}^i)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_12_u5f02_5e38_5206_6790_5e08_8986_76d6,2024,12,异常分析师覆盖,分析师因子,,分析师因子,分析师预期类,factors2024.md,288,317,1d,1d,T_close,analyst,"\ln(1 + COV_{i,m}) = \beta_0 + \beta_1 SIZE_{i,m} + \beta_2 LNTO_{i,m} + \beta_1 MOM_{i,m} + \varepsilon_{i,m}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2024_13_u9ad8_9891_4e0a_884c_6ce2_52a8_5360_6bd4,2024,13,高频上行波动占比,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,318,338,1m,1d,T_close,close,\frac{\sum_t (r_i^t I_{\{r_i^t > 0\}})^2}{\sum_t (r_i^t)^2},sum(r_1m**2 where r_1m>0)/sum(r_1m**2),exact,,intraday_return_measure,,alpha101/158/191/360:concept_overlap,concept_overlap,{'measure': 'up_share'},0
+calendar2024_14_1_14,2024,14,1月14日 星期日 腊月初四,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,339,371,1m,1d,T_close,orderbook,"R_{i,j} = \gamma_0 + \sum_{k=1}^{4} \gamma_{1i,k} D_k^{Day} + \sum_{k=1}^{48} \gamma_{2i,k} D_k^{Int} + \sum_{k=1}^{12} \gamma_{3i,k} R_{i,j-k} + \epsilon_{i,j}
+
+DPIN_{BASE}^{i,j} = \frac{NB_{i,j}}{NT_{i,j}} \times (\epsilon_{i,j} < 0) + \frac{NS_{i,j}}{NT_{i,j}} \times (\epsilon_{i,j} > 0)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_15_u73b0_91d1_4e0e_603b_8d44_4ea7_6bd4,2024,15,现金与总资产比,未分类,,,未分类,factors2024.md,372,398,1d,1d,T_close,cash_equivalent_per_share_ttm|equity_ratio_ttm|book_value_per_share_ttm,"\frac{\text{最近12个月的现金及现金等价物 (TTM)}}{\text{平均总资产}}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",cash_equivalent_per_share_ttm*equity_ratio_ttm/(book_value_per_share_ttm+1e-12),exact,,legacy_expression,,,,{},0
+calendar2024_16_u6bcf_7b14_6210_4ea4_91cf_5dee_5206_6807_51c6,2024,16,每笔成交量差分标准差,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,399,425,1m,1d,T_close,tick_trade,"diff_i = volb_i - volb_{i-1}
+
+diff\_meanday = mean(abs(\frac{diff_i}{mean(\{volb_i\})}))
+
+diff\_std_{volb} = mean(\{diff\_std_{day}\})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_17_u65b0_95fb_6570_91cf,2024,17,新闻数量,另类因子,,另类因子,另类因子,factors2024.md,426,446,1d,1d,T_close,news,"nc_{i,t} = \text{过去}[t - d + 1, t] \text{天提及过股票}i\text{的新闻总量}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2024_18_u7d2f_8ba1_8df3_8dc3_7edd_5bf9_6536_76ca,2024,18,累计跳跃绝对收益,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,447,477,unknown,1d,T_close,,"JAR = e^{\sum_{t=1}^{D} \{|r_t| \cdot I_{jump\_SwV,t}\}} - 1
+
+I_{jump\_SwV} = I(T_{SwV} > \Phi_{1-\alpha}^{-1})",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_19_u975e_6d41_52a8_6027_7684_53d8_5f02_7cfb_6570,2024,19,非流动性的变异系数,未分类,,,流动性因子,factors2024.md,478,507,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,"ILLIQ_{i,t} = \frac{|r_{i,t}|}{Amount_{i,t}}
+
+CVILLIQ_i = \frac{\sigma(ILLIQ_i)}{ILLIQ_i}","std(abs(return)/turnover,20)/mean(abs(return)/turnover,20)",exact,,daily_liquidity_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'amihud_cv', 'window': 20, 'long_window': 250}",21
+calendar2024_20_u6b8b_5dee_8d44_91d1_6d41_5f3a_5ea6_56e0_5b50,2024,20,残差资金流强度因子,未分类,,,未分类,factors2024.md,508,540,1d,1d,T_close,tick_trade,"S_t = \frac{\sum_{t-T}^{t} (buy_t - sell_t)}{\sum_{t-T}^{t} |buy_t - sell_t|}
+
+S_t = a + bRet20_t + \varepsilon_t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_21_u4ea7_80fd_5229_7528_7387_63d0_5347,2024,21,产能利用率提升,未分类,,,未分类,factors2024.md,541,566,1d,1d,T_close,fundamental_raw,TotalOperationCost_i = a_i + \beta_i FixedAssets_i + \varepsilon_i,,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_22_u4e2d_95f4_4ef7_53d8_5316_7387,2024,22,中间价变化率,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,567,593,1m,1d,T_close,orderbook,"MPC_{t,k} = \frac{M_t - M_{t-k}}{M_{t-k}} \quad M_t = \frac{P_t^B + P_t^A}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_23_u603b_5e02_503c,2024,23,总市值,规模因子,,规模因子,规模因子,factors2024.md,594,607,1d,1d,T_close,market_cap_2,,market_cap_2,exact,供应商日频PIT衍生字段,alias:market_cap_2,,,,{},0
+calendar2024_24_u6210_4ea4_91cf_6ce2_5cf0_8ba1_6570_56e0_5b50,2024,24,成交量波峰计数因子,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,608,625,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_25_1,2024,25,员工总数增长率-1年 `投资因子`,未分类,,,投资因子,factors2024.md,626,652,1d,1d,T_close,fundamental_raw,"\frac{最近报告期的员工总数 - 上年同期值}{平均员工人数}
+
+平均员工总数 = \frac{最近报告期的员工总数 + 上年同期的员工总数}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_26_u52b3_52a8_529b_6548_5e94,2024,26,劳动力效应,成长因子,,成长因子,成长因子,factors2024.md,653,681,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月的人均销售收入}(TTM) - \text{上年同期值}}{\text{上年同期值}}
+
+\text{人均销售收入}(TTM) = \frac{\text{最近12个月的营业收入}(TTM)}{\text{平均员工总数}}
+
+\text{平均员工总数} = \frac{\text{期初员工总数} + \text{期末员工总数}}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_27_u7406_60f3_53cd_8f6c,2024,27,理想反转,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,682,698,1m,1d,T_close,tick_trade,③ 计算理想反转因子：$M = M_{high} - M_{low}$。,,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_28_u4ef7_91cf_76f8_5173_6027_5e73_5747_6570_56e0,2024,28,价量相关性平均数因子,未分类,,,未分类,factors2024.md,699,723,1m,1d,T_close,open|high|low|close|volume|turnover|a_share_market_val_in_circulation,"PV\_corr = corr(v_t, p_t)","neutralize(mean(corr(close_1m,volume_1m),20),log(float_market_cap))",exact,,intraday_path_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'price_volume_corr', 'post_window': 20, 'post_stat': 'mean', 'post_neutralize_market_cap': True}",20
+calendar2024_29_u76c8_4f59_53ef_9884_6d4b_6027,2024,29,盈余可预测性,未分类,,,未分类,factors2024.md,724,753,1d,1d,T_close,fundamental_raw,"X_{j,t} = \phi_{0,j} + \phi_{1,j}X_{j,t-1} + v_{j,t}
+
+Predictability = \sqrt{\hat{\sigma}^2(v_j)}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_30_u76c8_4f59_6301_7eed_6027,2024,30,盈余持续性,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,754,779,1d,1d,T_close,fundamental_raw,"X_{j,t} = \phi_{0,j} + \phi_{1,j}X_{j,t-1} + v_{j,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_31_u60c5_7eea_6ea2_51fa_56e0_5b50,2024,31,“情绪溢出”因子,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,780,804,unknown,1d,T_close,,1. 焦点股票 i 的相邻股票数对因子效果影响不大，建议使用较少数量的股票（如 i=10）；,,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_32_u8d26_9762_5e02_503c_6bd4,2024,32,账面市值比,估值因子,,估值因子,估值因子,factors2024.md,805,821,1d,1d,T_close,book_to_market_ratio_ttm,\frac{\text{最近报告期归属于母公司股东权益合计}}{\text{总市值}},book_to_market_ratio_ttm,exact,供应商日频PIT衍生字段,alias:book_to_market_ratio_ttm,,,,{},0
+calendar2024_33_u4ef7_91cf_76f8_5173_6027_7efc_5408_56e0_5b50,2024,33,价量相关性综合因子,未分类,,,未分类,factors2024.md,822,838,1m,1d,T_close,close|volume|a_share_market_val_in_circulation,PVcorr = \frac{PVcorravg - mean(PVcorravg)}{std(PVcorravg)} + \frac{PVcorrstd - mean(PVcorrstd)}{std(PVcorrstd)},z(PVcorravg)+z(PVcorrstd),exact,,intraday_price_volume_composite,,research_report_factors:concept_overlap,concept_overlap,"{'mode': 'composite', 'window': 20}",20
+calendar2024_34_u5df2_5b9e_73b0_6ce2_52a8_7387,2024,34,已实现波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,841,867,1m,1d,T_close,close,"RV_t = \sum_{i=1}^{N} r_{t,i}^2",sum(log(close/lag(close))**2),exact,,intraday_return_measure,,alpha101/158/191/360:concept_overlap,concept_overlap,{'measure': 'realized_variance'},0
+calendar2024_35_u5e02_4ef7_504f_79bb_5ea6,2024,35,市价偏离度,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,868,895,1m,1d,T_close,orderbook,MPB_t = \overline{TP}_t - \frac{M_t + M_{t-1}}{2} = \overline{TP}_t - \overline{MP}_t,,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_36_u4ef7_683c_51b2_51fb_504f_5dee,2024,36,价格冲击偏差,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,896,926,1m,1d,T_close,tick_trade,"return_i = gamma^{up} \cdot I_i \cdot MF_i + gamma^{down} \cdot (1 - I_i) \cdot MF_i
+
+MF_i = MoneyFlow_i / Amount_i
+
+gammabias = \frac{gamma_{up} - gamma_{down}}{(gamma_{up} - gamma_{down})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_37_amihud,2024,37,Amihud 非流动性因子,流动性因子,,流动性因子,流动性因子,factors2024.md,927,954,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,"ILLIQ_{i,t} = Avg\left[ \frac{|R_{i,d}|}{VOLD_{i,d}} \right]","mean(abs(return)/turnover,20)",exact,,daily_liquidity_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'amihud', 'window': 20, 'long_window': 250}",21
+calendar2024_38_u5f02_5e38_8d44_672c_6295_8d44,2024,38,异常资本投资,投资因子,,投资因子,投资因子,factors2024.md,955,985,1d,1d,T_close,fundamental_raw,"CI_{t-1} = \frac{CE_{t-1}}{(CE_{t-2} + CE_{t-3} + CE_{t-4}) / 3} - 1
+
+CE = \frac{\text{资本性支出}}{\text{营业收入}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_39_u6807_51c6_5316_8425_4e1a_5229_6da6,2024,39,标准化营业利润,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,986,1010,1d,1d,T_close,fundamental_raw,\frac{\text{营业利润}(TTM)\text{的当期值} - \text{mean}(\text{过去}T\text{期的营业利润}(TTM))}{\text{std}(\text{过去}T\text{期的营业利润}(TTM))},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_40_u8d85_5927_5355_548c_5c0f_5355_7684_540c_6b65,2024,40,超大单和小单的同步相关性,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,1011,1036,1m,1d,T_close,tick_trade,"RankCorr(EL_t, S_t)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_41_apm,2024,41,APM 因子,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,1037,1071,1m,1d,T_close,close|market_minute_ret,"\text{stat} = \frac{\mu(\delta_t)}{\sigma(\delta_t)/\sqrt{N}}
+
+\text{stat}_j = b \text{Ret }20_j + \varepsilon_j","residual(tstat(epsilon_am-epsilon_pm,20),return20)",exact,,intraday_apm,,,,{'window': 20},20
+calendar2024_42_u4fee_6b63_6a21_7cca_4ef7_5dee,2024,42,修正模糊价差,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,1072,1102,1m,1d,T_close,open|high|low|close|volume|turnover,“日模糊价差”因子 = “日模糊金额比” - “日模糊数量比”；,"0.5*(mean(cross_section_rescaled_negative(fuzzy_amount-fuzzy_volume),20)+std(...,20))",exact,,intraday_fuzzy_spread,,,,{},29
+calendar2024_43_u76ee_6807_4ef7_9690_542b_6536_76ca_7387,2024,43,目标价隐含收益率,未分类,,,未分类,factors2024.md,1103,1127,1d,1d,T_close,analyst,\frac{一致目标价}{最近股价} - 1,,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2024_44_u65b0_95fb_80a1_7968_884c_4e1a_5171_73b0,2024,44,新闻股票行业共现,另类因子,,另类因子,另类因子,factors2024.md,1128,1147,1d,1d,T_close,news,"nCO_{i,t} = a_{i,t} - a_{i,t-1}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2024_45_u5c0f_5355_548c_5c0f_5355_7684_9519_4f4d_76f8,2024,45,小单和小单的错位相关性,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,1148,1166,1m,1d,T_close,tick_trade,"RankCorr(S_t, S_{t+1})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_46_u7814_53d1_8d39_7528_5e02_503c_6bd4,2024,46,研发费用市值比,无形资产因子,,无形资产因子,无形资产因子,factors2024.md,1167,1188,1d,1d,T_close,fundamental_raw,\frac{\text{最近12个月的研发费用}(TTM)}{\text{总市值}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_47_u4e2d_95f4_4ef7_53d8_5316_7387_504f_5ea6,2024,47,中间价变化率偏度,未分类,,,未分类,factors2024.md,1189,1219,1m,1d,T_close,orderbook,"MPCskew_{d,k} = \frac{1}{N_d - k - 1} \sum_{t=k+1}^{N_d} \left( \frac{MPC_{d,t,k} - \overline{MPC_{d,t,k}}}{\sigma_{d,t,k}} \right)^3
+
+MPC_{d,t,k} = \frac{M_{d,t} - M_{d,t-k}}{M_{d,t-k}} \quad M_{d,t} = \frac{P_{d,t}^B + P_{d,t}^A}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_48_u9ad8_9891_5df2_5b9e_73b0_504f_5ea6,2024,48,高频已实现偏度,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,1220,1245,1m,1d,T_close,close,"RSkew_i = \frac{\sqrt{N} \sum_{j=1}^{N} (r_{ij} - \bar{r}_i)^3}{RVar_i^{3/2}}
+
+RVar_i = \sum_{j=1}^{N} (r_{ij} - \bar{r}_i)^2","intraday_skew(log(close/ts_delay(close,1)))",exact,,intraday_return_stat,,,,{'stat': 'skew'},0
+calendar2024_49_u57fa_672c_9762_9690_542b_6536_76ca,2024,49,基本面隐含收益,动量因子,,动量因子,动量因子,factors2024.md,1246,1283,1d,1d,T_close,fundamental_raw,"MA_{i,t,L}^k = \frac{F_{i,t} + F_{i,t-1} + \cdots + F_{i,t-L+1}}{L}
+
+R_{i,t} = \alpha_t + \sum_{k=1}^{K} \sum_{L=1,2,4,8} \beta_{L,t}^k MA_{i,t-1,L}^k + \varepsilon_{i,t}
+
+FIR_{i,t} = \sum_{k=1}^{K} \sum_{L=1,2,4,8} E_t \left[ \beta_{L,t+1}^k \right] MA_{i,t,L}^k",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_50_u4e0b_884c_5df2_5b9e_73b0_6ce2_52a8_7387,2024,50,下行已实现波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,1284,1309,1m,1d,T_close,close,"RS_t^- = \sum_{i=1}^N r_{t,i}^2 * I_{r_{t,i} \leq 0}",sum(r_1m**2 where r_1m<=0),exact,,intraday_semivariance,,alpha101/158/191/360:concept_overlap,concept_overlap,{'side': 'down'},0
+calendar2024_51_u534f_504f_5ea6_7cfb_7edf_504f_5ea6_6ce2_52a8,2024,51,协偏度（系统偏度）　　　　波动率因子,未分类,,,波动率因子,factors2024.md,1310,1333,1d,1d,T_close,close|market_ret,"cs = \frac{E\left[\varepsilon_i, \varepsilon_m^2\right]}{\sqrt{E\left[\varepsilon_i^2\right] E\left[\varepsilon_m^2\right]}}","coskew(return,market_return,252)",exact,,daily_rolling_risk,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'coskew', 'window': 252, 'min_samples': 126}",253
+calendar2024_52_u6b8b_5dee_53cd_8f6c,2024,52,残差反转,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,1334,1364,1m,1d,T_close,tick_trade,"S_t = \frac{\sum_{t-T}^{t} (buy_t - sell_t)}{\sum_{t-T}^{t} |buy_t - sell_t|}
+
+Ret20_t = a + b * S_t + \varepsilon_t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_53_u6bcf_80a1_51c0_8d44_4ea7_540c_6bd4_589e_957f,2024,53,每股净资产同比增长率,未分类,,,未分类,factors2024.md,1365,1385,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期每股净资产(TTM) - 上年同期}}{\text{上年同期值}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_54_u4e0a_884c_5df2_5b9e_73b0_6ce2_52a8_7387,2024,54,上行已实现波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,1386,1410,1m,1d,T_close,close,"RS_t^+ = \sum_{i=1}^N r_{t,i}^2 * I_{r_{t,i} \geq 0}",sum(r_1m**2 where r_1m>0),exact,,intraday_semivariance,,alpha101/158/191/360:concept_overlap,concept_overlap,{'side': 'up'},0
+calendar2024_55_u52a8_6001_4e70_5356_6c14_6307_6807,2024,55,动态买卖气指标,技术因子,,技术因子,量价技术类,factors2024.md,1411,1456,1d,1d,T_close,open|high|low,"DTM = IF(OPEN<OPEN[1],0,MAX((HIGH-OPEN),(OPEN-OPEN[1])))
+
+DBM = IF(OPEN≥OPEN[1],0,MAX ((OPEN-LOW), OPEN-OPEN[1])))
+
+STM = SUM(DTM,N)
+
+SBM = SUM(DBM,N)
+
+ADTM = IF(STM>SBM,(STM-SBM)/STM,IF(STM=SBM,0, (STM-SBM)/SBM))
+
+ADTMMA = SMA(ADTM,M)","ts_where(ts_sum(ts_where(open<ts_delay(open,1),0,ts_greater(high-open,open-ts_delay(open,1))),23)>ts_sum(ts_where(open>=ts_delay(open,1),0,ts_greater(open-low,open-ts_delay(open,1))),23),(ts_sum(ts_where(open<ts_delay(open,1),0,ts_greater(high-open,open-ts_delay(open,1))),23)-ts_sum(ts_where(open>=ts_delay(open,1),0,ts_greater(open-low,open-ts_delay(open,1))),23))/(ts_sum(ts_where(open<ts_delay(open,1),0,ts_greater(high-open,open-ts_delay(open,1))),23)+1e-12),(ts_sum(ts_where(open<ts_delay(open,1),0,ts_greater(high-open,open-ts_delay(open,1))),23)-ts_sum(ts_where(open>=ts_delay(open,1),0,ts_greater(open-low,open-ts_delay(open,1))),23))/(ts_sum(ts_where(open>=ts_delay(open,1),0,ts_greater(open-low,open-ts_delay(open,1))),23)+1e-12))",exact,,legacy_expression,,,,{},24
+calendar2024_56_u72ec_7acb_6743_5229_8981_6c42_9879_9879_6570,2024,56,独立权利要求项项数平均值,易类因子,,易类因子,另类因子,factors2024.md,1457,1478,1d,1d,T_close,patent,\text{mean}(\text{截止日前5年内新生成的有效的发明公开审查中专利的独立权利要求项项数}),,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,,,{},0
+calendar2024_57_u6563_6237_7f8a_7fa4_6548_5e94,2024,57,散户羊群效应,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,1479,1500,1m,1d,T_close,tick_trade,"RankCorr(R_t, S_{t+1})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_58_roe,2024,58,规模调整后的ROE,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,1501,1522,1d,1d,T_close,fundamental_raw,"<span class=""tag"">财务质量因子</span>",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_59_u80a1_4e1c_6237_6570,2024,59,股东户数,股东因子,,股东因子,股东因子,factors2024.md,1523,1537,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_60_u6a21_7cca_91d1_989d_6bd4,2024,60,模糊金额比,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,1538,1560,1m,1d,T_close,open|high|low|close|volume|turnover,④ 计算“日模糊金额比” = “雾中金额” / “总体金额”。,"0.5*(mean(mean(turnover|ambiguity>daily_mean)/mean(turnover),20)+std(...,20))",exact,,intraday_path_metric,,,,"{'metric': 'fuzzy_amount', 'post_window': 20, 'post_stat': 'mean_std'}",20
+calendar2024_61_u4ef7_91cf_76f8_5173_6027_8d8b_52bf_56e0_5b50,2024,61,价量相关性趋势因子,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,1561,1586,1m,1d,T_close,open|high|low|close|volume|turnover,"<span style=""background-color: #f0f0f0; padding: 2px 4px; border-radius: 3px;"">高频因子-量价相关性类</span>
+\[ \rho_t = corr(v_t, p_t) \]
+② 将每只股票的20个相关系数\( \rho_t \)对时间\( t \)回归，取回归系数\( \beta \)，即\( \rho_t = \beta t + \varepsilon_t \)，其中，\( t = 1,2,3,\ldots,20 \)；","slope(corr(close_1m,volume_1m),20)",exact,,intraday_path_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'price_volume_corr', 'post_window': 20, 'post_stat': 'slope'}",20
+calendar2024_62_u9ad8_9891_5df2_5b9e_73b0_5cf0_5ea6,2024,62,高频已实现峰度,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,1587,1618,1m,1d,T_close,close,"Rkurt_i = \frac{N \sum_{j=1}^{N} (r_{ij} - \bar{r}_i)^4}{RVar_i^2}
+
+RVar_i = \sum_{j=1}^{N} (r_{ij} - \bar{r}_i)^2","intraday_kurtosis(log(close/ts_delay(close,1)))",exact,,intraday_return_stat,,,,{'stat': 'kurtosis'},0
+calendar2024_63_u4e56_79bb_7387,2024,63,乖离率,未分类,,,未分类,factors2024.md,1619,1636,1d,1d,T_close,close,"BIAS = 100*(CLOSE-SMA(CLOSE,N))/SMA(CLOSE,N)
+默认:N = 6、12、24等","100*(close-ts_mean(close,6))/(ts_mean(close,6)+1e-12)",exact,,legacy_expression,,,,{},6
+calendar2024_64_u4e0a_4e0b_884c_6ce2_52a8_7387_4e0d_5bf9_79f0,2024,64,上下行波动率不对称性,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,1637,1658,1m,1d,T_close,close,RSJ_d = \frac{RVup_d - RVdown_d}{RV_d},(RV_up-RV_down)/RV,exact,,intraday_return_measure,,alpha101/158/191/360:concept_overlap,concept_overlap,{'measure': 'asymmetry'},0
+calendar2024_65_u51c0_7ecf_8425_8d44_4ea7_53d8_52a8,2024,65,净经营资产变动,投资因子,,投资因子,投资因子,factors2024.md,1659,1689,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期的净经营资产} - \text{上年同期值}}{\text{最近报告期的总资产}}
+
+\begin{align*}
+\text{净经营资产} &= \text{股东权益合计(含少数股东权益)} + \text{金融负债} - \text{金融资产} \\
+&= \text{经营性资产} - \text{经营性负债}
+\end{align*}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_66_u6362_624b_7387_8c03_6574_7684_65e5_6210_4ea4,2024,66,换手率调整的日成交量为零的数量,流动性因子,,流动性因子,流动性因子,factors2024.md,1690,1713,unknown,1d,T_close,,\text{Lm}^x \equiv \left[ \text{Number of zero daily volume in prior } x \text{ months} + \frac{1/(x - \text{month TO})}{\text{Deflator}} \right] \frac{21x}{\text{NoTD}},,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_67_u5927_5355_63a8_52a8_6da8_5e45,2024,67,大单推动涨幅,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,1714,1746,1m,1d,T_close,tick_trade,"\prod_{n=t}^{t-T+1} \left( \text{prod} \left( 1 + r_{i,j,n} \cdot I_{\{j \in IdxSet\}} \right) \right) - 1
+
+\text{平均单笔成交金额} = \sum_{j=1}^{N} Amt_{i,j,n} / \sum_{j=1}^{N} TrdNum_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_68_u65b0_95fb_80a1_7968_5171_73b0,2024,68,新闻股票共现,易类因子,,易类因子,另类因子,factors2024.md,1747,1780,1d,1d,T_close,news,"w_{ij,t}^* = w_{ij,t} / w_{ii,t}
+
+aw_{ij,t} = w_{ij,t}^* - w_{ij,t-1}^*
+
+nco = \sum_{j=1}^{N} aw_{ij,t}^s",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2024_69_u5927_5355_8d44_91d1_51c0_6d41_5165_7387,2024,69,大单资金净流入率,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,1781,1816,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{n=t-T+1} \frac{\sum_{j=1}^{N} Amt_{i,j,n} \cdot I_{\{r_{i,j,n}>0, j \in IdxSet\}} - \sum_{j=1}^{N} Amt_{i,j,n} \cdot I_{\{r_{i,j,n}<0, j \in IdxSet\}}}{\sum_{j=1}^{N} Amt_{i,j,n}}
+
+\text{平均单笔成交金额} = \sum_{j=1}^{N} Amt_{i,j,n} / \sum_{j=1}^{N} TrdNum_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_70_semibeta,2024,70,SemiBeta（正市场收益&正资产收益）高频因子-波动跳跃类,未分类,,,高频因子,factors2024.md,1817,1851,1m,1d,T_close,close|market_minute_ret,"\hat{\beta}_{t,i}^P = \frac{\sum_{k=1}^m r_{t,k,i}^+ f_{t,k}^+}{\sum_{k=1}^m f_{t,k}^2}
+
+r_{t,k,i}^+ = max(r_{t,k,i}, 0)
+
+f_{t,k}^+ = max(f_{t,k}, 0)","sum(max(stock_ret,0)*max(market_ret,0))/sum(market_ret**2)",exact,,intraday_semibeta,,alpha101/158/191/360:concept_overlap|research_report_factors:concept_overlap,concept_overlap,"{'stock_side': 'positive', 'market_side': 'positive'}",0
+calendar2024_71_u5206_6790_5e08_5171_540c_8986_76d6_5173_8054,2024,71,分析师共同覆盖关联股票动量 部门因子,未分类,,,动量因子,factors2024.md,1852,1873,1d,1d,T_close,analyst,"CS_{it} = \sum_{j=1}^{N} \frac{n_{i,j}}{\sum_{j=1}^{N} n_{i,j}} Ret_{j,20}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_72_n,2024,72,资本支出增长率-n年,投资因子,,投资因子,投资因子,factors2024.md,1874,1901,1d,1d,T_close,fundamental_raw,\frac{最近12个月的资本性支出(TTM) - 前置n年的同期值}{前置n年的同期值},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_73_u6d41_901a_80a1_5e02_503c,2024,73,流通股市值,规模因子,,规模因子,规模因子,factors2024.md,1902,1923,1d,1d,T_close,a_share_market_val_in_circulation,\text{当日收盘价} \times \text{当日自由流通股本},a_share_market_val_in_circulation,exact,供应商日频PIT衍生字段,alias:a_share_market_val_in_circulation,,,,{},0
+calendar2024_74_u901f_52a8_6bd4_7387,2024,74,速动比率,杠杆因子,,杠杆因子,杠杆因子,factors2024.md,1924,1950,1d,1d,T_close,quick_ratio_ttm,"\frac{最近报告期速动资产}{最近同期流动负债合计}
+
+速动资产 = 流动资产 - 存货 - (应付账款 + 待摊费用)",quick_ratio_ttm,exact,供应商日频PIT衍生字段,alias:quick_ratio_ttm,,,,{},0
+calendar2024_75_u6bcf_7b14_6210_4ea4_91cf_7b5b_9009_7684_5c40,2024,75,每笔成交量筛选的局部反转因子,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,1951,1972,1m,1d,T_close,tick_trade,sum(\{ret_i | q_j(pvol_i) < pvol_i < q_{j+1}(pvol_i)\}),,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_76_u5ba1_67e5_671f_6708_6570_5e73_5747,2024,76,审查期月数平均,未分类,,,未分类,factors2024.md,1973,1994,1d,1d,T_close,patent,\text{mean(截止日前5年内新生成的有效的发明授权专利的审查期月数)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,,,{},0
+calendar2024_77_u5356_51fa_53cd_5f39_504f_79bb_56e0_5b50,2024,77,卖出反弹偏离因子,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,1995,2019,1m,1d,T_close,tick_trade,LCP = \frac{\sum_{i}^{N} \overline{price}_{selli} * I_{p_{selli}<colse}}{close} - 1,,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_78_u5e73_5747_5355_7b14_6d41_51fa_91d1_989d_5360,2024,78,平均单笔流出金额占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,2020,2051,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t}^{n=t-T+1} \frac{\sum_{j=1}^{N} Amt_{i,j,n} \cdot I_{r_{i,j,n}<0} / \sum_{j=1}^{N} TrdNum_{i,j,n} \cdot I_{r_{i,j,n}<0}}{\sum_{j=1}^{N} Amt_{i,j,n} / \sum_{j=1}^{N} TrdNum_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_79_u5927_6210_4ea4_91cf_4ef7_91cf_76f8_5173_6027,2024,79,大成交量价量相关性,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,2052,2078,1m,1d,T_close,tick_trade,"corr\_VP_{D,i} = corr\left(v_{t,D,i}, p_{t,D,i}\right)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap|research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2024_80_u76c8_4f59_8d28_91cf,2024,80,盈余质量,未分类,,,未分类,factors2024.md,2079,2110,1d,1d,T_close,fundamental_raw,"\Delta WC_t = b_0 + b_1 CFO_{t-1} + b_2 CFO_t + b_3 CFO_{t+1} + \varepsilon_t
+
+\Delta WC = \Delta AR + \Delta Inventory - \Delta AP - \Delta TP + \Delta OtherAssets(net)
+
+quality_t = \sigma(\varepsilon_t)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_81_u975e_6d41_52a8_6027,2024,81,非流动性,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,2111,2145,1m,1d,T_close,open|high|low|close|volume|turnover,"shortcut = 2 * (high - low) - |close - open|
+
+ILLIQ_t = \frac{1}{d} \sum_{i=1}^{d} \left( \sum_{j=1}^{p} \frac{\text{ShortCut}_j}{\text{Value}_j} \right)_{t-i}","mean(sum((2*(high-low)-abs(close-open))/turnover),20)",exact,,intraday_path_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'shortcut_illiquidity', 'post_window': 20, 'post_stat': 'mean'}",20
+calendar2024_82_u5355_5b63_5ea6_9500_552e_6210_672c_7387_540c,2024,82,单季度销售成本率同比增长率,成长因子,,成长因子,成长因子,factors2024.md,2146,2169,1d,1d,T_close,fundamental_raw,\frac{最近报告期单季度销售成本率 - 上年同期单季度销售成本率}{上年同期单季度销售成本率},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_83_u4ef7_91cf_76f8_5173_6027_56e0_5b50,2024,83,价量相关性因子,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,2170,2190,1m,1d,T_close,close|volume|a_share_market_val_in_circulation,CPV = \frac{PVcorrdet20 - mean(PVcorrdet20)}{std(PVcorrdet20)} + \frac{PVcorrtrend - mean(PVcorrtrend)}{std(PVcorrtrend)},"z(residual(PVcorravg+PVcorrstd,return20))+z(PVcorrtrend)",exact,,intraday_price_volume_composite,,research_report_factors:concept_overlap,concept_overlap,"{'mode': 'cpv', 'window': 20}",40
+calendar2024_84_u5c0f_5355_7684_52a8_6001_77e5_60c5_4ea4_6613,2024,84,小单的动态知情交易概率,未分类,,,未分类,factors2024.md,2191,2225,1m,1d,T_close,tick_trade,"R_{i,j} = \gamma_0 + \sum_{k=1}^4 \gamma_{1i,k} D_k^{Day} + \sum_{k=1}^{48} \gamma_{2i,k} D_k^{Int} + \sum_{k=1}^{12} \gamma_{3i,k} R_{i,j-k} + \epsilon_{i,j}
+
+DPIN_{SMALL}^{i,j} = \left[ \frac{NB_{i,j}}{NT_{i,j}} \times (\epsilon_{i,j} < 0) + \frac{NS_{i,j}}{NT_{i,j}} \times (\epsilon_{i,j} > 0) \right] (ST_{i,j})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_85_u5356_5355_975e_6d41_52a8_6027,2024,85,卖单非流动性,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,2226,2254,1m,1d,T_close,tick_trade,"r_{i,t} = \alpha + \beta_1 * S_{i,t} + \beta_2 * B_{i,t} + \epsilon_{it}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2024_86_u8d1f_504f_5ea6_7cfb_6570,2024,86,负偏度系数,波动率因子,,波动率因子,波动率因子,factors2024.md,2255,2280,1d,1d,T_close,close,NCSKEW_i = \frac{-(n(n-1))^{1.5} \sum (r_{it} - \bar{r}_l)^3}{(n-1)(n-2) \left( \sum (r_{it} - \bar{r}_l)^2 \right)^{1.5}},"-ts_skew(log(close/ts_delay(close,1)),20)",exact,,rolling_return_stat,,,,"{'window': 20, 'stat': 'skew', 'sign': -1.0}",21
+calendar2024_87_u4fee_6b63_7684_65e5_5185_53cd_8f6c,2024,87,修正的日内反转,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,2281,2303,1d,1d,T_close,open|close|a_share_market_val_in_circulation,① 对股票i，计算t日的日内收益率 = t日收盘价 / t日开盘价 - 1；,"neutralize(ts_sum(close/open-1,20),log(float_market_cap))",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'base_expression': 'ts_sum(close/(open+1e-12)-1,20)', 'post_neutralize_market_cap': True}",20
+calendar2024_88_u5927_5355_4e70_5165_5360_6bd4,2024,88,大单买入占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,2304,2333,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} \text{大买单成交额}_{i,j,n}}{\sum_{j=1}^{N} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_89_u7814_53d1_8d39_7528_6536_5165_6bd4,2024,89,研发费用收入比,未分类,,,未分类,factors2024.md,2334,2359,1d,1d,T_close,fundamental_raw,\frac{\text{最近12个月研发费用}(TTM)}{\text{最近12个月营业收入}(TTM)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_90_u6a21_7cca_6570_91cf_6bd4,2024,90,模糊数量比,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,2360,2385,1m,1d,T_close,open|high|low|close|volume|turnover,④ 计算“日模糊数量比” = “雾中数量” / “总体数量”。,"0.5*(mean(mean(volume|ambiguity>daily_mean)/mean(volume),20)+std(...,20))",exact,,intraday_path_metric,,,,"{'metric': 'fuzzy_volume', 'post_window': 20, 'post_stat': 'mean_std'}",20
+calendar2024_91_p,2024,91,p型成交量分布,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,2386,2408,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_92_u603b_8d44_4ea7_5e02_503c_6bd4,2024,92,总资产市值比,估值因子,,估值因子,估值因子,factors2024.md,2409,2432,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期总资产}}{\text{总市值}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_93_u80a1_6743_96c6_4e2d_5ea6_6d41_901a_80a1_4e1c,2024,93,股权集中度（流通） 股东因子,未分类,,,股东因子,factors2024.md,2433,2453,1d,1d,T_close,shareholder,\frac{\text{前三大流通股东持股数}}{\text{流通股股本}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2024_94_u4e70_5355_975e_6d41_52a8_6027,2024,94,买单非流动性,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,2454,2477,1m,1d,T_close,tick_trade,"r_{i,t} = \alpha + \beta_1 * S_{i,t} + \beta_2 * B_{i,t} + \epsilon_{it}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2024_95_u5927_5355_7684_52a8_6001_77e5_60c5_4ea4_6613,2024,95,大单的动态知情交易概率,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,2478,2512,1m,1d,T_close,tick_trade,"R_{i,j} = \gamma_0 + \sum_{k=1}^{4} \gamma_{1i,k} D_k^{Day} + \sum_{k=1}^{48} \gamma_{2i,k} D_k^{Int} + \sum_{k=1}^{12} \gamma_{3i,k} R_{i,j-k} + \epsilon_{i,j}
+
+DPIN_{SIZE}^{i,j} = \left[ \frac{NB_{i,j}}{NT_{i,j}} * (\epsilon_{i,j} < 0) + \frac{NS_{i,j}}{NT_{i,j}} * (\epsilon_{i,j} > 0) \right] (LT_{i,j})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_96_roe,2024,96,ROE增长减净资产增长,未分类,,,未分类,factors2024.md,2513,2526,1d,1d,T_close,inc_return_on_equity_ttm|net_asset_growth_ratio_ttm,,inc_return_on_equity_ttm-net_asset_growth_ratio_ttm,exact,,legacy_expression,,,,{},0
+calendar2024_97_u4ef7_683c_81ea_76f8_5173_6027_56e0_5b50_5355,2024,97,价格自相关性因子(单序列差分),未分类,,,未分类,factors2024.md,2543,2571,1m,1d,T_close,close|a_share_market_val_in_circulation,CDPP = \frac{dP^+PCorr - mean(dP^+PCorr)}{std(dP^+PCorr)} - \frac{dP^-PCorr - mean(dP^-PCorr)}{std(dP^-PCorr)},"z(neutralize(mean(corr(delta_price,lead_price)|sign,20),cap))_positive-z(...)_negative",exact,,intraday_autocorrelation_composite,,,,"{'mode': 'price_single', 'window': 20}",20
+calendar2024_98_u9694_591c_65b0_95fb_60c5_7eea,2024,98,隔夜新闻情绪,未分类,,,未分类,factors2024.md,2572,2598,1d,1d,T_close,news,"senti_i^t = \frac{1}{N} \sum_{j=1}^N (pos_{i,j}^t - neg_{i,j}^t) * (1 - neu_{i,j}^t) * relevancex_{i,j}^t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2024_99_u5927_6210_4ea4_91cf_5df2_5b9e_73b0_504f_5ea6,2024,99,大成交量已实现偏度,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,2599,2629,1m,1d,T_close,tick_trade,"real\_skew_{D,i} = \frac{1}{T-1} \sum_{t=2}^{T} \frac{(r_{t,D,i} - \bar{r}_{D,i})^3}{real\_var_{D,i}^{3/2}}
+
+real\_var_{D,i} = \frac{1}{T-2} \sum_{t=2}^{T} (r_{t,D,i} - \bar{r}_{D,i})^2",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_100_u5df2_5b9e_73b0_53cc_5e42_6b21_53d8_5dee,2024,100,已实现双幂次变差,未分类,,,未分类,factors2024.md,2630,2663,1m,1d,T_close,open|high|low|close|volume|turnover,"RBV_t = \mu_1^{-2} \sum_{i=2}^n |r_{t_i}| |r_{t_{i-1}}|
+
+\mu_q = E(|Z|^q) = 2^{q/2} \frac{\Gamma\left(\frac{1}{2}(q+1)\right)}{\Gamma\left(\frac{1}{2}\right)}
+
+\Gamma(\alpha) = \int_0^{+\infty} x^{\alpha-1} e^{-x} dx",mu_1**-2*sum(abs(r_t)*abs(r_t-1)),exact,,intraday_path_metric,,,,{'metric': 'bipower_variation'},0
+calendar2024_101_sentiment_beta,2024,101,Sentiment Beta,易类因子,,易类因子,另类因子,factors2024.md,2664,2695,1d,1d,T_close,sentiment_external,"r_t^i = \alpha^i + \beta^i * \left( \frac{CSMS_t}{CSMS_{t-1}} - 1 \right) + \varepsilon_t^i
+
+NewSentiBeta = -1 * abs(SentiBeta)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: sentiment_external,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2024_102_b,2024,102,b型成交量分布,未分类,,,未分类,factors2024.md,2696,2723,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_103_u9500_552e_6536_5165_589e_957f_51cf_5b58_8d27,2024,103,销售收入增长减存货增长,未分类,,,未分类,factors2024.md,2724,2734,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_104_u5f02_540c_79bb_5dee_4e56_79bb_7387,2024,104,异同离差乖离率,技术因子,,技术因子,量价技术类,factors2024.md,2735,2773,1d,1d,T_close,close,"BIAS = (CLOSE - SMA(CLOSE, N1)) / SMA(CLOSE, N1)
+
+DIF = BIAS - BIAS[N2]
+
+DBCD = SMA(DIF, N3, 1)
+
+SMA(X, N, M)为加权移动平均: Y = (X*M + Y'*(N - M))/N","ts_ema(((close-ts_mean(close,5))/(ts_mean(close,5)+1e-12))-ts_delay((close-ts_mean(close,5))/(ts_mean(close,5)+1e-12),16),17)",exact,,legacy_expression,,,,{},38
+calendar2024_105_u6709_5f62_8d44_672c_56de_62a5_7387_73af_6bd4,2024,105,有形资本回报率环比增长率,武侯因子,,武侯因子,财务质量因子,factors2024.md,2774,2792,1d,1d,T_close,fundamental_raw,\frac{最近报告期有形资本回报率(TTM) - 上一报告期有形资本回报率(TTM)}{abs(上一报告期有形资本回报率(TTM))},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_106_u8ba2_5355_5931_8861,2024,106,订单失衡,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,2793,2836,1m,1d,T_close,orderbook,"VOI_t = \Delta V_t^{WB} - \Delta V_t^{WA}
+
+\Delta V_t^{WB} = \begin{cases} 
+0 & P_t^B < P_{t-1}^B \\
+V_t^{WB} - V_{t-1}^{WB} & P_t^B = P_{t-1}^B \\
+V_t^{WB} & P_t^B > P_{t-1}^B 
+\end{cases}
+
+\Delta V_t^{WA} = \begin{cases} 
+V_t^{WA} & P_t^A < P_{t-1}^A \\
+V_t^{WA} - V_{t-1}^{WA} & P_t^A = P_{t-1}^A \\
+0 & P_t^A > P_{t-1}^A 
+\end{cases}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_107_u9884_671f_5206_6b67_5ea6,2024,107,预期分歧度,分析师因子,,分析师因子,分析师预期类,factors2024.md,2837,2859,1d,1d,T_close,analyst,"<span class=""tag"">分析师因子</span>",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2024_108_u4e70_5355_96c6_4e2d_5ea6,2024,108,买单集中度,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,2860,2882,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} \text{买单成交额}_{i,j,n}^2}{\text{总成交额}_{i,n}^2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_109_u5f00_76d8_540e_5927_5355_51c0_4e70_5165_5f3a,2024,109,开盘后大单净买入强度,未分类,,,未分类,factors2024.md,2883,2910,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{mean(\text{大买单成交额}_{i,j,n} - \text{大卖单成交额}_{i,j,n})}{std(\text{大买单成交额}_{i,j,n} - \text{大卖单成交额}_{i,j,n})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_110_u4fe1_606f_79bb_6563_5ea6,2024,110,信息离散度,未分类,,,未分类,factors2024.md,2911,2936,1d,1d,T_close,close,ID = sign(PRET) \times [\%neg - \%pos],"ts_sign(ts_delay(close,21)/(ts_delay(close,252)+1e-12)-1)*(ts_mean(ts_where(ts_delay(close/(ts_delay(close,1)+1e-12)-1,21)<0,1,0),231)-ts_mean(ts_where(ts_delay(close/(ts_delay(close,1)+1e-12)-1,21)>0,1,0),231))",exact,,legacy_expression,,,,{},252
+calendar2024_111_u7edd_5bf9_6536_76ca_4e0e_8c03_6574_540e_6ede,2024,111,绝对收益与调整后滞后成交量相关性,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,2937,2962,1d,1d,T_close,close|turnover,"adj\_CORA\_A = corr(|Ret_t|, adjAmount_{t-1}), Ret_t 
+eq 0
+
+adjAmount_t = \frac{Amount_t - \mu_t}{\sigma_t}","ts_corr(ts_abs(close/(ts_delay(close,1)+1e-12)-1),ts_delay((turnover-cs_mean(turnover))/(cs_std(turnover)+1e-12),1),20)",exact,,legacy_expression,,,,{},21
+calendar2024_112_u603b_5e94_8ba1_76c8_4f59_5e38_89c4_7248,2024,112,总应计盈余（常规版）,未分类,,,未分类,factors2024.md,2963,2993,1d,1d,T_close,fundamental_raw,Accruals = \frac{(\Delta CA - \Delta Cash) - (\Delta CL - \Delta STD - \Delta TP) - Dep}{AverageTotalAssets},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_113_u5df2_5b9e_73b0_4e09_5e42_6b21_53d8_5dee,2024,113,已实现三幂次变差,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,2994,3027,1m,1d,T_close,open|high|low|close|volume|turnover,"RTV_t = V_{\frac{2}{3},\frac{2}{3},\frac{2}{3}} \mu_{\frac{2}{3}}^{-3}
+
+V_{m_1,m_2,\ldots,m_k} = \sum_{i=k}^{n} |r_{t_i}|^{m_1} |r_{t_{i-1}}|^{m_2} \ldots |r_{t_{i-k+1}}|^{m_k}
+
+\mu_q = E(|Z|^q) = 2^{q/2} \frac{\Gamma\left(\frac{1}{2}(q+1)\right)}{\Gamma\left(\frac{1}{2}\right)}
+
+\Gamma(\alpha) = \int_{0}^{+\infty} x^{\alpha-1} e^{-x} dx",mu_2/3**-3*sum(abs(r_t*r_t-1*r_t-2)**(2/3)),exact,,intraday_path_metric,,,,{'metric': 'tripower_variation'},0
+calendar2024_114_u4fee_6b63_7684_9694_591c_53cd_8f6c,2024,114,修正的隔夜反转,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,3028,3057,1d,1d,T_close,open|close|a_share_market_val_in_circulation,"① 对股票 i，计算 t 日的隔夜距离=abs(t日隔夜收益率-横截面均值)；
+上述因子是借助波动率对隔夜反转做修正，也可借助换手率距离来做修正，即换手距离=abs(t日换手率变化量-其横截面均值）低于其横截面均值，未来更可能发生动量，其中，换手率变化量=t日换手率与t-1日换手率。","neutralize(ts_sum(open/lag(close)-1,20),log(float_market_cap))",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'base_expression': 'ts_sum(open/(ts_delay(close,1)+1e-12)-1,20)', 'post_neutralize_market_cap': True}",21
+calendar2024_115_u60ca_6050_56e0_5b50,2024,115,惊恐因子,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,3058,3092,1d,1d,T_close,close|market_ret,惊恐度 = \frac{偏离度}{基准项} = \frac{abs(个股收益率-市场收益率)}{abs(个股收益率)+abs(市场收益率)+0.1},"0.5*(mean(panic*return,20)+std(panic*return,20)); panic=abs(r-rm)/(abs(r)+abs(rm)+.1)",exact,,daily_panic_metric,,,,{'metric': 'base'},21
+calendar2024_116_u5317_4e0a_6301_4ed3_56e0_5b50,2024,116,北上持仓因子,流动性因子,,流动性因子,流动性因子,factors2024.md,3093,3120,1d,1d,T_close,northbound,"HoldPER = \frac{月末持仓市值}{月末流通市值}
+
+MHoldPER = mean\left(过去20个交易日的\frac{月末持仓市值}{月末流通市值}\right)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: northbound,,,,,{},0
+calendar2024_117_u5f00_76d8_540e_5927_5355_51c0_4e70_5165_5360,2024,117,开盘后大单净买入占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,3121,3147,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} (\text{大买单成交额}_{i,j,n} - \text{大卖单成交额}_{i,j,n})}{\sum_{j=1}^{N} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_118_beta,2024,118,市场Beta,未分类,,,未分类,factors2024.md,3148,3178,1d,1d,T_close,close|market_ret,"\beta_i = \frac{\text{cov}(r_i, r_m)}{\text{var}(r_m)}
+
+r_i - r_f = \alpha + \beta_i (r_m - r_f) + \epsilon_i","beta(log_return,market_return,252)",exact,,daily_rolling_risk,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'beta', 'window': 252, 'min_samples': 126}",253
+calendar2024_119_u4e3b_4e70_5360_6bd4,2024,119,主买占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,3179,3207,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} \text{主动买入成交额}_{i,j,n}}{\sum_{j=1}^{N} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_120_u4ef7_683c_81ea_76f8_5173_6027_5408_6210_56e0,2024,120,价格自相关性合成因子,未分类,,,未分类,factors2024.md,3208,3237,1m,1d,T_close,close|a_share_market_val_in_circulation,CDPDP = \frac{dP^+dP^+Corr - mean(dP^+dP^+Corr)}{std(dP^+dP^+Corr)} + \frac{dP^-dP^-Corr - mean(dP^-dP^-Corr)}{std(dP^-dP^-Corr)},"z(mean(corr(delta_price,lead_delta_price)|both_positive,20))+z(...both_negative)",exact,,intraday_autocorrelation_composite,,,,"{'mode': 'price_double', 'window': 20}",20
+calendar2024_121_u6210_4ea4_91cf_652f_6491_533a_57df_4e0b_9650,2024,121,成交量支撑区域下限与收盘价差异,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,3238,3257,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_122_semibeta,2024,122,SemiBeta（负市场收益&正资产收益）高频因子-波动跳跃类,未分类,,,高频因子,factors2024.md,3258,3291,1m,1d,T_close,close|market_minute_ret,"\hat{\beta}_{t,i}^{M^-} = -\frac{\sum_{k=1}^m r_{t,k,i}^+ f_{t,k}^-}{\sum_{k=1}^m f_{t,k}^2}
+
+r_{t,k,i}^+ = max(r_{t,k,i}, 0)
+
+f_{t,k}^- = min(f_{t,k}, 0)","-sum(max(stock_ret,0)*min(market_ret,0))/sum(market_ret**2)",exact,,intraday_semibeta,,alpha101/158/191/360:concept_overlap|research_report_factors:concept_overlap,concept_overlap,"{'stock_side': 'positive', 'market_side': 'negative'}",0
+calendar2024_123_u4e0b_884c_8d1d_5854,2024,123,下行贝塔,波动率因子,,波动率因子,波动率因子,factors2024.md,3292,3318,1d,1d,T_close,close|market_ret,"\beta^- = \frac{Cov(r_i, r_m \mid r_m < \mu_m)}{Var(r_m \mid r_m < \mu_m)}","beta(return,market_return where market_return<0,252)",exact,,daily_rolling_risk,,,,"{'metric': 'downside_beta', 'window': 252, 'min_samples': 126}",253
+calendar2024_124_u6ce2_52a8_7387_52a0_5267_60ca_6050_56e0_5b50,2024,124,波动率加剧-惊恐因子,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,3319,3351,1m,1d,T_close,close|market_ret,惊恐度 = \frac{偏离度}{基准项} = \frac{abs(个股收益率-市场收益率)}{abs(个股收益率)+abs(市场收益率)+0.1},"0.5*(mean(panic*return*intraday_vol,20)+std(...,20))",exact,,daily_panic_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'volatility'},21
+calendar2024_125_u64cd_7eb5_6027_603b_5e94_8ba1_76c8_4f59,2024,125,操纵性总应计盈余,未分类,,,未分类,factors2024.md,3352,3390,1d,1d,T_close,fundamental_raw,"\frac{TA_{i,t}}{A_{i,t-1}} = \alpha_{i,1}\frac{1}{A_{i,t-1}} + \alpha_{i,2}\frac{\Delta REV_{i,t}}{A_{i,t-1}} + \alpha_{i,3}\frac{PPE_{i,t}}{A_{i,t-1}} + \varepsilon_{i,t}
+
+NDTAC_{i,t} = \alpha_{i,1}\frac{1}{A_{i,t-1}} + \alpha_{i,2}\frac{\Delta REV_{i,t} - \Delta REC_{i,t}}{A_{i,t-1}} + \alpha_{i,3}\frac{PPE_{i,t}}{A_{i,t-1}}
+
+DTAC_{i,t} = \frac{TA_{i,t}}{A_{i,t-1}} - NDTAC_{i,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_126_u6210_4ea4_91cf_81ea_76f8_5173_6027_5408_6210,2024,126,成交量自相关性合成因子（双序列差分）,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,3391,3412,1m,1d,T_close,volume|a_share_market_val_in_circulation,CDVDV = \frac{dV^+dV^+Corr - mean(dV^+dV^+Corr)}{std(dV^+dV^+Corr)} + \frac{dV^-dV^-Corr - mean(dV^-dV^-Corr)}{std(dV^-dV^-Corr)},"z(mean(corr(delta_volume,lead_delta_volume)|both_positive,20))+z(...both_negative)",exact,,intraday_autocorrelation_composite,,,,"{'mode': 'volume_double', 'window': 20}",20
+calendar2024_127_u5927_5355_4e70_5165_5f3a_5ea6,2024,127,大单买入强度,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,3413,3435,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{mean(\text{大买单成交额}_{i,j,n})}{std(\text{大买单成交额}_{i,j,n})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_128_u8d28_91cf_56e0_5b50,2024,128,质量因子,未分类,,,未分类,factors2024.md,3436,3473,unknown,1d,T_close,,"\frac{Price}{BookValue} = \frac{Dividend/BookValue}{RequiredReturn - Growth}
+
+= \frac{(Profit/BookValue) * (Dividend/Profit)}{RequiredReturn - Growth}
+
+= \frac{Profitability * PayoutRatio}{RequiredReturn - Growth}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_129_u5355_5b63_5ea6_6bdb_5229_7387_540c_6bd4_589e,2024,129,单季度毛利率同比增长率,未分类,,,未分类,factors2024.md,3474,3494,1d,1d,T_close,fundamental_raw,\frac{最近报告期单季度毛利率 - 上年同期单季度毛利率}{abs(上年同期单季度毛利率)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_130_u8ba2_5355_5931_8861_7387,2024,130,订单失衡率,未分类,,,未分类,factors2024.md,3495,3525,1d,1d,T_close,orderbook,"OIR_t = \frac{V_t^{WB} - V_t^{WA}}{V_t^{WB} + V_t^{WA}}
+
+V_t^{WB(WA)} = \frac{\sum w_i \times V_{i,t}^{B(A)}}{\sum w_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_131_u52a0_901f_5ea6_52a8_91cf,2024,131,加速度动量,未分类,,,动量因子,factors2024.md,3526,3552,1d,1d,T_close,close,"P_{i,t} = \alpha + \beta t + \gamma t^2","quadratic_coef(close~1+t+t**2,60)",exact,,daily_price_acceleration,,alpha101/158/191/360:concept_overlap,concept_overlap,{'window': 60},60
+calendar2024_132_u65b0_95fb_52a8_91cf,2024,132,新闻动量,另类因子,,另类因子,另类因子,factors2024.md,3553,3567,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_133_u6bdb_5229_6da6_589e_957f_51cf_9500_552e_6536,2024,133,毛利润增长减销售收入增长,无形资产因子,,无形资产因子,无形资产因子,factors2024.md,3577,3595,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_134_u4e2a_4eba_6295_8d44_8005_4ea4_6613_6bd4_60ca,2024,134,个人投资者交易比-惊恐因子,未分类,,,投资因子,factors2024.md,3596,3633,1d,1d,T_close,tick_trade,"惊恐度 = \frac{偏离度}{基准项} = \frac{abs(个股收益率-市场收益率)}{abs(个股收益率)+abs(市场收益率)+0.1}
+
+个人投资者交易比 = \frac{成交额小于4万元的个人投资买入和卖出金额均值}{个股总成交额}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_135_u52a0_6743_7684_76c8_4f59_8c03_6574_5e45_5ea6,2024,135,加权的盈余调整幅度,分析师因子,,分析师因子,分析师预期类,factors2024.md,3634,3653,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_136_u4ea4_6613_91cf_53d8_5f02_7cfb_6570,2024,136,交易量变异系数,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,3654,3676,1m,1d,T_close,open|high|low|close|volume|turnover,"VCV_{i,\gamma} = \frac{\hat{\sigma}_V\{i,t\in\gamma\}}{\hat{\mu}_V\{i,t\in\gamma\}}",std(turnover_1m)/mean(turnover_1m),exact,,intraday_path_metric,,,,{'metric': 'turnover_cv'},0
+calendar2024_137_u6210_4ea4_91cf_5206_6876_71b5,2024,137,成交量分桶熵,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,3677,3703,1m,1d,T_close,open|high|low|close|volume|turnover,"vol\_entropy(V) = -\sum_{k=0}^{\min(maxbin, len(V))} p_k \ln(p_k) \cdot 1_{(p_k > 0)}",entropy(histogram(volume_1m)),exact,,intraday_path_metric,,,,{'metric': 'volume_bucket_entropy'},0
+calendar2024_138_u5df2_5b9e_73b0_8df3_8dc3_6ce2_52a8_7387,2024,138,已实现跳跃波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,3704,3736,1m,1d,T_close,open|high|low|close|volume|turnover,"RVJ_t = max(RV_t - \widehat{IV}_t, 0)
+
+RV_t = \sum_{i=1}^n r_{i,n}^2 \to_u QV_t = \int_0^t \sigma_s^2 ds + \sum_{s \leq t} \Delta X_s^2 = IV_t + QJ_t
+
+\widehat{IV}_t = \mu_{\frac{2}{3}}^{-3} \sum_{i=k}^n |r_{t_i}|^{\frac{2}{3}} |r_{t_{i-1}}|^{\frac{2}{3}} |r_{t_{i-k+1}}|^{\frac{2}{3}}","max(realized_variance-tripower_variation,0)",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'jump_variation'},0
+calendar2024_139_u73b0_91d1_6bd4_7387,2024,139,现金比率,未分类,,,未分类,factors2024.md,3737,3757,1d,1d,T_close,cash_ratio_ttm,\frac{\text{最近报告期货币资金} + \text{最近报告期交易性金融资产}}{\text{最近同期流动负债合计}},cash_ratio_ttm,exact,供应商日频PIT衍生字段,alias:cash_ratio_ttm,,,,{},0
+calendar2024_140_u4fee_6b63_7684_632f_5e45,2024,140,修正的振幅,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,3758,3787,1d,1d,T_close,high|low|close,"t \text{分钟跳跃度} = (t\text{分钟单复利差})^2 - (t\text{分钟连续复利收益率})^2
+
+\text{日度振幅} = \frac{\text{当日最高价}-\text{当日最低价}}{\text{上一日收盘价}}","(high-low)/(ts_delay(close,1)+1e-12)",exact,,legacy_expression,,,,{},1
+calendar2024_141_u91d1_878d_8d1f_503a_53d8_52a8,2024,141,金融负债变动,未分类,,,未分类,factors2024.md,3788,3818,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期的金融负债} - \text{上年同期值}}{\text{平均总资产}}
+
+\text{金融负债} = \text{短期借款} + \text{交易性金融负债} + \text{应付票据} + \text{一年内到期的非流动负债} + \text{长期借款} + \text{应付债券}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_142_u968f_673a_6307_6807,2024,142,随机指标,未分类,,,未分类,factors2024.md,3819,3859,1d,1d,T_close,high|low|close,"RSV = 100 \times (CLOSE - MIN(LOW, N)) / (MAX(HIGH, N) - MIN(LOW, N))
+
+K = SMA(RSV, M1, 1)
+
+D = SMA(K, M2, 1)
+
+J = 3 \times K - 2 \times D
+
+SMA(X, N, M) \text{为加权移动平均: } Y = (X \times M + Y' \times (N - M)) / N","(close - ts_min(low, 9)) / (ts_max(high, 9) - ts_min(low, 9) + 1e-12) * 100",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,{},9
+calendar2024_143_u65e5_5185_4fe1_566a_6bd4,2024,143,日内信噪比,未分类,,,未分类,factors2024.md,3860,3891,unknown,1d,T_close,,"P(t) = \sum_{i=1}^{n} IMF_i(t) + r(t)
+
+SNR = log\left( \frac{std(r_n(t))}{std(P(t) - r_n(t))} \right)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_144_may,2024,144,May,未分类,,,未分类,factors2024.md,3892,3926,1d,1d,T_close,northbound,"MHold = mean(过去20交易日的日度持仓市值)
+
+DV2DV_STD= = \frac{mean(过去20个交易日的日度净流入量)}{std(过去20个交易的日度流入量)}
+
+DV2Hold_MAXCP = \frac{mean(股价最高3个交易日的日度净流入量)}{mean(过去20交易日日度持仓量)}
+
+DV2ABSDV_MAXVOL = \frac{mean(交易量最高3个交易日的日度净流入量)}{mean(过去20交易日的日度净流入量绝对值)}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: northbound,,,,,{},0
+calendar2024_145_u6210_4ea4_91cf_81ea_76f8_5173_6027_56e0_5b50,2024,145,成交量自相关性因子(单序列差分),高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,3927,3963,1m,1d,T_close,volume|a_share_market_val_in_circulation,CDVV = \frac{dV^+VCorr - mean(dV^+VCorr)}{std(dV^+VCorr)} - \frac{dV^-VCorr - mean(dV^-VCorr)}{std(dV^-VCorr)},"z(neutralize(mean(corr(delta_volume,lead_volume)|sign,20),cap))_positive-z(...)_negative",exact,,intraday_autocorrelation_composite,,,,"{'mode': 'volume_single', 'window': 20}",20
+calendar2024_146_u5f00_76d8_540e_51c0_4e3b_4e70_5360_6bd4,2024,146,开盘后净主买占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,3964,3995,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} \text{净主买成交额}_{i,j,n}}{\sum_{j=1}^{N} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_147_u4e1a_7ee9_8d8b_52bf,2024,147,业绩趋势,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,3996,4026,1d,1d,T_close,fundamental_raw,NetProfit_t = \alpha * t^2 + \beta * t + c,,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_148_u5458_5de5_51c0_6d41_51fa_56e0_5b50,2024,148,员工净流出因子,易类因子,,易类因子,另类因子,factors2024.md,4027,4049,1d,1d,T_close,fundamental_raw,\text{员工净流出} = \frac{\text{月末员工总流出数} - \text{月末员工总流入数}}{\text{月初总员工数}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_149_u9010_6863_8ba2_5355_5931_8861_7387,2024,149,逐档订单失衡率,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,4050,4077,1m,1d,T_close,orderbook,"SOIR_t = \frac{\sum_{i=1}^{5} w_i SOIR_{i,t}}{\sum_{i=1}^{5} w_i} \quad SOIR_{i,t} = \frac{V_{i,t}^B - V_{i,t}^A}{V_{i,t}^B + V_{i,t}^A}
+
+w = 1 - (i - 1)/5, \, i = 1,2,3,4,5",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_150_u5bf9_6570_603b_5e02_503c,2024,150,对数总市值,规模因子,,规模因子,规模因子,factors2024.md,4078,4100,1d,1d,T_close,market_cap_2,ln(当日收盘价 \times 当日总股本),log(market_cap_2),exact,,log,,,,{},0
+calendar2024_151_u4e0a_884c_8df3_8dc3_6ce2_52a8_7387,2024,151,上行跳跃波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,4101,4131,1m,1d,T_close,open|high|low|close|volume|turnover,"RVJP_t = max(RS_t^+ - \frac{1}{2}\widehat{IV}_t, 0)
+
+RS_t^+ = \sum_{i=1}^n r_{t,i}^2 I_{r_{t,i}>0} \to_u \frac{1}{2}\int_0^t \sigma_s^2 ds + \sum_{s \leq t} \Delta X_s^2 I_{\Delta X_s > 0}
+
+\widehat{IV}_t = \mu_{\frac{2}{3}}^{-3} \sum_{i=k}^n |r_{t_i}|^{\frac{2}{3}} |r_{t_{i-1}}|^{\frac{2}{3}} |r_{t_{i-k+1}}|^{\frac{2}{3}}","max(up_semivariance-0.5*tripower_variation,0)",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'up_jump'},0
+calendar2024_152_u4e3b_4e70_5f3a_5ea6,2024,152,主买强度,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,4132,4161,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{mean(\text{主动买入成交额}_{i,j,n})}{std(\text{主动买入成交额}_{i,j,n})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_153_u516c_53f8_6cbb_7406_6307_6570,2024,153,公司治理指数,公司治理因子,,公司治理因子,公司治理因子,factors2024.md,4162,4182,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_154_u806a_660e_94b1_56e0_5b50,2024,154,聪明钱因子,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,4183,4208,1m,1d,T_close,close|volume,\text{聪明钱因子} = \frac{VWAP_{smart}}{VWAP_{all}},"VWAP(top_S_until_20pct_volume,last10d)/VWAP(all,last10d)",exact,,intraday_smart_money,,,,{'window': 10},10
+calendar2024_155_u8d1f_503a_5e02_503c_6bd4,2024,155,负债市值比,估值因子,,估值因子,估值因子,factors2024.md,4216,4239,1d,1d,T_close,liabilities_per_share_ttm|weighted_common_stock_ttm|market_cap_2,\frac{最近报告期负债合计}{总市值},liabilities_per_share_ttm*weighted_common_stock_ttm/(market_cap_2+1e-12),exact,,legacy_expression,,,,{},0
+calendar2024_156_u4f01_4e1a_5e74_9f84,2024,156,企业年龄,无形资产因子,,无形资产因子,无形资产因子,factors2024.md,4240,4257,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_157_u591a_5c42_52a0_6743_65e5_5185_4fe1_566a_6bd4,2024,157,多层加权日内信噪比,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,4258,4286,unknown,1d,T_close,,"新SNR = Weight_{Vol} \times SNR_{layer2} + (1 - Weight_{Vol}) \times SNR_{layer3}
+
+Weight_{Vol} = 0.5 + \frac{Vol_{std} - 0.5}{\delta}
+
+Vol_{std} = \frac{Vol - min(Vol)}{max(Vol) - min(Vol)}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_158_u6210_4ea4_91cf_5360_6bd4_504f_5ea6,2024,158,成交量占比偏度,未分类,,,未分类,factors2024.md,4287,4306,1m,1d,T_close,volume,skew\left( \frac{volume_i}{\sum volume_i} \right),skew(volume/sum(volume)),exact,,intraday_volume_share_stat,,,,{'stat': 'skew'},0
+calendar2024_159_u4e3b_529b_4ea4_6613_60c5_7eea,2024,159,主力交易情绪,未分类,,,未分类,factors2024.md,4307,4335,1m,1d,T_close,tick_trade,"TE = RankCorr(A_{order}, C_{minute})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_160_u6d88_8d39_6307_6570_53d8_52a8,2024,160,消费指数变动,未分类,,,未分类,factors2024.md,4336,4365,1d,1d,T_close,macro_external,"SALESINDEX(i,t) = \frac{\sum_{\theta_t} DailyTotalSales(i,\theta_t)}{\sum_{\theta_t} DailyAdjustmentIndex(i,\theta_t)}
+
+\Delta SALES(i,t) = \frac{SALSEINDEX(i,t) - SALSEINDEX(i,t-12)}{SALSEINDEX(i,t-12)}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: macro_external,,,,,{},0
+calendar2024_161_u8d8b_52bf_5360_6bd4,2024,161,趋势占比,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,4366,4393,1m,1d,T_close,open|high|low|close|volume|turnover,"trendratio_{D,i} = \frac{p_{T,D,i} - p_{1,D,i}}{\sum_{t=2}^{T} |p_{t,D,i} - p_{t-1,D,i}|}",(last(close_1m)-first(close_1m))/sum(abs(delta(close_1m))),exact,,intraday_path_metric,,,,{'metric': 'trend_ratio'},0
+calendar2024_162_u5e73_5747_771f_5b9e_6ce2_5e45,2024,162,平均真实波幅,技术因子,,技术因子,量价技术类,factors2024.md,4394,4424,1d,1d,T_close,high|low|close,"TR = MAX(HIGH-LOW, ABS(HIGH-CLOSE[1]), ABS(LOW-CLOSE[1]))
+
+ATR = EMA(TR, N)","ta_atr(high,low,close,14)",exact,,legacy_expression,,,,{},15
+calendar2024_163_u5f00_76d8_540e_51c0_4e3b_4e70_5f3a_5ea6,2024,163,开盘后净主买强度,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,4425,4450,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{mean(净主买成交额_{i,j,n})}{std(净主买成交额_{i,j,n})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_164_u4e0b_884c_8df3_8dc3_6ce2_52a8_7387,2024,164,下行跳跃波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,4451,4481,1m,1d,T_close,open|high|low|close|volume|turnover,"RVJN_t = max(RS_t^- - \frac{1}{2}\widehat{IV}_t, 0)
+
+RS_t^- = \sum_{i=1}^n r_{t,i}^2 I_{r_{t,i}>0 \to u} \frac{1}{2}\int_0^t \sigma_s^2 ds + \sum_{s \leq t} \Delta X_s^2 I_{\Delta X_s < 0}
+
+\widehat{IV}_t = \mu_{\frac{2}{3}}^{-3} \sum_{i=k}^n |r_{t_i}|^{\frac{2}{3}} |r_{t_{i-1}}|^{\frac{2}{3}} |r_{t_{i-k+1}}|^{\frac{2}{3}}","max(down_semivariance-0.5*tripower_variation,0)",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'down_jump'},0
+calendar2024_165_u975e_64cd_7eb5_6027_603b_5e94_8ba1_76c8_4f59,2024,165,非操纵性总应计盈余,未分类,,,未分类,factors2024.md,4482,4514,1d,1d,T_close,fundamental_raw,"\frac{TA_{i,t}}{A_{i,t-1}} = \alpha_{i,1}\frac{1}{A_{i,t-1}} + \alpha_{i,2}\frac{\Delta REV_{i,t}}{A_{i,t-1}} + \alpha_{i,3}\frac{PPE_{i,t}}{A_{i,t-1}} + \varepsilon_{i,t}
+
+NDTAC_{i,t} = \alpha_{i,1}\frac{1}{A_{i,t-1}} + \alpha_{i,2}\frac{\Delta REV_{i,t} - \Delta REC_{i,t}}{A_{i,t-1}} + \alpha_{i,3}\frac{PPE_{i,t}}{A_{i,t-1}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_166_u4e0a_4e0b_884c_8df3_8dc3_6ce2_52a8_7684_4e0d,2024,166,上下行跳跃波动的不对称性,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,4515,4547,1m,1d,T_close,open|high|low|close|volume|turnover,"SRVJ_t = RVLP_t - RVJN_t
+
+RVJP_t = max(RS_t^+ - \frac{1}{2}\widehat{IV}_t, 0)
+
+RVJN_t = max(RS_t^- - \frac{1}{2}\widehat{IV}_t, 0)",up_jump-down_jump,exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'jump_asymmetry'},0
+calendar2024_167_u6708_5ea6_5f02_5e38_6362_624b_7387,2024,167,月度异常换手率,流动性因子,,流动性因子,流动性因子,factors2024.md,4548,4571,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,\frac{mean(过去20个交易日的日度换手率序列)}{mean(过去250个交易日的日度换手率序列)},"mean(turnover_rate,20)/mean(turnover_rate,250)",exact,,daily_liquidity_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'turnover_abnormal', 'window': 20, 'long_window': 250}",251
+calendar2024_168_u6210_4ea4_91cf_5360_6bd4_5cf0_5ea6,2024,168,成交量占比峰度,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,4572,4592,1m,1d,T_close,volume,kurt\left( \frac{volume_i}{\sum volume_i} \right),kurtosis(volume/sum(volume)),exact,,intraday_volume_share_stat,,,,{'stat': 'kurtosis'},0
+calendar2024_169_u4e70_5356_59d4_6258_4ef7_683c_6bd4_7387,2024,169,买卖委托价格比率,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,4593,4625,1m,1d,T_close,orderbook,"PIR_t = \frac{P_t^{WB} - P_t^{WA}}{P_t^{WB} + P_t^{WA}}
+
+P_t^{WB(WA)} = \frac{\sum w_i \times P_{i,t}^{B(A)}}{\sum w_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_170_u6d41_52a8_6027_7ecf_8425_8d44_4ea7_53d8_52a8,2024,170,流动性经营资产变动 [投资因子,未分类,,,流动性因子,factors2024.md,4626,4663,1d,1d,T_close,fundamental_raw,"\frac{\text{最近报告期的流动性经营资产} - \text{上年同期值}}{\text{平均总资产}}
+
+\text{流动性经营资产} = \text{流动资产中剔除金融资产相关科目后的剩余部分} \approx \text{应收账款} + \text{应收票据} + \text{预付款项} + \text{其他应收款} + \text{存货} + \text{待摊费用}
+
+\text{平均总资产} = \frac{\text{期初总资产} + \text{期末总资产}}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_171_u591a_5c42_6b21_8ba2_5355_5931_8861,2024,171,多层次订单失衡,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,4664,4704,1m,1d,T_close,orderbook,"MOFI_{weight} = \frac{\sum w_i \times OFI_t^{(i)}}{\sum w_i}, w_i = \frac{i}{5}, i = 1,2,3,4,5
+
+\Delta V_t^B = \begin{cases} 
+-V_{t-1}^B & P_t^B < P_{t-1}^B \\
+V_t^B - V_{t-1}^B & P_t^B = P_{t-1}^B \\
+V_t^B & P_t^B > P_{t-1}^B 
+\end{cases}
+\quad
+\Delta V_t^A = \begin{cases} 
+V_t^A & P_t^A < P_{t-1}^A \\
+V_t^A - V_{t-1}^A & P_t^A = P_{t-1}^A \\
+-V_{t-1}^A & P_t^A > P_{t-1}^A 
+\end{cases}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_172_u9ad8_9891_7279_5f02_6ce2_52a8_7387,2024,172,高频特异波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,4705,4729,1m,1d,T_close,factor_returns,"r_t = \alpha_t + \beta_{mkt} MKT_t + \beta_{smb} SMB_t + \beta_{hml} HML_t + \beta_{ret} RET_t + \beta_{liq} LIQ_t + \varepsilon_t
+
+\text{特异波动率} = \sqrt{\text{特异率}} \times \text{基础波动率}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_173_u6700_5927_6da8_5e45,2024,173,最大涨幅,未分类,,,未分类,factors2024.md,4730,4757,1m,1d,T_close,open|high|low|close|volume|turnover,MAX_t = \prod_{i \in maxprod} (1 + r_i),product(1+top10pct(r_1m)),exact,,intraday_path_metric,,,,{'metric': 'max_rise'},0
+calendar2024_174_u79d1_6280_52a8_91cf,2024,174,科技动量,易类因子,,易类因子,另类因子,factors2024.md,4758,4789,1d,1d,T_close,patent,"\text{TECH}_{ijt} = \frac{T_{it}T'_{jt}}{(T_{it}T'_{it})^{1/2}(T_{jt}T'_{jt})^{1/2}}
+
+\text{TECHRET}_{it} = \frac{\sum_{j \neq i} \text{TECH}_{ijt} \times \text{RET}_{jt}}{\sum_{j \neq i} \text{TECH}_{ijt}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_175_u6536_76ca_5b63_8282_6027_53cd_8f6c,2024,175,收益季节性反转,未分类,,,未分类,factors2024.md,4790,4815,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_176_u51c0_59d4_4e70_53d8_5316_7387,2024,176,净委买变化率,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,4816,4846,1m,1d,T_close,orderbook,"净委买变化率_{k,t}^T = \sum_{j=1}^{k} 委买变化量_{j,t}^T - \sum_{j=1}^{k} 委卖变化量_{j,t}^T",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_177_u5355_5b63_5ea6_51c0_5229_7387_540c_6bd4_589e,2024,177,单季度净利率同比增长率,未分类,,,未分类,factors2024.md,4847,4869,1d,1d,T_close,fundamental_raw,\frac{最近报告期的单季度净利率 - 上年同期的单季度净利率}{abs(上年同期的单季度净利率)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_178_u6ce8_610f_529b_8870_51cf_60ca_6050_56e0_5b50,2024,178,注意力衰减-惊恐因子,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,4870,4900,1d,1d,T_close,close|market_ret,"惊恐度 = \frac{偏离度}{基准项} = \frac{abs(个股收益率-市场收益率)}{abs(个股收益率)+abs(市场收益率)+0.1}
+
+衰减惊恐度_t = 惊恐度_t - \frac{(惊恐度_{t-1} + 惊恐度_{t-2})}{2}","0.5*(mean(max(panic-mean(lag1,lag2),0)*return,20)+std(...,20))",exact,,daily_panic_metric,,,,{'metric': 'decay'},23
+calendar2024_179_frazzini_pedersen,2024,179,Frazzini-Pedersen贝塔,未分类,,,未分类,factors2024.md,4901,4921,1d,1d,T_close,close|market_ret,betaFP = \hat{\rho} \frac{\hat{\sigma}_i}{\hat{\sigma}_m},"corr(stock_3d,market_3d,5y)*std(stock_return,12m)/std(market_return,12m)",exact,,daily_frazzini_pedersen_beta,,,,{},1260
+calendar2024_180_u4e00_81f4_4e70_5165_4ea4_6613,2024,180,一致买入交易,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,4922,4953,unknown,1d,T_close,,"|close - open| <= \alpha |high - low|
+
+PCV_t = \frac{1}{d} \sum_{i=1}^{d} \left( \frac{ConsistentVolume_{rise}}{Volume} \right)_{t-i}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_181_u6237_5747_6301_80a1_6bd4_4f8b,2024,181,户均持股比例,股东因子,,股东因子,股东因子,factors2024.md,4954,4971,1d,1d,T_close,shareholder,\frac{\text{总股本} / \text{股东户数}}{\text{总股本}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2024_182_u8d1f_6536_76ca_975e_6d41_52a8_6027,2024,182,负收益非流动性,流动性因子,,流动性因子,流动性因子,factors2024.md,4972,5001,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,"ILLIQ_{i,t} = \frac{1}{n_d} \sum_{k \in d} \frac{|rd_{i,t-k}|}{Amount_{i,t-k}}","mean(abs(return)/turnover where return<0,20)",exact,,daily_liquidity_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'negative_amihud', 'window': 20, 'long_window': 250}",21
+calendar2024_183_u4f9b_5e94_94fe_5730_4f4d_56e0_5b50,2024,183,供应链地位因子,易类因子,,易类因子,另类因子,factors2024.md,5002,5029,1d,1d,T_close,supply_chain,"\frac{前五大客户年度销售额}{公司年度销售总}
+
+\frac{前五大供应商年度采购额}{公司年度采购总额}
+
+\frac{应付账款 + 预收账款 - 应收账款 - 预付账款 - 存货}{营业收入}
+
+\frac{经营活动中产生的现金净流量}{净利润 + 折旧摊销 + 财务费用}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2024_184_u5927_7684_4e0a_884c_8df3_8dc3_6ce2_52a8_7387,2024,184,大的上行跳跃波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,5030,5065,1m,1d,T_close,open|high|low|close|volume|turnover,"RVLJP_{\gamma,t} = min(RVJP_t, \sum_{i=1}^{n} r_{i,t}^2 I_{\{r_{i,t}>\gamma\}})
+
+RVJP_t = max(RS_t^+ - \frac{1}{2} \widehat{IV}_t, 0)
+
+\gamma = \alpha \Delta_n^{0.49} \sqrt{\widehat{IV}_t}","min(up_jump,sum(r**2 where r>gamma))",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'large_up_jump'},0
+calendar2024_185_u7ebf_6027_7eaf_5316_51c0_5229_6da6,2024,185,线性纯化净利润,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,5066,5094,1d,1d,T_close,fundamental_raw,"NetProfit_i = a_i + \beta_{1,i} NonOperatingIncome_i + \beta_{2,i} CashPaidEmployees + \varepsilon_i",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_186_u591a_5c42_8ba2_5355_659c_7387,2024,186,多层订单斜率,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,5095,5129,1m,1d,T_close,orderbook,"MLQS_{weight} = \frac{\sum w_i \times LogquoteSlope_t^{(i)}}{\sum w_i}, w_i = \frac{i}{5}, i = 1,2,3,4,5
+
+LogquoteSlope_t = \frac{log(P_t^A) - log(P_t^B)}{log(V_t^A) + log(V_t^B)}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_187_u5206_6790_5e08_76c8_5229_9884_6d4b_4e0a_8c03,2024,187,分析师盈利预测上调的概率,分析师因子,,分析师因子,分析师预期类,factors2024.md,5130,5158,1d,1d,T_close,analyst,FOM = \frac{K - M}{N},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2024_188_u65e5_5185_6761_4ef6_5728_9669_4ef7_503c,2024,188,日内条件在险价值,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,5159,5186,1m,1d,T_close,open|high|low|close|volume|turnover,"VCVaR_T = CVaR_\alpha(VWAR_t)
+
+VWAR = \frac{\sum Return_t \times Volume_t}{\sum Volume_t}",CVaR_5pct(r_1m*volume_1m/sum(volume_1m)),exact,,intraday_path_metric,,,,{'metric': 'intraday_cvar'},0
+calendar2024_189_u5356_51fa_53cd_5f39_5360_6bd4_56e0_5b50,2024,189,卖出反弹占比因子,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,5187,5208,1m,1d,T_close,tick_trade,LCVOL = \frac{\sum_{i}^{N} volume_{selli} * I_{p_{selli} < close}}{total\_volume},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_190_u5185_90e8_521b_9020_7684_65e0_5f62_8d44_4ea7,2024,190,内部创造的无形资产,未分类,,,无形资产因子,factors2024.md,5209,5245,1d,1d,T_close,patent,"\[ INT_{i,t} = KC_{i,t} + OC_{it} \]
+\[ KC_{i,t} = (1 - \delta_{R\&D}) KC_{i,t-1} + R\&D_{i,t} \]
+\[ KC_{i0} = R\&D_{i1} / (g + \delta_{R\&D}) \]
+\[ OC_{it} = (1 - \delta_{SG\&A}) OC_{i,t-1} + \theta * SG\&A_{it} \]
+\[ OC_{i0} = SG\&A_{i1} / (g + \delta_{SG\&A}) \]
+① Dion Bongaerts, Xiaowei Kang, Mathijs van Dijk, 2022, The Intangibles Premium: Risk or Mispricing?, Available at SSRN: https://ssrn.com/abstract=3927990.",,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,,,{},0
+calendar2024_191_u6a21_7cca_5173_8054_5ea6,2024,191,模糊关联度,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,5246,5271,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_192_u9694_591c_6536_76ca_7387,2024,192,隔夜收益率,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,5272,5293,1d,1d,T_close,open|close,"overnight\_ret_{t,i} = \frac{open_{t,i}}{close_{t-1,i}} - 1","open/lag(close,1)-1",exact,,overnight_return,,,,{},2
+calendar2024_193_u5355_5b63_5ea6_6210_672c_8d39_7528_5229_6da6,2024,193,单季度成本费用利润率的同比增长率,未分类,,,未分类,factors2024.md,5294,5318,1d,1d,T_close,fundamental_raw,\frac{最近报告期单季度成本费用利润率 - 上年同期单季度成本费用利润率}{abs(上年同期单季度成本费用利润率)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_194_u5916_8d44_5238_5546_5173_8054_7f51_7edc_7275,2024,194,外资券商关联网络牵引因子,未分类,,,未分类,factors2024.md,5319,5356,1d,1d,T_close,northbound,Exp_{ave}^A = \frac{1}{N_A} \sum_{i=1}^{N_A} K_i^A * (chg_i - med),,blocked_data,精确实现依赖当前数据审计未发现的数据域: northbound,,,,,{},0
+calendar2024_195_u6536_76ca_5b63_8282_6027,2024,195,收益季节性,未分类,,,未分类,factors2024.md,5357,5380,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_196_u8fb9_9645_4ea4_6613_6210_672c,2024,196,边际交易成本,未分类,,,未分类,factors2024.md,5381,5413,1d,1d,T_close,orderbook,"MCI_A = \frac{VWAPM_A}{DolVol_A}
+
+VWAPM_A = \frac{VWAP_A - M}{M} \quad VWAP_A = \frac{\sum_{i}^{n} P_{A,i} \times Q_{A,i}}{\sum_{i}^{n} Q_{A,i}} = \frac{DolVol_A}{\sum_{i}^{n} Q_{A,i}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_197_u4f73_5e86_79bb_6563_6307_6807,2024,197,佳庆离散指标,技术因子,,技术因子,量价技术类,factors2024.md,5414,5444,1d,1d,T_close,high|low,"REM = EMA((HIGH-LOW),N)
+
+CV = 100*(REM-REM[M])/REM[M]","100*(ts_ema(high-low,10)-ts_delay(ts_ema(high-low,10),10))/(ts_delay(ts_ema(high-low,10),10)+1e-12)",exact,,legacy_expression,,,,{},20
+calendar2024_198_u6210_4ea4_91cf_6f6e_6c50_7684_4ef7_683c_53d8,2024,198,成交量“潮汐”的价格变动速率,未分类,,,未分类,factors2024.md,5445,5474,1m,1d,T_close,open|high|low|close|volume|turnover,\frac{C_n - C_m}{C_m} / (n - m),"mean(((close_ebb-close_rise)/close_rise)/(t_ebb-t_rise),20)",exact,,intraday_path_metric,,,,"{'metric': 'tide_rate', 'post_window': 20, 'post_stat': 'mean'}",20
+calendar2024_199_u8d26_9762_6760_6746,2024,199,账面杠杆,杠杆因子,,杠杆因子,杠杆因子,factors2024.md,5475,5493,1d,1d,T_close,book_leverage_ttm,\frac{\text{最近报告期总资产}}{\text{最近同期股东权益合计}},book_leverage_ttm,exact,供应商日频PIT衍生字段,alias:book_leverage_ttm,,,,{},0
+calendar2024_200_u65e5_5185_6700_5927_56de_64a4,2024,200,日内最大回撤,未分类,,,未分类,factors2024.md,5494,5521,1m,1d,T_close,close,"intraday\_maxdrawdown_{D,i} = \min_{0<t<T} \min_{0<\tau \leq T-t} \frac{p_{t+\tau,D,i}}{p_{t,D,i}} - 1",min(close/cummax(close)-1),exact,,intraday_max_drawdown,,,,{},0
+calendar2024_201_u5f00_76d8_540e_4e70_5165_610f_613f_5f3a_5ea6,2024,201,开盘后买入意愿强度,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,5522,5560,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\text{mean}(\text{买入意愿}_{i,j,n})}{\text{std}(\text{买入意愿}_{i,j,n})}
+
+\text{买入意愿}_{i,j,n} = \text{净主买成交额}_{i,j,n} - \text{净委买增额}_{i,j,n}
+
+\text{净主买成交额}_{i,j,n} = \text{主动买入成交额}_{i,j,n} - \text{主动卖出成交额}_{i,j,n}
+
+\text{净委买增额}_{i,j,n} = \text{委托买单增加量}_{i,j,n} - \text{委托卖单增加量}_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_202_u6210_4ea4_91cf_5360_6bd4_6807_51c6_5dee,2024,202,成交量占比标准差,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,5561,5582,1m,1d,T_close,volume,std\left( \frac{volume_i}{\sum volume_i} \right),std(volume/sum(volume)),exact,,intraday_volume_share_stat,,,,{'stat': 'std'},0
+calendar2024_203_u6d41_52a8_6027_7ecf_8425_8d1f_503a_53d8_52a8,2024,203,流动性经营负债变动,未分类,,,流动性因子,factors2024.md,5583,5610,1d,1d,T_close,fundamental_raw,\frac{\text{最近报告期的流动性经营负债} - \text{上年同期值}}{\text{平均总资产}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_204_u5927_7684_4e0b_884c_8df3_8dc3_6ce2_52a8_7387,2024,204,大的下行跳跃波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,5611,5641,1m,1d,T_close,open|high|low|close|volume|turnover,"RVLJN_{\gamma,t} = min(RVJN_t, \sum_{i=1}^n r_{i,t}^2 I_{\{r_{i,t} < -\gamma\}})
+
+RVJN_t = max(RS_t^- - \frac{1}{2} \widehat{IV}_t, 0)
+
+\gamma = \alpha \Delta_n^{0.49} \sqrt{\widehat{IV}_t}","min(down_jump,sum(r**2 where r<-gamma))",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'large_down_jump'},0
+calendar2024_205_u6bcf_7b14_6210_4ea4_91cf_6536_76ca_7387_76f8,2024,205,每笔成交量收益率相关性,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,5642,5665,1m,1d,T_close,tick_trade,"\frac{\sum w_i \times ret_i}{std(pvol_i) \times std(ret_i)} = corr(pvol, ret)
+
+w_i = pvol_i - mean(pvol_i)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_206_u5f00_76d8_540e_51c0_59d4_4e70_589e_989d_5360,2024,206,开盘后净委买增额占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,5666,5701,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} (\text{净委买增额}_{i,j,n})}{\sum_{j=1}^{N} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_207_u8dcc_5e45_65f6_95f4_91cd_5fc3_504f_79bb,2024,207,跌幅时间重心偏离,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,5702,5764,unknown,1d,T_close,,"R_u = [r_1^u, r_2^u, \ldots, r_n^u]
+
+U = [u_1, u_2, \ldots, u_n]
+
+R_d = [r_1^d, r_2^d, \ldots, r_m^d]
+
+D = [d_1, d_2, \ldots, d_m]
+
+G_u = U R_u^T / \|R_u\|_1
+
+G_d = U R_d^T / \|R_d\|_1
+
+G_d = \alpha + \beta G_u + \varepsilon
+
+TGD = \frac{1}{N} \sum_{i=1}^{N} \varepsilon",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_208_u5bf9_6570_6d41_901a_5e02_503c,2024,208,对数流通市值,未分类,,,未分类,factors2024.md,5765,5783,1d,1d,T_close,a_share_market_val_in_circulation,\ln（当日收盘价 \times 当日自由流通股本）,log(a_share_market_val_in_circulation),exact,,log,,,,{},0
+calendar2024_209_dimson,2024,209,Dimson 贝塔,波动率因子,,波动率因子,波动率因子,factors2024.md,5784,5813,unknown,1d,T_close,,"r_{id} - r_{fd} = \alpha_i + \beta_{i1}(r_{md-1} - r_{fd-1}) + \beta_{i2}(r_{md} - r_{fd}) + \beta_{i3}(r_{md+1} - r_{fd+1}) + \epsilon_{id}
+
+betaDM = \hat{\beta}_{i1} + \hat{\beta}_{i2} + \hat{\beta}_{i3}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_210_u73b0_91d1_6d41_5e02_503c_6bd4_53bb_6760_6746,2024,210,现金流市值比（去杠杆后）,未分类,,,杠杆因子,factors2024.md,5814,5840,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月的经营性活动产生的现金流净额}(TTM)}{\text{当日经营性净资产市值}}
+
+\text{经营性净资产市值} = \text{金融负债} - \text{金融资产} + \text{市值}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_211_u65e5_5185_8df3_8dc3_5ea6,2024,211,日内跳跃度,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,5841,5892,1m,1d,T_close,open|high|low|close|volume|turnover,"t分钟单利收益率 = \frac{t分钟收盘价}{t-1分钟收盘价} - 1
+
+t分钟连续复利收益率 = ln\left(\frac{t分钟收盘价}{t-1分钟收盘价}\right)
+
+t分钟单复利差 = t分钟单利收益率 - t分钟连续复利收益率
+
+跳跃度 = (t分钟单复利差) \times 2 - (t分钟连续复利收益率)^2
+
+e^x = 1 + \frac{1}{1!}x + \frac{1}{2!}x^2 + \frac{1}{3!}x^3 + o(x^3)
+
+\left((e^x - 1) - \frac{1}{1!}x\right) \times 2 - x^2 = \left(\frac{1}{2!}x^2 + \frac{1}{3!}x^3 + o(x^3)\right) \times 2 - x^2 = \left(\frac{1}{3!}x^3 + o(x^3)\right) \times 2",mean(2*(simple_return-log_return)-log_return**2),exact,,intraday_path_metric,,,,{'metric': 'jump_degree'},0
+calendar2024_212_u5ba2_6237_52a8_91cf_56e0_5b50_57fa_4e8e_591a,2024,212,客户动量因子-基于多层客户关系,易类因子,,易类因子,另类因子,factors2024.md,5893,5925,1d,1d,T_close,supply_chain,"\text{cmom}_i^{TM} = \sum_{l=1}^{L} \sum_{(m,n) \in G_u} w_{mn}^{\text{centrality}} \text{mom}_n^{TM}, \, i = 1, 2, \ldots, N
+
+w_{mn}^{\text{centrality}} = c_{mn} / \sum_{l=1}^{L} \sum_{(m,n) \in G_1} c_{\pi n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_213_u5f00_76d8_540e_4e70_5165_610f_613f_5360_6bd4,2024,213,开盘后买入意愿占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,5926,5955,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} (\text{买入意愿}_{i,j,n})}{\sum_{j=1}^{N} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_214_u7f8a_7fa4_884c_4e3a,2024,214,羊群行为,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,5956,5996,1m,1d,T_close,trade_direction,"H(i,T) = \left| \frac{B(i,T)}{B(i,T) + S(i,T)} - p_T \right| - AF(i,T)
+
+AF(i,T) = \sum_{k=0}^{N_{i,T}} \binom{N_{i,T}}{k} p_T^k (1 - p_T)^{N_{i,T} - k} \left| \frac{k}{N_{i,T}} - p_T \right|
+
+HB(i,T) = H(i,T) \quad if \frac{B(i,T)}{B(i,T) + S(i,T)} > p_T
+
+HS(i,T) = H(i,T) \quad if \frac{B(i,T)}{B(i,T) + S(i,T)} < p_T",,blocked_data,精确实现依赖当前数据审计未发现的数据域: trade_direction,,,,,{},0
+calendar2024_215_u975e_6d41_52a8_6027_7ecf_8425_8d44_4ea7_53d8,2024,215,非流动性经营资产变动,投资因子,,投资因子,投资因子,factors2024.md,5997,6022,1d,1d,T_close,fundamental_raw,\frac{期初总资产 + 期末总资产}{2},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2024_216_u5206_949f_6210_4ea4_989d_65b9_5dee,2024,216,分钟成交额方差,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,6023,6052,1m,1d,T_close,turnover,"VMA = \frac{1}{N} \sum_{t=1}^{N} (Amount_t - \mu)^2
+
+\mu = \frac{1}{N} \sum_{t=1}^{N} Amount_t",intraday_var(turnover),exact,,intraday_reduce,,,,"{'field': 'turnover', 'stat': 'var'}",0
+calendar2024_217_u65e5_5185_6536_76ca_7387,2024,217,日内收益率,未分类,,,未分类,factors2024.md,6053,6080,1d,1d,T_close,open|close,"intraday\_ret_{t,i} = \frac{close_{t,i}}{open_{t,i}} - 1",close/open-1,exact,,daily_intraday_return,,,,{},0
+calendar2024_218_u673a_6784_6301_80a1_6bd4_4f8b,2024,218,机构持股比例,星期五 七月初六 股东因子,,星期五 七月初六 股东因子,股东因子,factors2024.md,6081,6095,1d,1d,T_close,shareholder,机构持股数量/总股本,,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2024_219_u5c0f_7684_4e0a_884c_8df3_8dc3_6ce2_52a8_7387,2024,219,小的上行跳跃波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,6096,6130,1m,1d,T_close,open|high|low|close|volume|turnover,"RVSJP_t = RVJP_t - RVLJP_{\gamma,t}
+
+RVLJP_{\gamma,t} = min(RVJP_t, \sum_{i=1}^n r_{i,t}^2 I_{\{r_{i,t}>\gamma\}})
+
+RVJP_t = max(RS_t^+ - \frac{1}{2}\widehat{IV}_t, 0)
+
+\gamma = \alpha \Delta_n^{0.49} \sqrt{\widehat{IV}_t}",up_jump-large_up_jump,exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'small_up_jump'},0
+calendar2024_220_u6781_7aef_4e0b_884c_98ce_9669,2024,220,极端下行风险,波动率因子,,波动率因子,波动率因子,factors2024.md,6131,6159,unknown,1d,T_close,,"H(x) = 1 - \exp\left[-\left(1 - \gamma * \frac{x - \mu}{\sigma}\right)^{-\frac{1}{\gamma}}\right]
+
+1 - \gamma * \frac{x - \mu}{\sigma} > 0, \quad \gamma \neq 0",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_221_u5c3e_76d8_534a_5c0f_65f6_6536_76ca_7387,2024,221,尾盘半小时收益率,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,6160,6187,1m,1d,T_close,close,"ret_{14:30-15:00,i} = \frac{close_{15:00,i}}{close_{14:30,i}} - 1",close(day_end)/close(day_end-30m)-1,exact,,intraday_period_return,,,,{'minutes': 30},0
+calendar2024_222_u968f_6ce2_9010_6d41_56e0_5b50,2024,222,“随波逐流”因子,未分类,,,未分类,factors2024.md,6188,6228,1m,1d,T_close,call_auction,"\text{合理收益率}_t = \frac{1}{20} \sum_{n=0}^{19} \text{日内收益率}_{t-n} = \frac{1}{20} \sum_{n=0}^{19} \left( \frac{\text{收盘价}_{t-n}}{\text{开盘价}_{t-n}} - 1 \right)
+
+\text{相对开盘收益率}_{m,t} = \frac{\text{收盘价}_{m,t}}{\text{开盘价}_t} - 1
+
+\text{高位成交额}_t = \sum_{m=1}^{240} \text{分钟成交额}_m I_{\{\text{相对开盘收益率}_{m,t} > \text{合理收益率}_t\}}
+
+\text{低位成交额}_t = \sum_{m=1}^{240} \text{分钟成交额}_m I_{\{\text{相对开盘收益率}_{m,t} < \text{合理收益率}_t\}}
+
+\text{高低额差}_t = \frac{\text{高位成交额}_t - \text{低位成交额}_t}{\text{收盘时流通市值}_t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: call_auction,,,,,{},0
+calendar2024_223_gamma,2024,223,非流动性因子 Gamma,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,6229,6261,1d,1d,T_close,close|turnover|market_ret,"r_{i,d+1,t}^e = \theta_{i,t} + \phi_{i,t} r_{i,d,t} + \gamma_{i,t} sign\left(r_{i,d,t}^e\right) * v_{i,d,t} + \epsilon_{i,d+1,t}
+
+d = 1, \ldots, D
+
+Gam_{i,t} = -|\gamma_{i,t}|","-abs(gamma from next_excess_return~1+return+sign(excess_return)*turnover,monthly)",exact,,daily_gamma_illiquidity,,research_report_factors:concept_overlap,concept_overlap,{},21
+calendar2024_224_u57fa_91d1_5173_8054_7f51_7edc_7275_5f15_56e0,2024,224,基金关联网络牵引因子,易类因子,,易类因子,另类因子,factors2024.md,6262,6293,1d,1d,T_close,network,Exp_{ave}^A = \frac{1}{N_A} \sum_{i=1}^{N_A} K_i^A * (chg_i - med),,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,,,{},0
+calendar2024_225_u6295_5165_8d44_672c_56de_62a5_7387_53d8_52a8,2024,225,投入资本回报率变动,成长因子,,成长因子,成长因子,factors2024.md,6294,6318,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_226_u6d41_52a8_6027_51b2_51fb,2024,226,流动性冲击,流动性因子,,流动性因子,流动性因子,factors2024.md,6319,6340,1d,1d,T_close,close|turnover,"LIQU_{i,t} = - (ILLIQ_{i,t} - AVGILLIQ_{i|t-12,t-1})","-(monthly_amihud-mean(lag(monthly_amihud,1:12)))",exact,,daily_liquidity_shock,,,,{'metric': 'simple'},273
+calendar2024_227_u4fee_6b63_7684_51c0_6d41_5165_7387,2024,227,修正的净流入率,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,6341,6383,1m,1d,T_close,tick_trade,"B_P = B_{Extra} + B_{Large} + B_{Med}
+S_P = S_{Extra} + S_{Large} + S_{Med}
+ln(B_P/S_P) = \alpha + \beta \times Ret + \varepsilon
+\hat{B}_P = \frac{e^\varepsilon}{1 + e^\varepsilon} \times (B_P + S_P)
+\hat{S}_P = \frac{1}{1 + e^\varepsilon} \times (B_P + S_P)
+CNIR = \frac{\sum_{i}^{N} (\hat{B}_{P,i} - \hat{S}_{P,i})}{\sum_{i}^{N} (\hat{B}_{P,i} + \hat{S}_{P,i})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_228_u65e0_5f62_8d44_4ea7_5f3a_5ea6,2024,228,无形资产强度,未分类,,,无形资产因子,factors2024.md,6384,6410,1d,1d,T_close,intangible_asset_ratio_ttm,IAI_{it} = \frac{KC_{it} + OC_{it}}{TA_{it} + KC_{it} + OC_{it} - GW_{it}},intangible_asset_ratio_ttm,exact,供应商日频PIT衍生字段,alias:intangible_asset_ratio_ttm,,,,{},0
+calendar2024_229_u5c0f_7684_4e0b_884c_8df3_8dc3_6ce2_52a8_7387,2024,229,小的下行跳跃波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,6411,6450,1m,1d,T_close,open|high|low|close|volume|turnover,"RVSJN_t = RVJN_t - RVLJN_{\gamma,t}
+
+RVLJN_{\gamma,t} = \min\left(RVJN_t, \sum_{i=1}^n r_{i,t}^2 I_{\{r_{i,t} < -\gamma\}}\right)
+
+RVJN_t = \max\left(RS_t^- - \frac{1}{2} \widehat{IV}_t, 0\right)
+
+\gamma = \alpha \Delta_n^{0.49} \sqrt{\widehat{IV}_t}",down_jump-large_down_jump,exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'small_down_jump'},0
+calendar2024_230_u5b64_96c1_51fa_7fa4_56e0_5b50,2024,230,“孤雁出群”因子,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,6451,6480,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_231_u4e70_5165_6d6e_4e8f_5360_6bd4_56e0_5b50,2024,231,买入浮亏占比因子,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,6481,6507,1m,1d,T_close,tick_trade,HCVOL = \frac{\sum_{i}^{N} volume_{buyi} * I_{p_{buyi} > close}}{total\_volume},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_232_u8d26_9762_5e02_503c_6bd4_53bb_6760_6746_540e,2024,232,账面市值比（去杠杆后）,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,6508,6535,1d,1d,T_close,fundamental_raw,\frac{最近报告期的经营性净资产}{当日经营性净资产市值},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_233_u535a_5f08_56e0_5b50,2024,233,博弈因子,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,6536,6569,1m,1d,T_close,orderbook,"Stren = \frac{\sum weight_t \times Vol\_Buyt}{\sum weight_t \times Vol\_Sellt}
+
+Vol\_Buyt = \sum vol\_buyi
+
+Vol\_Sellt = \sum vol\_selli",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_234_u81ea_4fe1_6ea2_51fa_56e0_5b50,2024,234,“自信溢出”因子,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,6570,6594,unknown,1d,T_close,,1. 焦点股票i的相邻股票数对因子效果影响不大，建议使用较少数量的股票（如i=10）；,,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_235_u76c8_5229_5e02_503c_6bd4,2024,235,盈利市值比,估值因子,,估值因子,估值因子,factors2024.md,6595,6611,1d,1d,T_close,ep_ratio_ttm,\frac{\text{最近12个月的归属母公司净利润 (TTM)}}{\text{总市值}},ep_ratio_ttm,exact,供应商日频PIT衍生字段,alias:ep_ratio_ttm,,,,{},0
+calendar2024_236_u4e00_81f4_4ea4_6613,2024,236,一致交易,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,6612,6647,unknown,1d,T_close,,"|close - open| <= \alpha|high - low|
+
+TCV_t = \frac{1}{d} \sum_{i=1}^{d} \left( \frac{ConsistentVolume}{Volume} \right)_{t-i}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_237_u4f30_6ce2_6307_6807,2024,237,估波指标,技术因子,,技术因子,量价技术类,factors2024.md,6648,6680,1d,1d,T_close,close,"R(N1) = ((CLOSE - CLOSE[N1]) / CLOSE[N1]) * 100
+
+R(N2) = ((CLOSE - CLOSE[N2]) / CLOSE[N2]) * 100
+
+RC(N1, N2) = R(N1) + R(N2)
+
+COPPOCK(N1, N2, N3) = WMA(RC(N1, N2), N3)","ta_wma(100*((close-ts_delay(close,14))/(ts_delay(close,14)+1e-12)+(close-ts_delay(close,11))/(ts_delay(close,11)+1e-12)),10)",exact,,legacy_expression,,,,{},24
+calendar2024_238_u8425_4e1a_80fd_529b_6539_5584,2024,238,营业能力改善,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,6681,6709,1d,1d,T_close,fundamental_raw,Revenue_i = a_i + \beta_i Cost_i + \varepsilon_i,,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_239_u975e_7ebf_6027_9ad8_9891_6ce2_52a8_7387,2024,239,非线性高频波动率,未分类,,,高频因子,factors2024.md,6710,6733,1m,1d,T_close,factor_returns,"① 在 Fama 三因子基础上加入流动性和反转因子，对过去 21 天个股收益率做线性时序回归，得到新特异率=1-拟合优度 \( R^2 \)：
+r_t = \alpha_t + \beta_{mkt}MKT_t + \beta_{smb}SMB_t + \beta_{hml}HML_t + \beta_{ret}RET_t + \beta_{liq}LIQ_t + \varepsilon_t
+norm_i = \frac{std_i - \min(\{std_i\})}{\max(\{std_i\}) - \min(\{std_i\})}
+std_i^{non\_linear} = e^{norm_i}
+\text{特异波动率} = \sqrt{\text{特异率}} \times std_i^{non\_linear}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_240_u57fa_4e8e_6392_5e8f_7684_52a8_91cf,2024,240,基于排序的动量,未分类,,,动量因子,factors2024.md,6742,6780,unknown,1d,T_close,,"rank_{i,d} = \left( y(R_{i,d}) - \frac{N_d + 1}{2} \right) / \sqrt{\frac{(N_d + 1)(N_d - 1)}{12}}
+
+rank_{i,D} = \frac{1}{D} \sum_{d=1}^{D_j} rank_{i,d}
+
+rank_{i,d}(N, M) = \frac{1}{N} \sum_{j=t-N-M}^{t-M} (rank_{i,D_j})",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_241_u6210_4ea4_989d_5360_6bd4_71b5,2024,241,成交额占比熵,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,6781,6810,1m,1d,T_close,open|high|low|close|volume|turnover,"成交额占比熵 = \( H\left( \frac{amount_1}{AMOUNT}, \frac{amount_2}{AMOUNT}, \ldots, \frac{amount_N}{AMOUNT} \right) \)
+\( H(p_1, p_2, \ldots, p_n) = -\sum_{i=1}^{N} p_i \ln(p_i) \)
+2. \( AMOUNT = \sum_{t=1}^{T} amount_t \) 为整个时间段总成交额；
+3. T 为划分时间段的个数，如日内 5 分钟频率的 T=48。",-sum((turnover_i/sum(turnover))*log(turnover_i/sum(turnover))),exact,,intraday_path_metric,,,,{'metric': 'amount_entropy'},0
+calendar2024_242_u76d8_53e3_4ef7_5dee,2024,242,盘口价差,未分类,,,未分类,factors2024.md,6811,6836,1d,1d,T_close,orderbook,spread = \frac{2 * (a_1 - b_1)}{a_1 + b_1},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_243_u5355_5b63_5ea6_603b_8d44_4ea7_62a5_916c_7387,2024,243,单季度总资产报酬率变动,未分类,,,未分类,factors2024.md,6837,6858,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_244_u52a0_6743_9884_671f_6536_76ca_7387_5206_6790,2024,244,加权预期收益率 分析师因子,未分类,,,分析师预期类,factors2024.md,6859,6885,1d,1d,T_close,analyst,WTR = \sum \frac{P_i^e}{P_i^0} = \frac{\sum P_i^e \times P/P_i^0}{P} = \sum \frac{P_i^e}{P} \omega_i = TR \times W,,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2024_245_u8000_773c_6ce2_52a8_7387,2024,245,耀眼波动率,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,6886,6907,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_246_u6301_7eed_5f02_5e38_4ea4_6613_91cf,2024,246,持续异常交易量,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,6908,6941,unknown,1d,T_close,,"ATV_{t,i} = \frac{实际交易量}{预期交易量} = \frac{t日第i分钟交易量}{mean(过去一段时间分钟交易量)}
+
+PATV_t = \frac{mean(rank\_ATV_{t,i})}{std(rank\_ATV_{t,i})} + kurt(rank\_ATV_{t,i})",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_247_u6b63_5411_65e5_5185_9006_8f6c_7684_9891_7387,2024,247,正向日内逆转的频率,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,6942,6966,1d,1d,T_close,open|close,"PR_{i,t} = \frac{\sum_{d=1}^{T} I_{\{RET\_CO_{i,d}<0\}} * I_{\{RET\_OC_{i,d}>0\}}}{T}",monthly_mean(overnight_return<0 and intraday_return>0),exact,,daily_reversal_frequency,,,,"{'direction': 'positive', 'abnormal': False}",21
+calendar2024_248_u5ba2_6237_52a8_91cf_56e0_5b50_57fa_4e8e_5355,2024,248,客户动量因子-基于单层客户关系,易类因子,,易类因子,另类因子,factors2024.md,6967,6995,1d,1d,T_close,supply_chain,"\text{cmom}_i^{1M} = \sum_{j=1}^{N_i} w_{ij}^{\text{centrality}} \text{mom}_j^{1M},\ i = 1,2,\ldots,N",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_249_u5e26_6761_4ef6_7684_6d41_52a8_6027_51b2_51fb,2024,249,带条件的流动性冲击,流动性因子,,流动性因子,流动性因子,factors2024.md,6996,7021,1d,1d,T_close,close|turnover,"ILLIQ_{i,t} = \alpha_{0,i} + \alpha_{1,i}ILLIQ_{i,t-1} + \alpha_{2,i}\varepsilon_{i,t-1} + \varepsilon_{i,t}","-innovation(ARMA(1,1),monthly_amihud,rolling=60,min=24,MLE)",exact,,daily_liquidity_shock,,,,{'metric': 'conditional'},504
+calendar2024_250_u80a1_7968_53d1_884c_6570_91cf_589e_957f_7387,2024,250,股票发行数量增长率,投资因子,,投资因子,投资因子,factors2024.md,7022,7051,1d,1d,T_close,fundamental_raw,"issuance_t = \alpha + \beta t + \varepsilon_t
+
+IGRO = -\frac{\beta}{\text{mean}(issuance_{t \in \{1,2,3,4,5\}})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_251_u5356_76d8_6df1_5ea6,2024,251,卖盘深度,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,7052,7073,1m,1d,T_close,orderbook,ask\_depth = \sum \left| \frac{avi \times mid_{price}}{a_i - last_{mid} + \epsilon} \right|,,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_252_t,2024,252,T分布主动占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,7074,7104,1m,1d,T_close,tick_trade,"T分布主动买入金额_i = Amount_i \times t\left(\frac{ret_i}{\sigma_{ret}}, df\right)
+
+T分布主动占比因子 = \frac{\sum_{i=1}^{N} T分布主动买入金额_i}{\sum_{i=1}^{N} Amount_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_253_u76c8_4f59_516c_544a_56de_62a5,2024,253,盈余公告回报,动量因子,,动量因子,动量因子,factors2024.md,7105,7127,1d,1d,T_close,earnings_event,预期累计收益率 = 大盘指数的累计收益率,,blocked_data,精确实现依赖当前数据审计未发现的数据域: earnings_event,,,,,{},0
+calendar2024_254_u65e5_5185_9ec4_91d1_5206_5272_53cd_8f6c,2024,254,日内黄金分割反转,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,7128,7147,1m,1d,T_close,open|high|low|close|volume|turnover,Ret_{10:00-to-close} = \sum_{t=1}^{20} \ln\left( \frac{Close_t}{Price_t^{10:00}} \right),"sum(log(close/price_10:00),20)",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'golden_reversal', 'post_window': 20, 'post_stat': 'sum'}",20
+calendar2024_255_u5348_853d_53e4_6728_56e0_5b50,2024,255,“午蔽古木”因子,未分类,,,未分类,factors2024.md,7148,7182,1m,1d,T_close,close|volume,"rett = \frac{close_t}{close_{t-1}} - 1
+
+voldifft = volume_t - volume_{t-1}
+
+rett = \alpha_0 + \alpha_1 voldiff_t + \alpha_2 voldiff_{t-1} + \ldots + \alpha_6 voldiff_{t-5} + \varepsilon_t",sign(F-all-cross_mean(F-all))*abs(t_intercept),exact,,intraday_volume_diff_regression,,,,{'metric': 'noon'},0
+calendar2024_256_u81ea_9009_80a1_5360_6bd4,2024,256,自选股占比,未分类,,,未分类,factors2024.md,7183,7209,1d,1d,T_close,news,\frac{\text{个股自选股用户数}}{\text{自选股用户数合计}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2024_257_u4ef7_683c_65f6_6ede,2024,257,价格时滞,未分类,,,未分类,factors2024.md,7210,7244,unknown,1d,T_close,,"r_{i,t} = \alpha_i + \beta_i MKT_t + \sum_{k=1}^n \delta_i^{(k)} MKT_{t-k} + \varepsilon_{i,t}
+
+PriceDelay = 1 - \frac{R_{\delta_i^{(k)}=0}^2}{R^2}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_258_u7f6e_4fe1_6b63_6001_5206_5e03_4e3b_52a8_5360,2024,258,置信正态分布主动占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,7245,7265,1m,1d,T_close,tick_trade,"置信正态分布主动买入金额\(_i = Amount_i \times N\left(\frac{ret_i}{0.1} \times 1.96\right)\)
+置信正态分布主动占比因子\(= \frac{\sum_{i=1}^{N} \text{置信正态分布主动买入金额}_i}{\sum_{i=1}^{N} Amount_i}\)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_259_u975e_7ebf_6027_5e02_503c,2024,259,非线性市值,规模因子,,规模因子,规模因子,factors2024.md,7266,7288,1d,1d,T_close,market_cap_2|a_share_market_val_in_circulation,"LNCAP_{i,t}^3 = \alpha_t + \beta_t LNCAP_{i,t} + \varepsilon_{i,t}","neutralize(log(market_cap)**3,log(market_cap))",exact,,legacy_expression,,,,"{'base_expression': 'ts_log(market_cap_2)**3', 'post_neutralize_market_cap': True}",0
+calendar2024_260_u5c0f_7684_4e0a_4e0b_884c_8df3_8dc3_6ce2_52a8,2024,260,小的上下行跳跃波动不对称性,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,7289,7317,1m,1d,T_close,open|high|low|close|volume|turnover,"SRVSJ_t = RVSJP_t - RVSJN_t
+
+RVSJP_t = RVJP_t - RVLJP_{\gamma,t}
+
+RVSJN_t = RVJN_t - RVLJN_{\gamma,t}",small_up_jump-small_down_jump,exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'small_jump_asymmetry'},0
+calendar2024_261_u57fa_4e8e_632f_5e45_5207_5272_7684_52a8_91cf,2024,261,基于振幅切割的动量,未分类,,,动量因子,factors2024.md,7318,7331,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_262_u5927_7684_4e0a_4e0b_884c_8df3_8dc3_6ce2_52a8,2024,262,大的上下行跳跃波动不对称性,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,7339,7367,1m,1d,T_close,open|high|low|close|volume|turnover,"SRVLJ_t = RVLJP_{\gamma,t} - RVLJN_{\gamma,t}
+
+RVLJN_{\gamma,t} = min(RVJN_t, \sum_{i=1}^{n} r_{i,t}^2 I_{\{r_{i,t}<-\gamma\}})
+
+RVLJP_{\gamma,t} = min(RVJP_t, \sum_{i=1}^{n} r_{i,t}^2 I_{\{r_{i,t}>\gamma\}})",large_up_jump-large_down_jump,exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'large_jump_asymmetry'},0
+calendar2024_263_u5355_4e00_6210_4ea4_989d_5360_6bd4_71b5,2024,263,单一成交额占比熵,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,7368,7392,1m,1d,T_close,open|high|low|close|volume|turnover,"单一成交额占比熵 = \( H\left( \frac{vol_1 \ close_1}{VOL \ CLOSE}, \frac{vol_2 \ close_2}{VOL \ CLOSE}, \ldots, \frac{vol_N \ close_N}{VOL \ CLOSE} \right) \)
+\( H(p_1, p_2, \ldots, p_n) = -\sum_{i=1}^{N} p_i \ln(p_i) \)
+2. \( VOL = \sum_{t=1}^{T} vol_t \) 为整个时间段总成交量；
+3. \( CLOSE = \sum_{t=1}^{T} close_t \) 为整个时间段收盘价之和；
+4. T 为划分时间段的个数，如日内 5 分钟频率的 T=48。",-sum((volume_i/VOL*close_i/CLOSE)*log(volume_i/VOL*close_i/CLOSE)),exact,,intraday_path_metric,,,,{'metric': 'single_amount_entropy'},0
+calendar2024_264_u6734_7d20_4e3b_52a8_5360_6bd4,2024,264,朴素主动占比,未分类,,,未分类,factors2024.md,7393,7420,1m,1d,T_close,tick_trade,"主动买入金额\( i \) = \( Amount_i \times t\left( \frac{Close_i - Close_{i-1}}{\sigma_{\Delta close}}, df \right) \)
+朴素主动占比因子 = \( \frac{\sum_{i=1}^N 主动买入金额_i}{\sum_{i=1}^N Amount_i} \)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_265_u591a_7a7a_6307_6570,2024,265,多空指数,未分类,,,未分类,factors2024.md,7421,7443,1d,1d,T_close,close,"\text{BBI} = \frac{\text{MA(CLOSE,M1)} + \text{MA(CLOSE,M2)} + \text{MA(CLOSE,M3)} + \text{MA(CLOSE,M4)}}{4}","(ts_mean(close,3)+ts_mean(close,6)+ts_mean(close,12)+ts_mean(close,24))/4",exact,,legacy_expression,,,,{},24
+calendar2024_266_u4ef7_683c_5f39_6027,2024,266,价格弹性,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,7444,7463,1m,1d,T_close,open|high|low|close|volume|turnover,resiliency = \frac{high - low}{turnover},mean((high_1m-low_1m)/turnover_1m),exact,,intraday_path_metric,,,,{'metric': 'price_elasticity'},0
+calendar2024_267_u5e02_573a_6760_6746,2024,267,市场杠杆,杠杆因子,,杠杆因子,杠杆因子,factors2024.md,7464,7488,1d,1d,T_close,market_leverage_ttm,\frac{最近报告期的总资产}{总市值},market_leverage_ttm,exact,供应商日频PIT衍生字段,alias:market_leverage_ttm,,,,{},0
+calendar2024_268_u9694_591c_8df3_7a7a,2024,268,隔夜跳空,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,7489,7511,1d,1d,T_close,open|close,absRet_{night} = \sum_{t=1}^{20} abs\left( \ln\left( \frac{Open_t}{Close_{t-1}} \right) \right),"ts_sum(ts_abs(ts_log(open/(ts_delay(close,1)+1e-12))),20)",exact,,legacy_expression,,,,{},21
+calendar2024_269_u65f6_95f4_91cd_5fc3_504f_79bb,2024,269,时间重心偏离,未分类,,,未分类,factors2024.md,7512,7550,unknown,1d,T_close,,"G_u = f_u(\bar{R}_u, R_1, R_2, R_{overnight}) + \varepsilon_u
+
+G_d = f_d(\bar{R}_d, R_1, R_2, R_{overnight}) + \varepsilon_d
+
+\varepsilon_d = \alpha + \beta \varepsilon_u + \varepsilon
+
+TGD = \frac{1}{N} \sum_{i=1}^{N} \varepsilon",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_270_u76c8_5229_5e02_503c_6bd4_53bb_6760_6746_540e,2024,270,盈利市值比（去杠杆后）,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,7551,7577,1d,1d,T_close,fundamental_raw,"\frac{\text{最近12个月的毛利润}(TTM)}{\text{当日经营性净资产市值}}
+
+\text{经营性净资产市值} = \text{金融负债} - \text{金融资产} + \text{市值}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_271_u4e70_76d8_6df1_5ea6,2024,271,买盘深度,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,7578,7604,1m,1d,T_close,orderbook,bid\_depth = \sum \left| \frac{bv_i \times mid_{price}}{b_i - last_{mid} + \epsilon} \right|,,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_272_u5355_5b63_5ea6_603b_8d44_4ea7_51c0_5229_7387,2024,272,单季度总资产净利率变动,未分类,,,未分类,factors2024.md,7605,7627,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_273_u671d_6ca1_6668_96fe_56e0_5b50,2024,273,“朝没晨雾”因子,未分类,,,未分类,factors2024.md,7628,7661,1m,1d,T_close,close|volume,"rett = \frac{closet}{closet-1} - 1
+
+voldifft = volumet - volumet-1
+
+rett = \alpha_0 + \alpha_1 voldifft + \alpha_2 voldifft_{t-1} + \ldots + \alpha_6 voldifft_{t-5} + \varepsilon_t","mean(std(tvalues(lag1..lag5) in return~1+volume_delta_lag0..5),20)",exact,,intraday_volume_diff_regression,,,,{'metric': 'morning'},20
+calendar2024_274_u5173_6ce8_5ea6_4fee_6b63_9884_671f_6536_76ca,2024,274,关注度修正预期收益率,未分类,,,未分类,factors2024.md,7662,7682,1d,1d,T_close,analyst,CTR = Rank(WTR) * Rank(C),,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2024_275_u65e5_5185_5f02_5e38_4ea4_6613_91cf,2024,275,日内异常交易量,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,7683,7708,unknown,1d,T_close,,"ATV_{t,i} = \frac{实际交易量}{预期交易量} = \frac{t日第i分钟交易量}{mean(过去一段时间分钟交易量)}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_276_u65b0_95fb_70b9_51fb_91cf_5360_6bd4,2024,276,新闻点击量占比,另类因子,,另类因子,另类因子,factors2024.md,7709,7730,1d,1d,T_close,news,\frac{\text{个股的新闻点击量}}{\text{A股所有上市公司新闻点击量合计值}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2024_277_u8df3_8dc3_663e_8457_7a0b_5ea6_52a0_6743_7684,2024,277,跳跃显著程度加权的上下行跳跃波动不对称性,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,7731,7765,unknown,1d,T_close,,"TSRJV = \frac{\sum_{t=1}^{D} \left( T_{t,i} / \Phi_{1-\alpha}^{-1} \cdot SRJV_{t,i} \right)}{\sum_{t=1}^{D} T_{t,i} / \Phi_{1-\alpha}^{-1}}
+
+SRJV_t = RVLP_t - RVJN_t
+
+T_{t,i} = \frac{BV_t}{N^{-1} \sqrt{\hat{\Omega}_{SwV}}}\left(1 - \frac{RV_t}{SwV_t}\right) \xrightarrow{d} N(0,1)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_278_u672a_9884_671f_7a0e_8d39_652f_51fa,2024,278,未预期税费支出,动量因子,,动量因子,动量因子,factors2024.md,7766,7787,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度所得税费用} - \text{上年同期单季度所得税费用}}{\text{上年同期单季度所得税费用}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_279_u76d8_53e3_5e73_5747_6df1_5ea6,2024,279,盘口平均深度,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,7788,7813,1m,1d,T_close,orderbook,avg\_depth = \frac{av_1 + bv_1}{2},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_280_u53cd_5411_65e5_5185_9006_8f6c_7684_5f02_5e38,2024,280,反向日内逆转的异常频率,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,7814,7844,1d,1d,T_close,open|close,"AB\_NR_{i,t} = \frac{NR_{i,t}}{\frac{1}{12}\sum_{k=0}^{11}NR_{i,t-k}}
+
+NR_{i,t} = \frac{\sum_{d=1}^{T}I_{\{RET\_CO_{i,d}>0\}} \times I_{\{RET\_OC_{i,d}<0\}}}{T}","negative_reversal_frequency/mean(negative_reversal_frequency,12m)",exact,,daily_reversal_frequency,,,,"{'direction': 'negative', 'abnormal': True}",252
+calendar2024_281_u4f73_5e86_6307_6807,2024,281,佳庆指标,技术因子,,技术因子,量价技术类,factors2024.md,7845,7868,1d,1d,T_close,high|low|close|volume,"\text{MID} = \text{SUM}(\text{VOL} \times (2 \times \text{CLOSE} - \text{HIGH} - \text{LOW}) / (\text{HIGH} + \text{LOW}), 0)
+
+\text{CHO} = \text{EMA}(\text{MID}, \text{N1}) - \text{EMA}(\text{MID}, \text{N2})","ts_ema(ts_cumsum(volume*(2*close-high-low)/(high+low+1e-12)),10)-ts_ema(ts_cumsum(volume*(2*close-high-low)/(high+low+1e-12)),3)",exact,,legacy_expression,,,,{},10
+calendar2024_282_u8df3_8dc3_5f3a_5ea6,2024,282,跳跃强度,未分类,,,未分类,factors2024.md,7869,7908,unknown,1d,T_close,,"T_{SwV} = \frac{BV_t}{N^{-1}\sqrt{\hat{\Omega}_{SwV}}}\left(1 - \frac{RV_t}{SwV_t}\right) \xrightarrow{d} N(0,1)
+
+\hat{\Omega}_{SwV} = \frac{\mu_6}{9} \frac{N^3}{N-5} \int_{t-1}^t \sigma_s^6 ds = \frac{\mu_6}{9} \frac{N^3}{N-3} \mu_{3/2}^{-4} \sum_{i=0}^{N-3} \left( \prod_{k=1}^4 |r_{t_i+k}|^{3/2} \right)
+
+SwV_t = 2 \sum_{i=1}^N (R_{t_i} - r_{t_i})",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_283_u6210_4ea4_91cf_6bd4_503c,2024,283,成交量比值,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,7909,7931,1m,1d,T_close,open|high|low|close|volume|turnover,VR_t = \frac{1}{d} \sum_{i=1}^{d} w_{t-i} * \left( \frac{Vol_{morning}}{Vol_{afternoon}} \right)_{t-i},"sum(volume,09:30-10:00)/sum(volume,13:00-13:30)",exact,,intraday_path_metric,,,,{'metric': 'volume_ratio'},0
+calendar2024_284_u77e5_60c5_4e3b_4e70_5360_6bd4,2024,284,知情主买占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,7932,7961,1m,1d,T_close,tick_trade,"R_{i,T,j} = \gamma_0 + \sum_{k=1}^{4} \gamma_{1,k} D_{T,k,j}^{weekday} + \sum_{k=1}^{3} \gamma_{2,k} D_{T,k,j}^{Period} + \gamma_{3,1} R_{i,T,j-1} + \varepsilon_{i,j}
+
+\text{知情主买占比} = \frac{1}{T} \sum_{n=t}^{n=t-T+1} \frac{\sum_{j \in 9:30-14:56} \text{知情主买成交额}_{i,j,n}}{\sum_{j \in 9:30-14:56} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_285_u5e02_76c8_7387_589e_957f_7387,2024,285,市盈率增长率,估值因子,,估值因子,估值因子,factors2024.md,7962,7983,1d,1d,T_close,peg_ratio_ttm,\frac{\text{最近报告期市盈率}(TTM)}{\text{最近12个月归属母公司净利润}(TTM)\text{同比增速}},peg_ratio_ttm,exact,日历定义即PE/盈利增速，映射供应商PEG TTM字段,alias:peg_ratio_ttm,,,,{},0
+calendar2024_286_u5ba2_6237_52a8_91cf_56e0_5b50_57fa_4e8e_9500,2024,286,客户动量因子-基于销售占比,未分类,,,动量因子,factors2024.md,7984,8011,1d,1d,T_close,supply_chain,"\text{cmom}_i^{1M} = \sum_{j=1}^{N_i} w_{ij}^{\text{sales}} \text{mom}_j^{1M}, i = 1, 2, \ldots, N",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_287_u51f8_663e_6027_6536_76ca,2024,287,凸显性收益,未分类,,,未分类,factors2024.md,8012,8050,1d,1d,T_close,close,"\sigma(r_{i,s}, \overline{r}_s) = \frac{|r_{i,s} - \overline{r}_s|}{|r_{i,s}| + |\overline{r}_s| + \theta}
+\omega_{i,s} = \frac{\delta^{k_{i,s}}}{\sum_{S'} \delta^{k_{i,s'}} \times \pi_{s'}}
+STR_i = cov[\omega_{i,s}, r_{i,s}]","cov(normalize(0.7**rank(salience)),return),monthly; salience=abs(r-median)/(abs(r)+abs(median)+.1)",exact,,daily_salience_return,,,,{'variant': 'standard'},21
+calendar2024_288_u5b58_8d27_589e_957f_7387,2024,288,存货增长率,投资因子,,投资因子,投资因子,factors2024.md,8051,8067,1d,1d,T_close,fundamental_raw,\frac{最近报告期存货 - 上年同期值}{上年同期值},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_289_u5c3e_90e8_98ce_9669,2024,289,尾部风险,波动率因子,,波动率因子,波动率因子,factors2024.md,8068,8101,unknown,1d,T_close,,"\lambda_t = \frac{1}{K_t} \sum_{k=1}^{K_t} \frac{r_{kt}}{\mu_t}
+
+r_{i,t} = \alpha + \beta_i \lambda_t + \varepsilon_i",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_290_u591c_7720_971c_8def_56e0_5b50,2024,290,“夜眠霜路”因子,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,8102,8136,1m,1d,T_close,close|volume,"rett = \frac{close_t}{close_{t-1}} - 1
+
+voldifft = volume_t - volume_{t-1}
+
+rett = \alpha_0 + \alpha_1 voldifft + \alpha_2 voldifft_{-1} + \ldots + \alpha_6 voldifft_{-5} + \varepsilon_t","mean_peer(abs(corr(t_intercept_stock,t_intercept_peer,20)))",exact,,intraday_volume_diff_regression,,,,{'metric': 'night'},20
+calendar2024_291_u5747_5300_5206_5e03_4e3b_52a8_5360_6bd4,2024,291,均匀分布主动占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,8137,8161,1m,1d,T_close,tick_trade,"均匀分布主动买入金额$_i = Amount_i \times \frac{ret_i - 0.1}{0.2}$
+均匀分布主动占比因子 $= \frac{\sum_{i=1}^{N} \text{均匀分布主动买入金额}_i}{\sum_{i=1}^{N} Amount_i}$",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_292_u5341_5927_80a1_4e1c_5360_6bd4_5206_6563_5ea6,2024,292,十大股东占比分散度,股东因子,,股东因子,股东因子,factors2024.md,8162,8183,1d,1d,T_close,shareholder,std(十大股东各自的持仓占比序列),,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2024_293_u9ad8_9891_6210_4ea4_91cf_6ce2_52a8,2024,293,高频成交量波动,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,8184,8214,1m,1d,T_close,tick_trade,"\sigma_{day} = std(\{vol_i\})
+
+\sigma_{vol} = \frac{std(\{\sigma_{day}\})}{mean(\{\sigma_{day}\})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_294_u6210_4ea4_91cf_5360_6bd4,2024,294,成交量占比,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,8215,8245,1m,1d,T_close,call_auction,"OCVP_t = \frac{1}{d} \sum_{i=1}^{d} w_{t-i} \left( \frac{\text{每日开盘前集合竞价阶段成交量}VOL_{call}}{\text{内个股总成交量}VOL_{total}} \right)_{t-i}
+
+BCVP_t = \frac{1}{d} \sum_{i=1}^{d} \left( \frac{\text{收盘前5分钟内个股成交量}VOL_{call}}{\text{日内个股总成交量}VOL_{total}} \right)_{t-i}
+
+OBCVP_t = \alpha OCVP_t + (1 - \alpha) BCVP_t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: call_auction,,,,,{},0
+calendar2024_295_u5f85_8457_800c_6551_56e0_5b50,2024,295,“待著而救”因子,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,8246,8274,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_296_u52a0_6743_6536_76d8_4ef7_6bd4_56e0_5b50,2024,296,加权收盘价比因子,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,8275,8301,1m,1d,T_close,open|high|low|close|volume|turnover,\text{加权收盘价比} = \frac{\sum_{t=1}^{T} \frac{vol_t}{VOL} close_t}{\frac{1}{T} \sum_{t=1}^{T} close_t},"vwap(close_1m,volume_1m)/mean(close_1m)",exact,,intraday_path_metric,,,,{'metric': 'weighted_close_ratio'},0
+calendar2024_297_u9500_552e_6536_5165_5e02_503c_6bd4_53bb_6760,2024,297,销售收入市值比（去杠杆后）,未分类,,,杠杆因子,factors2024.md,8302,8326,1d,1d,T_close,fundamental_raw,\frac{最近12个月的营业收入(TTM)}{当日经营性净资产市值},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_298_u6210_4ea4_989d,2024,298,成交额,流动性因子,,流动性因子,流动性因子,factors2024.md,8327,8344,1d,1d,T_close,turnover,mean(最近K个月日度成交额序列),turnover,exact,,alias:turnover,,,,{},0
+calendar2024_299_u77e5_60c5_4e3b_5356_5360_6bd4,2024,299,知情主卖占比,未分类,,,未分类,factors2024.md,8352,8387,1m,1d,T_close,tick_trade,"R_{i,j,n} = \gamma_0 + \sum_{k=1}^{4} \gamma_{1,k} D_{k,i,j,n}^{weekday} + \sum_{k=1}^{3} \gamma_{2,k} D_{k,i,j,n}^{Period} + \gamma_{3,1} R_{i,j-1,n} + \varepsilon_{i,j,n}
+
+\text{知情主卖占比} = \frac{1}{T} \sum_{n=t}^{n=t-T+1} \frac{\sum_{j \in 9:30-14:56} \text{知情主卖成交额}_{i,j,n}}{\sum_{j \in 9:30-14:56} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_300_u4fe1_566a_6bd4_589e_5f3a_53cd_8f6c,2024,300,信噪比增强反转,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,8388,8415,unknown,1d,T_close,,"加强Reversal_i = Weight_i \times Reversal_i
+
+Weight_i = \frac{SNR_i - min(SNR)}{max(SNR) - min(SNR)}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_301_u65e5_5185_6536_76ca_6ce2_52a8_6bd4,2024,301,日内收益波动比,未分类,,,波动率因子,factors2024.md,8416,8438,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_302_u5206_6790_5e08_9884_6d4b_504f_5dee_540c_5411,2024,302,分析师预测偏差同向的概率,分析师因子,,分析师因子,分析师预期类,factors2024.md,8439,8466,1d,1d,T_close,analyst,FOM = \frac{K - M}{N},,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2024_303_u8d22_52a1_52a8_91cf,2024,303,财务动量,动量因子,,动量因子,动量因子,factors2024.md,8467,8500,1d,1d,T_close,fundamental_raw,"\text{F-Momen}_{it} = \frac{\sum_{i 
+eq j} \text{F-link}_{ijt} \cdot \text{Ret}_{jt}}{\sum_{i 
+eq j} \text{F-link}_{ijt}}
+
+\text{F-link}_{ijt} = \frac{\sum_{i=1}^{10} C_{itk} \cdot C_{jtk}}{\sqrt{\sum_{i=1}^{10} C_{itk}^2} \cdot \sqrt{\sum_{i=1}^{10} C_{jtk}^2}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_304_u7efc_5408_80a1_6743_53d1_884c_5e74_5ea6,2024,304,综合股权发行-年度,投资因子,,投资因子,投资因子,factors2024.md,8501,8524,1d,1d,T_close,fundamental_raw,\ln\left( \frac{\text{当前最新总市值}}{\text{上年同期的总市值}} \right) - \text{相同时间区间内的对数累计收益率},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_305_u5254_9664_8d85_5927_5355_540e_7684_666e_901a,2024,305,剔除超大单后的普通大单买入占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,8525,8549,1m,1d,T_close,orderbook,"剔除超大单后的普通大单买入占比_{i,t} = \frac{NormalBigBuy_{i,t}}{NormalBigBuy_{i,t} + NormalBigSell_{i,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_306_u8d22_52a1_8d28_91cf_56e0_5b50,2024,306,财务质量因子,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,8550,8580,1d,1d,T_close,fundamental_raw,"\frac{\text{单季度所得税费用}}{\text{单季度营业收入}}
+
+\frac{\text{单季度营业费用}}{\text{单季度营业收入}}
+
+\frac{\text{单季度所得税费用}}{\text{单季度营业收入}} \text{的同比增量}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_307_u6807_51c6_5316_7684_672a_9884_671f_6536_5165,2024,307,标准化的未预期收入,未分类,,,未分类,factors2024.md,8581,8601,1d,1d,T_close,earnings_event,\frac{最近1个季度收入预差}{std(最近8个季度收入预差)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: earnings_event,,,,,{},0
+calendar2024_308_u5355_5b63_5ea6_7ecf_8425_6027_6d3b_52a8_4ea7,2024,308,单季度经营性活动产生的现金流净额同比增长率,成长因子,,成长因子,成长因子,factors2024.md,8602,8625,1d,1d,T_close,fundamental_raw,\frac{\text{最近单季度经营性活动产生的现金流净额}(TTM) - \text{上年同期值}}{\text{abs(上年同期值)}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_309_u5355_7b14_6210_4ea4_91d1_989d_5206_4f4d_6570,2024,309,单笔成交金额分位数,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,8626,8647,1m,1d,T_close,tick_trade,S = \frac{A_{0.1} - A_{min}}{A_{max} - A_{min}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_310_u7d2f_79ef_6d3e_53d1_7ebf,2024,310,累积/派发线,技术因子,,技术因子,量价技术类,factors2024.md,8648,8665,1d,1d,T_close,high|low|close|volume,"AD = SUM(VOL*(2*CLOSE-HIGH-LOW)/(HIGH+LOW),0)",ts_cumsum(((close-low)-(high-close))/(high-low+1e-12)*volume),exact,,legacy_expression,,,,{},1
+calendar2024_311_u8000_773c_6536_76ca_7387,2024,311,耀眼收益率,未分类,,,未分类,factors2024.md,8666,8693,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_312_u6ede_540e_7edd_5bf9_6536_76ca_4e0e_8c03_6574,2024,312,滞后绝对收益与调整后成交量相关性,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,8694,8720,1d,1d,T_close,close|turnover,"adj\_CORA\_R = corr(|Ret_{t-1}|, adjAmount_t), Ret_{t-1} 
+eq 0
+
+adjAmount_t = \frac{Amount_t - \mu_t}{\sigma_t}","ts_corr(ts_delay(ts_abs(close/(ts_delay(close,1)+1e-12)-1),1),(turnover-cs_mean(turnover))/(cs_std(turnover)+1e-12),20)",exact,,legacy_expression,,,,{},21
+calendar2024_313_u7ed3_6784_5316_53cd_8f6c,2024,313,结构化反转,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,8721,8756,1m,1d,T_close,open|high|low|close|volume|turnover,"Rev_{mom} = \sum_{i=1}^{period_{mom}} w_i log \frac{Close_{t-i+1}}{Close_{t-i}}, w_i \propto \frac{1}{volume_i}
+
+Rev_{rev} = \sum_{i=1}^{period_{rev}} w_i log \frac{Close_{t-i+1}}{Close_{t-i}}, w_i \propto volume_i
+
+Rev_{struct} = Rev_{rev} - Rev_{mom}",volume_weighted_return(bottom10pct(volume_1m)),exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'structured_reversal'},0
+calendar2024_314_u4e3b_529b_4ea4_6613_5f3a_5ea6,2024,314,主力交易强度,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,8757,8783,1m,1d,T_close,tick_trade,"TS = RankCorr(A_{order}, A_{minute})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_315_u4e2a_80a1_70b9_51fb_91cf_5360_6bd4,2024,315,个股点击量占比,易类因子,,易类因子,另类因子,factors2024.md,8784,8799,1d,1d,T_close,news,\frac{\text{个股当天点击量}}{\text{全市场所有个股当天点击量之和}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2024_316_u6743_76ca_4e58_6570,2024,316,权益乘数,杠杆因子,,杠杆因子,杠杆因子,factors2024.md,8807,8831,1d,1d,T_close,equity_multiplier_ttm,"\frac{最近报告期平均总资产}{最近同期平均归属母公司股东权益合计}
+
+\frac{期初总资产 + 期末总资产}{2}
+
+\frac{期初归属母公司股东权益合计 + 期末归属母公司股东权益合计}{2}",equity_multiplier_ttm,exact,供应商日频PIT衍生字段,alias:equity_multiplier_ttm,,,,{},0
+calendar2024_317_u6709_6548_6df1_5ea6,2024,317,有效深度,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,8832,8851,1m,1d,T_close,orderbook,"effective\_depth = min(av_1, bv_1)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_318_u6210_4ea4_989d_6ce2_52a8,2024,318,成交额波动,流动性因子,,流动性因子,流动性因子,factors2024.md,8852,8875,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,std(最近K个月日度成交额序列),"std(turnover,20)",exact,,daily_liquidity_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'amount_std', 'window': 20, 'long_window': 250}",21
+calendar2024_319_u5f02_5e38_9ad8_6ce2_52a8_4e0b_7684_6536_76ca,2024,319,异常高波动下的收益波动比,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,8876,8905,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2024_320_u8d85_5927_5355_4e70_5165_5360_6bd4,2024,320,超大单买入占比,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,8906,8931,1m,1d,T_close,orderbook,"超大单买入占比_{i,t} = \frac{SuperBigBuy_{i,t}}{SuperBigBuy_{i,t} + SuperBigSell_{i,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_321_u7279_5f02_5e02_503c,2024,321,特异市值,未分类,,,未分类,factors2024.md,8932,8958,1d,1d,T_close,fundamental_raw,"m_{i,t} = \alpha_{0jt}IND_{it} + \alpha_{1jt}b_{it} + \alpha_{2jt}ln(NI)_{it}^+ + \alpha_{3jt}I_{<0}ln(NI)_{it}^+ + \alpha_{4jt}LEV_{it} + \varepsilon_{it}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_322_u8d28_91cf_589e_957f,2024,322,质量增长,质量因子,,质量因子,质量因子,factors2024.md,8959,8991,unknown,1d,T_close,,"\text{质量增长} = \frac{\text{当前最新质量因子} - \text{去年同期值}}{\text{去年同期值}}
+
+\text{质量增长} = \text{最近报告期质量因子} - \text{去年同期值}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_323_u6b63_5411_65e5_5185_9006_8f6c_7684_5f02_5e38,2024,323,正向日内逆转的异常频率,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,8992,9016,1d,1d,T_close,open|close,"AB\_PR_{i,t} = \frac{PR_{i,t}}{\frac{1}{12} \sum_{k=0}^{11} PR_{i,t-k}}
+
+PR_{i,t} = \frac{\sum_{d=1}^{T} I_{\{RET\_CO_{i,d}<0\}} \times I_{\{RET\_OC_{i,d}>0\}}}{T}","positive_reversal_frequency/mean(positive_reversal_frequency,12m)",exact,,daily_reversal_frequency,,,,"{'direction': 'positive', 'abnormal': True}",252
+calendar2024_324_u65f6_95f4_5e8f_5217_52a8_91cf,2024,324,时间序列动量,动量因子,,动量因子,动量因子,factors2024.md,9017,9047,1d,1d,T_close,close,"TSMOM_{mi} = sign\left( \frac{1}{N} \sum_{j=1}^{12} \hat{r}_{m-j,i} \right) * \hat{r}_{m,i} / \hat{\sigma}_{m,i}
+
+\hat{r}_{m,i} = r_{m,i} - \bar{r}_{m,i}
+
+\bar{r}_{mi} = \sum_{j=0}^{\infty} (1 - \delta) * \delta^j * r_{m-j,i}
+
+\hat{\sigma}_{m,i}^2 = \sum_{j=0}^{\infty} (1 - \delta) * \delta^j * (r_{m-1-j,i} - \bar{r}_{m-1-j,i})^2","close / ts_delay(close, 252) - 1",exact,,return,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'window': 252, 'sign': 1.0}",252
+calendar2024_325_u6781_7aef_6536_76ca_53cd_8f6c,2024,325,极端收益反转,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,9048,9072,1m,1d,T_close,close,"S = |r_{i,t} - median(\{r_{i,t}\})|
+
+rank\left(\frac{1}{20} \sum r_{i,t_{max(S)}}\right) + rank\left(\frac{1}{20} \sum r_{i,t_{max(S)}-1}\right)","cs_rank(mean(extreme_minute_return,20))+cs_rank(mean(pre_extreme_return,20))",exact,,intraday_extreme_reversal,,alpha101/158/191/360:concept_overlap,concept_overlap,{'window': 20},20
+calendar2024_326_u5206_949f_6210_4ea4_989d_81ea_76f8_5173_6027,2024,326,分钟成交额自相关性,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,9073,9093,1m,1d,T_close,turnover,"ACMA_i = corr(Amount_{t-i}, Amount_t)","corr(turnover,lag(turnover,1))",exact,,intraday_autocorr,,,,"{'field': 'turnover', 'lag': 1}",0
+calendar2024_327_u4e1a_7ee9_8d85_9884_671f,2024,327,业绩超预期,未分类,,,未分类,factors2024.md,9094,9128,1d,1d,T_close,analyst,"EarningSurprise = \frac{A - F}{\sigma}
+
+MAD = median_i(|X_i - median_j(X_j)|)
+
+\hat{\sigma} = k * MAD",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2024_328_u5f02_5e38_6bdb_5229_6da6,2024,328,异常毛利润,未分类,,,未分类,factors2024.md,9129,9156,1d,1d,T_close,fundamental_raw,"\frac{当前季度毛利润 - 去年同期毛利润 \times 正常增长乘}{当前季度末总资产}
+
+正常增长乘数 = \frac{最新季度销售商品、提供劳务收到的现金}{去年同期销售商品、提供劳务收到的现金}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_329_u9ad8_9891_5f39_6027_56e0_5b50,2024,329,高频弹性因子,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,9157,9198,unknown,1d,T_close,,"p_t = q_t + z_t
+
+Z_k = \sum_{t=1}^{D} z_t e^{-\frac{i2\pi kt}{D}}, \quad (k=1,2,\cdots,D)
+
+|\bar{Z}_k| = \left| \frac{1}{D} Z_k \right|
+
+Resiliency_{i,t} = \frac{1}{\left[ \frac{D_{i,t}}{2} \right]} \sum_{k=1}^{\left[ D_{i,t}/2 \right]} \frac{2|\bar{Z}_{k,i,t}|}{T_{k,i,t}} = \frac{1}{\left[ \frac{D_{i,t}}{2} \right]} \sum_{k=1}^{\left[ D_{i,t}/2 \right]} 2|\bar{Z}_{k,i,t}| \cdot f_{k,i,t}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_330_u5728_9669_4ef7_503c,2024,330,在险价值,波动率因子,,波动率因子,波动率因子,factors2024.md,9199,9222,1d,1d,T_close,close|market_ret,Prob(\Delta P < -VaR) = 1 - \alpha,"quantile(return,0.05,252)",exact,,daily_rolling_risk,,,,"{'metric': 'var', 'window': 252, 'min_samples': 126}",253
+calendar2024_331_u5c0f_4e70_5355_4e3b_52a8_6210_4ea4_5ea6,2024,331,小买单主动成交度,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,9223,9253,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} \text{小买单主动成交额}_{i,j,n}}{\sum_{j=1}^{N} \text{小买单成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_332_u516c_53f8_6cbb_7406_56e0_5b50,2024,332,公司治理因子,公司治理因子,,公司治理因子,公司治理因子,factors2024.md,9254,9283,1d,1d,T_close,shareholder,"\begin{align*}
+\text{公司治理因子} &= \alpha_1 \text{第一大股东持股比例} + \alpha_2 \text{第二至十大股东持股比例} \\
+&+ \alpha_3 \text{流通股比例} + \alpha_4 \text{上市公司股东数量} \\
+&+ \alpha_5 \text{独立董事占比} + \alpha_6 \text{董事会委员数量} \\
+&+ \alpha_7 \text{管理层薪酬} + \alpha_8 \text{管理层持股数} \\
+&+ \alpha_9 \text{受证监会、交易所等处罚情况} + \alpha_{10} \text{是否实施股权激励量}
+\end{align*}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: shareholder,,,,,{},0
+calendar2024_333_u5355_5b63_5ea6_51c0_5229_6da6_540c_6bd4_589e,2024,333,单季度净利润同比增长率,未分类,,,未分类,factors2024.md,9284,9307,1d,1d,T_close,fundamental_raw,\frac{最近单季度净利润 - 上年同期值}{abs(上年同期值)},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_334_u7edd_5bf9_6536_76ca_4e0e_6210_4ea4_91cf_76f8,2024,334,绝对收益与成交量相关性,未分类,,,未分类,factors2024.md,9308,9328,1m,1d,T_close,close|turnover,"CORA = corr(|Ret_t|, Amount_t), t \in [1,240]","corr(abs(r_1m),turnover)",exact,,intraday_return_turnover_corr,,,,"{'return_lag': 0, 'turnover_lag': 0}",0
+calendar2024_335_u4e00_81f4_5356_51fa_4ea4_6613,2024,335,一致卖出交易,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,9329,9359,unknown,1d,T_close,,"|close - open| <= α|high - low|
+
+NCV_t = \frac{1}{d} \sum_{i=1}^{d} \left( \frac{Consistent Volume_{fall}}{Volume} \right)_{t-i}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2024_336_u6807_51c6_5316_7684_672a_9884_671f_76c8_4f59,2024,336,标准化的未预期盈余,动量因子,,动量因子,动量因子,factors2024.md,9360,9384,1d,1d,T_close,earnings_event,\frac{\text{最近1个季度盈余预差}}{\text{std(最近8个季度盈余预差)}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: earnings_event,,,,,{},0
+calendar2024_337_semibeta,2024,337,SemiBeta（正市场收益&负资产收益）高频因子-波动跳跃类,未分类,,,高频因子,factors2024.md,9385,9419,1m,1d,T_close,close|market_minute_ret,"\hat{\beta}_{t,i}^{M^+} = -\frac{\sum_{k=1}^m r_{t,k,i}^- f_{t,k}^+}{\sum_{k=1}^m f_{t,k}^2}
+
+r_{t,k,i}^- = min(r_{t,k,i}, 0)
+
+f_{t,k}^+ = max(f_{t,k}, 0)","-sum(min(stock_ret,0)*max(market_ret,0))/sum(market_ret**2)",exact,,intraday_semibeta,,alpha101/158/191/360:concept_overlap|research_report_factors:concept_overlap,concept_overlap,"{'stock_side': 'negative', 'market_side': 'positive'}",0
+calendar2024_338_u80a1_4e1c_76c8_4f59_5e02_503c_6bd4,2024,338,股东盈余市值比,估值因子,,估值因子,估值因子,factors2024.md,9420,9441,1d,1d,T_close,fundamental_raw,\frac{\text{最近12个月的股东盈余}(TTM)}{\text{总市值}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_339_u77e5_60c5_4ea4_6613_6982_7387,2024,339,知情交易概率,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,9442,9470,1m,1d,T_close,orderbook,PIN = \frac{\alpha\mu}{\alpha\mu + 2\varepsilon},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_340_u7efc_5408_503a_52a1_53d1_884c_5e74_5ea6,2024,340,综合债务发行-年度,投资因子,,投资因子,投资因子,factors2024.md,9471,9492,1d,1d,T_close,fundamental_raw,\text{最近1年的总负债对数增长率} = \ln\left( \frac{\text{最近报告期总负债}}{\text{上年同期总负债}} \right),,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_341_u5254_9664_8d85_5927_5355_5f71_54cd_540e_7684,2024,341,剔除超大单影响后的大单涨跌幅,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,9493,9526,1m,1d,T_close,orderbook,"\Delta \ln P_i = \text{当前成交价格的对数} \ln P_i - \text{上一笔成交价格的对数} \ln P_{i-1}
+
+\sum_{i \in S_2} \Delta \ln P_i",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_342_u5f02_5e38_9884_6536_6b3e,2024,342,异常预收款,财务质量因子,,财务质量因子,财务质量因子,factors2024.md,9527,9553,1d,1d,T_close,supply_chain,"\frac{当前季度预收款项 - 去年同期预收款项 \times 正常增长乘数}{当前季度末总资产}
+
+正常增长乘数 = \frac{最新季度销售商品、提供劳务收到的现金}{去年同期销售商品、提供劳务收到的现金}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2024_343_u6d41_52a8_6027_6ea2_4ef7_56e0_5b50_52a0_6743,2024,343,流动性溢价因子-加权,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,9554,9584,1m,1d,T_close,orderbook,"Cap_{need} = Sum(Vol_{i,need} \times Close_{i,n})
+
+Cap_{actual} = Sum(Vol_{i,actual} \times Close_{i,n})
+
+f = \frac{\sum_T Cap_{need}^t \times weight^t}{\sum_T Cap_{actual}^t \times weight^t} - 1",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_344_u4ea4_6613_91cf_540c_6b65_7684_77e5_60c5_4ea4,2024,344,交易量同步的知情交易概率,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,9592,9622,1m,1d,T_close,orderbook,"VPIN = \frac{\alpha\mu}{\alpha\mu + 2\varepsilon} \approx \frac{E[|V_\tau^S - V_\tau^B|]}{V} = \frac{\sum_{i=1}^n |V_\tau^S - V_\tau^B|}{nV}
+
+V_\tau^B = \sum_{i=t(\tau-1)+1}^{t(\tau)} V_i \cdot Z\left( \frac{P_i - P_{i-1}}{\sigma_{\Delta P}} \right)
+
+V_\tau^S = \sum_{i=t(\tau-1)+1}^{t(\tau)} V_i \cdot \left[ 1 - Z\left( \frac{P_i - P_{i-1}}{\sigma_{\Delta P}} \right) \right] = V - V_\tau^B",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_345_u6885_65af_7ebf,2024,345,梅斯线,技术因子,,技术因子,量价技术类,factors2024.md,9623,9639,1d,1d,T_close,high|low,"\text{MASSINDEX} = \text{EMA}(\text{HIGH}-\text{LOW},9)/\text{EMA}((\text{EMA}(\text{HIGH}-\text{LOW},9),9)","ts_ema(high-low,9)/(ts_ema(ts_ema(high-low,9),9)+1e-12)",exact,,legacy_expression,,,,{},18
+calendar2024_346_u5c3e_76d8_6210_4ea4_5360_6bd4,2024,346,尾盘成交占比,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,9640,9661,1m,1d,T_close,volume,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{Vol_{i,14:30-15:00,n}}{Vol_{i,n}}","sum(volume,last30m)/sum(volume,day)",exact,,intraday_tail_share,,,,"{'field': 'volume', 'minutes': 30}",0
+calendar2024_347_u7edd_5bf9_6536_76ca_4e0e_6ede_540e_6210_4ea4,2024,347,绝对收益与滞后成交量相关性,高频因子-量价相关性类,,高频因子-量价相关性类,高频因子,factors2024.md,9662,9688,1m,1d,T_close,close|turnover,"CORA\_A = corr(|Ret_t|, Amount_{t-1}), t \in [1,240]","corr(abs(r_1m),lag(turnover,1))",exact,,intraday_return_turnover_corr,,,,"{'return_lag': 0, 'turnover_lag': 1}",0
+calendar2024_348_semibeta,2024,348,SemiBeta（负市场收益&负资产收益）高频因子-波动跳跃类,未分类,,,高频因子,factors2024.md,9689,9723,1m,1d,T_close,close|market_minute_ret,"\hat{\beta}_{t,i}^N = \frac{\sum_{k=1}^{m} r_{t,k,i}^- f_{t,k}^-}{\sum_{k=1}^{m} f_{t,k}^{2}}
+
+r_{t,k,i}^- = min(r_{t,k,i}, 0)
+
+f_{t,k}^- = min(f_{t,k}, 0)","sum(min(stock_ret,0)*min(market_ret,0))/sum(market_ret**2)",exact,,intraday_semibeta,,alpha101/158/191/360:concept_overlap|research_report_factors:concept_overlap,concept_overlap,"{'stock_side': 'negative', 'market_side': 'negative'}",0
+calendar2024_349_beta,2024,349,尾部 Beta,波动率因子,,波动率因子,波动率因子,factors2024.md,9724,9762,1d,1d,T_close,close|market_ret,"R_j^e = \beta_j^T R_m^e + \varepsilon_j, R_m^e < -VaR_m(\bar{p})
+
+\widehat{\beta_j^T} = \widehat{\tau_j(k/n)}^{1/\widehat{\alpha_m}} \frac{VaR_j(k/n)}{VaR_m(k/n)}
+
+\frac{1}{\widehat{\alpha_m}} = \frac{1}{k} \sum_{i=1}^k \log X_{n,n-i+1}^{(m)} - \log X_{n,n-k}^{(m)}
+
+\widehat{\tau_j(k/n)} = \frac{1}{k} \sum_{t=1}^n 1_{\{X_t^{(j)} > X_{n,n-k}^{(j)} \text{ and } X_t^{(m)} > X_{n,n-k}^{(m)}\}}","beta(return,market_return where market_return<=q10,252)",exact,,daily_rolling_risk,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'tail_beta', 'window': 252, 'min_samples': 126}",253
+calendar2024_350_u5bff_547d_6708_6570_5e73_5747_503c,2024,350,寿命月数平均值,另类因子,,另类因子,另类因子,factors2024.md,9763,9784,1d,1d,T_close,patent,\text{mean}(\text{截止日前5年内新生成的有效的发明公开审查中专利的寿命月数}),,blocked_data,精确实现依赖当前数据审计未发现的数据域: patent,,,,,{},0
+calendar2024_351_u57fa_4e8e_7269_7406_65f6_95f4_4ea4_6613_91cf,2024,351,基于物理时间交易量加权的知情交易概率,高频因子-资金流类,,高频因子-资金流类,高频因子,factors2024.md,9785,9811,1m,1d,T_close,orderbook,"VWPIN = \frac{\alpha\mu}{\alpha\mu + 2\varepsilon} \approx \sum_{i=1}^{n} w_i \frac{|S_i - B_i|}{S_i + B_i}
+
+w_i = \frac{Volume_i}{\sum_{i=1}^{n} Volume_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_352_u6362_624b_7387_5206_5e03_5747_5300_5ea6_56e0,2024,352,换手率分布均匀度因子,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,9812,9838,1m,1d,T_close,close|volume|a_share_market_val_in_circulation,"TurnVolDaily = std (分钟换手率)
+
+UTD = \frac{std(TurnVolDaily)}{mean(TurnVolDaily)}","std(std(volume_1m/float_shares),20)/mean(std(volume_1m/float_shares),20)",exact,,intraday_turnover_uniformity,,alpha101/158/191/360:concept_overlap,concept_overlap,{'window': 20},20
+calendar2024_353_u5f02_5e38_8d22_52a1_56e0_5b50,2024,353,异常财务因子,未分类,,,财务质量因子,factors2024.md,9839,9869,1d,1d,T_close,fundamental_raw,"异常F = \frac{当前季度末的F - 去年同期的F \times 正常增长乘数}{当前季度末总资产} \times (-1)
+
+正常增长乘数 = \frac{最新季度销售商品、提供劳务收到的现金}{去年同季度销售商品、提供劳务收到的现金}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: fundamental_raw,,,,,{},0
+calendar2024_354_u6210_4ea4_989d_6ce2_52a8_7cfb_6570,2024,354,成交额波动系数,未分类,,,波动率因子,factors2024.md,9870,9892,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,\frac{\text{mean}(\text{最近}K\text{个月日度成交额序列})}{\text{std}(\text{最近}K\text{个月日度成交额序列})},"mean(turnover,20)/std(turnover,20)",exact,,daily_liquidity_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'amount_mean_over_std', 'window': 20, 'long_window': 250}",21
+calendar2024_355_u6d41_52a8_6027_6ea2_4ef7_56e0_5b50_7b49_6743,2024,355,流动性溢价因子-等权,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,9893,9926,1m,1d,T_close,orderbook,"Cap_{need} = Sum(Vol_{i,need} \times Close_{i,n})
+
+Cap_{actual} = Sum(Vol_{i,actual} \times Close_{i,n})
+
+f = \frac{Sum(Cap_{need}, T)}{Sum(Cap_{actual}, T)} - 1",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_356_u52a0_6743_504f_5ea6,2024,356,加权偏度,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,9927,9950,1m,1d,T_close,open|high|low|close|volume|turnover,\frac{\sum_{t=1}^{T} w_t (close_t - \overline{close})^3}{close_\sigma^3},sum(volume_weight*(close-mean(close))**3)/std(close)**3,exact,,intraday_path_metric,,,,{'metric': 'weighted_skew'},0
+calendar2024_357_u76c8_4f59_516c_544a_80a1_7968_8df3_52a8,2024,357,盈余公告股票跳动,动量因子,,动量因子,动量因子,factors2024.md,9951,9967,1d,1d,T_close,earnings_event,\frac{\text{公告披露后下一日开盘价}}{\text{公告日收盘价}} - 1,,blocked_data,精确实现依赖当前数据审计未发现的数据域: earnings_event,,,,,{},0
+calendar2024_358_u8d85_5927_5355_6da8_8dcc_5e45,2024,358,超大单涨跌幅,高频因子-动量反转类,,高频因子-动量反转类,高频因子,factors2024.md,9968,9995,1m,1d,T_close,orderbook,"\Delta \ln P_i = \text{当前成交价格的对数}\ln P_i - \text{上一笔成交价格的对数}\ln P_{i-1}
+
+\sum_{i \in S} \Delta \ln P_i",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2024_359_u5fc3_7406_7ebf,2024,359,心理线,未分类,,,未分类,factors2024.md,9996,10013,1d,1d,T_close,close,"PSY = 100 \times \text{COUNT}(\text{CLOSE} > \text{CLOSE}[1], N) / N","100*ts_mean(rq_as_float(close>ts_delay(close,1)),12)",exact,,legacy_expression,,,,{},13
+calendar2024_360_u6ede_540e_7edd_5bf9_6536_76ca_4e0e_6210_4ea4,2024,360,滞后绝对收益与成交量相关性,未分类,,,未分类,factors2024.md,10014,10040,1m,1d,T_close,close|turnover,"CORA_R = corr(|Ret_{t-1}|, Amount_t), t \in [1,240]","corr(lag(abs(r_1m),1),turnover)",exact,,intraday_return_turnover_corr,,,,"{'return_lag': 1, 'turnover_lag': 0}",0
+calendar2024_361_u6301_4ed3_673a_6784_4e2a_6570,2024,361,持仓机构个数,未分类,,,未分类,factors2024.md,10040,10052,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2024_362_u7406_60f3_632f_5e45_56e0_5b50,2024,362,理想振幅因子,高频因子-波动跳跃类,,高频因子-波动跳跃类,高频因子,factors2024.md,10061,10083,1d,1d,T_close,high|low|close,"<span class=""tag"">高频因子-波动跳跃类</span>
+对单只股票，回溯取其最近N个交易日（默认N=20）的数据，计算每日的振幅（最高价/最低价-1）；
+计算理想振幅因子: \( V(\lambda) = V_{\text{high}}(\lambda) - V_{\text{low}}(\lambda) \)。","mean(amplitude|top25pct(close),20)-mean(amplitude|bottom25pct(close),20)",exact,,daily_ideal_amplitude,,,,"{'window': 20, 'fraction': 0.25}",20
+calendar2024_363_u4e70_5165_6d6e_4e8f_504f_79bb_56e0_5b50,2024,363,买入浮亏偏离因子,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,10084,10104,1m,1d,T_close,tick_trade,HCP = \frac{\sum_{i}^{N} \overline{price_{buyi}} * I_{p_{buyi} > colse}}{close} - 1,,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2024_364_u53cd_5411_65e5_5185_9006_8f6c_7684_9891_7387,2024,364,反向日内逆转的频率,高频因子-收益分布类,,高频因子-收益分布类,高频因子,factors2024.md,10105,10125,1d,1d,T_close,open|close,"NR_{i,t} = \frac{\sum_{d=1}^{T} I_{\{RET\_CO_{i,d}>0\}} \times I_{\{RET\_OC_{i,d}<0\}}}{T}",monthly_mean(overnight_return>0 and intraday_return<0),exact,,daily_reversal_frequency,,,,"{'direction': 'negative', 'abnormal': False}",21
+calendar2024_365_u5c3e_76d8_6210_4ea4_989d_5360_6bd4,2024,365,尾盘成交额占比,高频因子-成交分布类,,高频因子-成交分布类,高频因子,factors2024.md,10126,10151,1m,1d,T_close,turnover,"APL_{t,d} = \frac{\sum_{i=240-t}^{240} Amount_{t,d}}{TotalAmount_d}
+
+APL_t = \frac{\sum_{i=1}^{N} APL_{t,d}}{N}","sum(turnover,last30m)/sum(turnover,day)",exact,,intraday_tail_share,,,,"{'field': 'turnover', 'minutes': 30}",0
+calendar2024_366_u4e2d_95f4_4ef7_53d8_5316_7387_6700_5927_503c,2024,366,中间价变化率最大值,高频因子-流动性类,,高频因子-流动性类,高频因子,factors2024.md,10152,10174,1m,1d,T_close,orderbook,"MPC_{\max_{d,k}} = \max\{MPC_{d,t,k}, t = k+1, \ldots, N_d\}
+
+MPC_{d,t,k} = \frac{M_{d,t} - M_{d,t-k}}{M_{d,t-k}} \quad M_{d,t} = \frac{P_{d,t}^B + P_{d,t}^A}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0

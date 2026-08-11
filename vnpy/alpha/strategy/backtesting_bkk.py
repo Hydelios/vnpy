@@ -1,9 +1,8 @@
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from copy import copy
-from typing import cast, Any
+from typing import cast
 import traceback
-import math
 
 import numpy as np
 import polars as pl
@@ -18,6 +17,8 @@ from vnpy.trader.utility import round_to, extract_vt_symbol
 from ..logger import logger
 from ..lab import AlphaLab
 from .template import AlphaStrategy
+from .strategies.recorder import DailyRebalanceRecorder
+
 
 class BacktestingEngine:
     """Alpha strategy backtesting engine"""
@@ -34,8 +35,6 @@ class BacktestingEngine:
 
         self.long_rates: dict[str, float] = {}
         self.short_rates: dict[str, float] = {}
-        self.min_commissions: dict[str, float] = {}
-        self.volume_steps: dict[str, float] = {}
         self.sizes: dict[str, float] = {}
         self.priceticks: dict[str, float] = {}
 
@@ -45,9 +44,9 @@ class BacktestingEngine:
 
         self.strategy_class: type[AlphaStrategy]
         self.strategy: AlphaStrategy
-        self.strategy_setting: dict[str, Any] = {}
         self.bars: dict[str, BarData] = {}
         self.datetime: datetime | None = None
+        self.prev_datetime: datetime | None = None
 
         self.interval: Interval
         self.history_data: dict[tuple, BarData] = {}
@@ -69,8 +68,7 @@ class BacktestingEngine:
 
         self.cash: float = 0
         self.signal_df: pl.DataFrame
-        self.trade_commissions: dict[str, float] = {}
-        self._result_calculated: bool = False
+        self.rebalance_recorder: DailyRebalanceRecorder | None = None
 
     def set_parameters(
         self,
@@ -80,11 +78,7 @@ class BacktestingEngine:
         end: datetime,
         capital: int = 1_000_000,
         risk_free: float = 0,
-        annual_days: int = 240,
-        open_rate: float | None = None,
-        close_rate: float | None = None,
-        min_commission: float = 0,
-        min_volume: float = 1,
+        annual_days: int = 240
     ) -> None:
         """Set parameters"""
         self.vt_symbols = vt_symbols
@@ -98,74 +92,44 @@ class BacktestingEngine:
 
         self.cash = capital
 
-        if min_commission < 0:
-            raise ValueError("min_commission must be non-negative")
-        if min_volume <= 0:
-            raise ValueError("min_volume must be positive")
-
         contract_settings: dict = self.lab.load_contract_setttings()
         for vt_symbol in vt_symbols:
-            setting: dict | None = contract_settings.get(vt_symbol, None)
+            setting: dict = contract_settings.get(vt_symbol, None)
             if not setting:
                 logger.warning(f"找不到合约{vt_symbol}的交易配置，请检查！")
                 continue
 
-            self.long_rates[vt_symbol] = setting["long_rate"] if open_rate is None else open_rate
-            self.short_rates[vt_symbol] = setting["short_rate"] if close_rate is None else close_rate
-            self.min_commissions[vt_symbol] = min_commission
-            self.volume_steps[vt_symbol] = float(setting.get("min_volume", min_volume))
+            self.long_rates[vt_symbol] = setting["long_rate"]
+            self.short_rates[vt_symbol] = setting["short_rate"]
             self.sizes[vt_symbol] = setting["size"]
             self.priceticks[vt_symbol] = setting["pricetick"]
 
     def add_strategy(self, strategy_class: type, setting: dict, signal_df: pl.DataFrame) -> None:
         """Add strategy"""
         self.strategy_class = strategy_class
-        self.strategy_setting = copy(setting)
         self.strategy = strategy_class(
-            self, strategy_class.__name__, copy(self.vt_symbols), copy(setting)
+            self, strategy_class.__name__, copy(self.vt_symbols), setting
         )
         self.signal_df = signal_df
 
-    def configure_stock_costs(
+    def set_rebalance_recording(
         self,
-        open_rate: float | None = None,
-        close_rate: float | None = None,
-        min_commission: float | None = None,
-        min_volume: float | None = None,
+        output_dir: str = "rebalance_records/results",
+        save_empty: bool = True,
+        account_id: str | None = None,
+        direction_map: dict[str, str] | None = None,
+        market_map: dict[str, str] | None = None,
+        position_template_path: str | None = None,
     ) -> None:
-        """Apply one engine-owned stock cost and lot-size configuration."""
-        values = {
-            "open_rate": open_rate,
-            "close_rate": close_rate,
-            "min_commission": min_commission,
-        }
-        for name, value in values.items():
-            if value is not None and (not math.isfinite(value) or value < 0):
-                raise ValueError(f"{name} must be a non-negative finite number")
-        if min_volume is not None and (not math.isfinite(min_volume) or min_volume <= 0):
-            raise ValueError("min_volume must be a positive finite number")
-
-        for vt_symbol in self.vt_symbols:
-            if open_rate is not None:
-                self.long_rates[vt_symbol] = open_rate
-            if close_rate is not None:
-                self.short_rates[vt_symbol] = close_rate
-            if min_commission is not None:
-                self.min_commissions[vt_symbol] = min_commission
-            if min_volume is not None:
-                self.volume_steps[vt_symbol] = min_volume
-
-    def calculate_commission(
-        self,
-        vt_symbol: str,
-        direction: Direction,
-        turnover: float,
-    ) -> float:
-        """Calculate commission once for both cash accounting and PnL."""
-        if turnover <= 0:
-            return 0.0
-        rates = self.long_rates if direction == Direction.LONG else self.short_rates
-        return max(turnover * rates[vt_symbol], self.min_commissions.get(vt_symbol, 0.0))
+        """Enable daily rebalance list recording"""
+        self.rebalance_recorder = DailyRebalanceRecorder(
+            output_dir=output_dir,
+            save_empty=save_empty,
+            account_id=account_id,
+            direction_map=direction_map,
+            market_map=market_map,
+            position_template_path=position_template_path,
+        )
 
     def load_data(self) -> None:
         """Load historical data"""
@@ -200,25 +164,6 @@ class BacktestingEngine:
             if not data_count:
                 empty_symbols.append(vt_symbol)
 
-        if self.interval == Interval.DAILY:
-            limit_df: pl.DataFrame = self.lab.load_price_limit_df(
-                self.vt_symbols,
-                self.start,
-                self.end,
-            )
-            for row in limit_df.iter_rows(named=True):
-                key = (row["datetime"], row["vt_symbol"])
-                bar = self.history_data.get(key)
-                if bar is not None:
-                    raw_open = float(row.get("open") or 0)
-                    adjustment = (
-                        bar.open_price / raw_open
-                        if self._valid_open(bar.open_price) and self._valid_open(raw_open)
-                        else 1.0
-                    )
-                    bar.limit_up = float(row["limit_up"] or 0) * adjustment
-                    bar.limit_down = float(row["limit_down"] or 0) * adjustment
-
         if empty_symbols:
             logger.info(f"部分合约历史数据为空：{empty_symbols}")
 
@@ -226,7 +171,6 @@ class BacktestingEngine:
 
     def run_backtesting(self) -> None:
         """Start backtesting"""
-        self.reset_runtime()
         self.strategy.on_init()
         logger.info("策略初始化完成")
 
@@ -245,36 +189,9 @@ class BacktestingEngine:
 
         logger.info("历史数据回放结束")
 
-    def reset_runtime(self) -> None:
-        """Reset mutable runtime state while retaining loaded market data."""
-        self.bars.clear()
-        self.datetime = None
-        self.limit_order_count = 0
-        self.limit_orders.clear()
-        self.active_limit_orders.clear()
-        self.trade_count = 0
-        self.trades.clear()
-        self.trade_commissions.clear()
-        self.logs.clear()
-        self.daily_results.clear()
-        self.pre_closes.clear()
-        self.cash = self.capital
-        self._result_calculated = False
-        if hasattr(self, "daily_df"):
-            del self.daily_df
-        self.strategy = self.strategy_class(
-            self,
-            self.strategy_class.__name__,
-            copy(self.vt_symbols),
-            copy(self.strategy_setting),
-        )
-
     def calculate_result(self) -> pl.DataFrame | None:
         """Calculate daily mark-to-market profit and loss"""
         logger.info("开始计算逐日盯市盈亏")
-
-        if self._result_calculated:
-            return self.daily_df
 
         if not self.trades:
             logger.info("成交记录为空，无法计算")
@@ -297,8 +214,7 @@ class BacktestingEngine:
                 start_poses,
                 self.sizes,
                 self.long_rates,
-                self.short_rates,
-                self.trade_commissions,
+                self.short_rates
             )
 
             pre_closes = daily_result.close_prices
@@ -329,7 +245,6 @@ class BacktestingEngine:
             ])
 
         logger.info("逐日盯市盈亏计算完成")
-        self._result_calculated = True
         return self.daily_df
 
     def calculate_statistics(self) -> dict:
@@ -365,27 +280,23 @@ class BacktestingEngine:
         positive_balance: bool = False
 
         # Calculate capital-related metrics
-        raw_columns = [
-            "date", "trade_count", "turnover", "commission",
-            "trading_pnl", "holding_pnl", "total_pnl", "net_pnl",
-        ]
-        df: pl.DataFrame = self.daily_df.select(raw_columns)
+        df: pl.DataFrame = self.daily_df
 
         if df is not None:
             df = df.with_columns(
                 # Strategy capital
-                balance=pl.col("net_pnl").cum_sum() + self.capital,
-                gross_return=pl.col("total_pnl") / self.capital,
-                return_=pl.col("net_pnl") / self.capital,
+                balance=pl.col("net_pnl").cum_sum() + self.capital
             ).with_columns(
+                # Strategy return
+                pl.col("balance").pct_change().fill_null(0).alias("return"),
                 # Capital high watermark
-                highlevel=pl.max_horizontal(pl.col("balance").cum_max(), pl.lit(float(self.capital)))
+                highlevel=pl.col("balance").cum_max()
             ).with_columns(
                 # Capital drawdown
                 drawdown=pl.col("balance") - pl.col("highlevel"),
-                # Fixed-capital arithmetic drawdown percentage
-                ddpercent=(pl.col("balance") - pl.col("highlevel")) / self.capital * 100
-            ).rename({"return_": "return"})
+                # Percentage drawdown
+                ddpercent=(pl.col("balance") / pl.col("highlevel") - 1) * 100
+            )
 
             # Check if bankruptcy occurred
             positive_balance = (df["balance"] > 0).all()
@@ -418,13 +329,13 @@ class BacktestingEngine:
             else:
                 max_drawdown_duration = 0
 
-            total_net_pnl = cast(float, df["net_pnl"].sum())
+            total_net_pnl = df["net_pnl"].sum()
             daily_net_pnl = total_net_pnl / total_days
 
-            total_commission = cast(float, df["commission"].sum())
+            total_commission = df["commission"].sum()
             daily_commission = total_commission / total_days
 
-            total_turnover = cast(float, df["turnover"].sum())
+            total_turnover = df["turnover"].sum()
             daily_turnover = total_turnover / total_days
 
             total_trade_count = cast(int, df["trade_count"].sum())
@@ -436,12 +347,15 @@ class BacktestingEngine:
             return_std = cast(float, df["return"].std()) * 100
 
             if return_std:
-                daily_risk_free = self.risk_free / self.annual_days
+                daily_risk_free = self.risk_free / np.sqrt(self.annual_days)
                 sharpe_ratio = (daily_return - daily_risk_free) / return_std * np.sqrt(self.annual_days)
             else:
                 sharpe_ratio = 0
 
-            return_drawdown_ratio = -total_net_pnl / max_drawdown if max_drawdown else 0
+            if max_drawdown:
+                return_drawdown_ratio = -total_net_pnl / max_drawdown
+            else:
+                return_drawdown_ratio = 0
 
         # Output results
         logger.info("-" * 30)
@@ -512,6 +426,123 @@ class BacktestingEngine:
         logger.info("策略统计指标计算完成")
         return statistics
 
+    def calculate_alpha_statistics(self, benchmark_symbol: str) -> dict:
+        """Calculate alpha statistics based on benchmark"""
+        logger.info("开始计算Alpha统计指标")
+
+        if not hasattr(self, "daily_df"):
+            logger.info("尚未计算逐日盈亏，无法计算Alpha指标")
+            return {}
+
+        df: pl.DataFrame = self.daily_df
+        if df.is_empty():
+            logger.info("逐日结果为空，无法计算Alpha指标")
+            return {}
+
+        if "balance" not in df.columns:
+            df = df.with_columns(
+                balance=pl.col("net_pnl").cum_sum() + self.capital
+            )
+
+        if "return" not in df.columns:
+            df = df.with_columns(
+                pl.col("balance").pct_change().fill_null(0).alias("return")
+            )
+        self.daily_df = df
+
+        # Load benchmark prices
+        benchmark_bars: list[BarData] = self.lab.load_bar_data(
+            benchmark_symbol,
+            self.interval,
+            self.start,
+            self.end
+        )
+
+        if not benchmark_bars:
+            logger.info("基准指数数据为空，无法计算Alpha指标")
+            return {}
+
+        benchmark_df: pl.DataFrame = pl.DataFrame(
+            {
+                "date": [bar.datetime.date() for bar in benchmark_bars],
+                "benchmark_price": [bar.close_price for bar in benchmark_bars],
+            }
+        ).unique(subset=["date"], keep="last")
+
+        df = df.join(benchmark_df, on="date", how="left").drop_nulls(["benchmark_price"])
+        if df.is_empty():
+            logger.info("与基准指数对齐后无有效数据，无法计算Alpha指标")
+            return {}
+
+        df = df.with_columns(
+            benchmark_return=pl.col("benchmark_price").pct_change().fill_null(0)
+        ).with_columns(
+            alpha_return=pl.col("return") - pl.col("benchmark_return")
+        ).with_columns(
+            alpha_curve=pl.col("alpha_return").cum_sum(),
+            alpha_high=pl.col("alpha_return").cum_sum().cum_max()
+        ).with_columns(
+            alpha_drawdown=pl.col("alpha_curve") - pl.col("alpha_high")
+        )
+
+        total_days: int = len(df)
+        alpha_total_return: float = cast(float, df["alpha_curve"][-1]) * 100
+        alpha_annual_return: float = alpha_total_return / total_days * self.annual_days
+        alpha_daily_return: float = cast(float, df["alpha_return"].mean()) * 100
+        alpha_return_std: float = cast(float, df["alpha_return"].std()) * 100
+
+        if alpha_return_std:
+            alpha_sharpe: float = alpha_daily_return / alpha_return_std * np.sqrt(self.annual_days)
+        else:
+            alpha_sharpe = 0
+
+        alpha_max_drawdown: float = cast(float, df["alpha_drawdown"].min()) * 100
+        alpha_calmar: float = 0
+        if alpha_max_drawdown:
+            alpha_calmar = alpha_annual_return / abs(alpha_max_drawdown)
+
+        max_drawdown_end_idx = cast(int, df["alpha_drawdown"].arg_min())
+        max_drawdown_end = df["date"][max_drawdown_end_idx]
+
+        if isinstance(max_drawdown_end, date):
+            max_drawdown_start_idx = cast(
+                int,
+                df.slice(0, max_drawdown_end_idx + 1)["alpha_curve"].arg_max()
+            )
+            max_drawdown_start = df["date"][max_drawdown_start_idx]
+            alpha_max_drawdown_duration = (max_drawdown_end - max_drawdown_start).days
+        else:
+            alpha_max_drawdown_duration = 0
+
+        statistics: dict = {
+            "alpha_total_return": alpha_total_return,
+            "alpha_annual_return": alpha_annual_return,
+            "alpha_daily_return": alpha_daily_return,
+            "alpha_return_std": alpha_return_std,
+            "alpha_sharpe": alpha_sharpe,
+            "alpha_max_drawdown": alpha_max_drawdown,
+            "alpha_calmar": alpha_calmar,
+            "alpha_max_drawdown_duration": alpha_max_drawdown_duration,
+        }
+
+        for key, value in statistics.items():
+            if value in (np.inf, -np.inf):
+                value = 0
+            statistics[key] = np.nan_to_num(value)
+
+        logger.info("-" * 30)
+        logger.info(f"Alpha总收益：  {statistics['alpha_total_return']:,.2f}%")
+        logger.info(f"Alpha年化收益：  {statistics['alpha_annual_return']:,.2f}%")
+        logger.info(f"Alpha日均收益：  {statistics['alpha_daily_return']:,.2f}%")
+        logger.info(f"Alpha收益标准差：  {statistics['alpha_return_std']:,.2f}%")
+        logger.info(f"Alpha Sharpe：  {statistics['alpha_sharpe']:,.2f}")
+        logger.info(f"Alpha最大回撤：  {statistics['alpha_max_drawdown']:,.2f}%")
+        logger.info(f"Alpha Calmar：  {statistics['alpha_calmar']:,.2f}")
+        logger.info(f"Alpha最长回撤天数：  {statistics['alpha_max_drawdown_duration']}")
+
+        logger.info("Alpha统计指标计算完成")
+        return statistics
+
     def show_chart(self) -> None:
         """Display chart"""
         df: pl.DataFrame = self.daily_df
@@ -548,190 +579,76 @@ class BacktestingEngine:
         fig.update_layout(height=1000, width=1000)
         fig.show()
 
-    def calculate_performance(self, benchmark_symbol: str) -> pl.DataFrame:
-        """Calculate fixed-capital arithmetic strategy and benchmark performance."""
-        required_columns: set[str] = {"date", "turnover", "commission", "total_pnl", "net_pnl"}
-        missing_columns: set[str] = required_columns - set(self.daily_df.columns)
-        if missing_columns:
-            raise ValueError(f"daily_df is missing required columns: {sorted(missing_columns)}")
-        if self.daily_df.is_empty():
-            raise ValueError("daily_df must not be empty")
-        if not np.isfinite(self.capital) or self.capital <= 0:
-            raise ValueError("capital must be a positive finite value")
-        if self.daily_df["date"].null_count() or self.daily_df["date"].n_unique() != self.daily_df.height:
-            raise ValueError("daily_df dates must be non-null and unique")
+    def show_performance(self, benchmark_symbol: str) -> None:
+        """Display performance metrics"""
+        if not hasattr(self, "daily_df"):
+            logger.info("尚未计算逐日盈亏，无法展示绩效")
+            return
 
-        numeric_columns: list[str] = ["turnover", "commission", "total_pnl", "net_pnl"]
-        numeric_values: np.ndarray = self.daily_df.select(numeric_columns).to_numpy().astype(float)
-        if not np.isfinite(numeric_values).all():
-            raise ValueError("daily_df numeric inputs must be finite")
-        if (self.daily_df["turnover"] < 0).any() or (self.daily_df["commission"] < 0).any():
-            raise ValueError("daily_df turnover and commission must be non-negative")
-        if not np.allclose(
-            self.daily_df["net_pnl"].to_numpy(),
-            (self.daily_df["total_pnl"] - self.daily_df["commission"]).to_numpy(),
-            rtol=1e-9,
-            atol=1e-8,
-        ):
-            raise ValueError("daily_df net_pnl must equal total_pnl minus commission")
+        df: pl.DataFrame = self.daily_df
+        if df.is_empty():
+            logger.info("逐日结果为空，无法展示绩效")
+            return
 
-        strategy_df: pl.DataFrame = self.daily_df.sort("date")
-        first_strategy_date: date = strategy_df["date"][0]
-        benchmark_bars: list[BarData] = self.lab.load_bar_data(
-            benchmark_symbol,
-            self.interval,
-            self.start - timedelta(days=31),
-            self.end,
-        )
-
-        benchmark_rows: list[dict[str, object]] = [
-            {"datetime": bar.datetime, "benchmark_price": bar.close_price}
-            for bar in benchmark_bars
-            if bar.datetime is not None
-        ]
-        if not benchmark_rows:
-            raise ValueError("benchmark data is empty")
-
-        benchmark_df: pl.DataFrame = (
-            pl.DataFrame(benchmark_rows)
-            .with_columns(
-                pl.col("datetime").cast(pl.Datetime),
-                pl.col("benchmark_price").cast(pl.Float64),
+        if "balance" not in df.columns:
+            df = df.with_columns(
+                balance=pl.col("net_pnl").cum_sum() + self.capital
             )
-            .sort("datetime")
-            .with_columns(date=pl.col("datetime").dt.date())
-            .group_by("date", maintain_order=True)
-            .agg(pl.col("benchmark_price").last())
-            .sort("date")
-        )
-        benchmark_prices: np.ndarray = benchmark_df["benchmark_price"].to_numpy()
-        if not np.isfinite(benchmark_prices).all() or np.any(benchmark_prices <= 0):
-            raise ValueError("benchmark close prices must be positive and finite")
-        if benchmark_df.filter(pl.col("date") < pl.lit(first_strategy_date)).is_empty():
-            raise ValueError("benchmark requires a valid pre-start close before the first strategy date")
 
-        benchmark_df = benchmark_df.with_columns(
-            benchmark_daily_return=pl.col("benchmark_price").pct_change(),
-        )
-        benchmark_performance_df: pl.DataFrame = benchmark_df.filter(
-            pl.col("date") >= pl.lit(first_strategy_date)
-        ).with_columns(
-            benchmark_return=pl.col("benchmark_daily_return").fill_null(0.0).cum_sum(),
-        )
-        performance_df: pl.DataFrame = strategy_df.join(benchmark_performance_df, on="date", how="left")
-        if performance_df["benchmark_price"].null_count() or performance_df["benchmark_daily_return"].null_count():
-            raise ValueError("benchmark data is missing for one or more strategy dates")
+        if "return" not in df.columns:
+            df = df.with_columns(
+                pl.col("balance").pct_change().fill_null(0).alias("return")
+            )
 
-        performance_df = (
-            performance_df.with_columns(
-                gross_daily_return=pl.col("total_pnl") / self.capital,
-                net_daily_return=pl.col("net_pnl") / self.capital,
-                cost=pl.col("commission") / self.capital,
-                daily_turnover=pl.col("turnover") / self.capital,
-                gross_balance=pl.col("total_pnl").cum_sum() + self.capital,
-                net_balance=pl.col("net_pnl").cum_sum() + self.capital,
+        self.daily_df = df
+
+        # Load benchmark prices
+        benchmark_bars: list[BarData] = self.lab.load_bar_data(benchmark_symbol, self.interval, self.start, self.end)
+        if not benchmark_bars:
+            logger.info("基准指数数据为空，无法展示绩效")
+            return
+
+        benchmark_df: pl.DataFrame = pl.DataFrame(
+            {
+                "date": [bar.datetime.date() for bar in benchmark_bars],
+                "benchmark_price": [bar.close_price for bar in benchmark_bars],
+            }
+        ).unique(subset=["date"], keep="last")
+
+        # Calculate strategy performance
+        performance_df: pl.DataFrame = (
+            df.join(benchmark_df, on="date", how="left").drop_nulls(["benchmark_price"]).with_columns(
+                # Cumulative return
+                cumulative_return=pl.col("balance").pct_change().cum_sum(),
+                # Cumulative cost
+                cumulative_cost=(pl.col("commission") / pl.col("balance").shift(1)).cum_sum()
             ).with_columns(
-                cumulative_return=pl.col("gross_daily_return").cum_sum(),
-                net_cumulative_return=pl.col("net_daily_return").cum_sum(),
-                cumulative_cost=pl.col("cost").cum_sum(),
+                # Benchmark return
+                benchmark_return=pl.col("benchmark_price").pct_change().cum_sum()
             ).with_columns(
-                excess_return=pl.col("cumulative_return") - pl.col("benchmark_return"),
-                net_excess_return=pl.col("net_cumulative_return") - pl.col("benchmark_return"),
+                # Excess return
+                excess_return=(pl.col("cumulative_return") - pl.col("benchmark_return"))
             ).with_columns(
-                excess_return_drawdown=pl.col("excess_return") - pl.max_horizontal(
-                    pl.col("excess_return").cum_max(), pl.lit(0.0)
-                ),
-                net_excess_return_drawdown=pl.col("net_excess_return") - pl.max_horizontal(
-                    pl.col("net_excess_return").cum_max(), pl.lit(0.0)
-                ),
+                # Net excess return
+                net_excess_return=(pl.col("excess_return") - pl.col("cumulative_cost")),
+            ).with_columns(
+                # Excess return drawdown
+                excess_return_drawdown=(pl.col("excess_return") - pl.col("excess_return").cum_max()),
+                # Net excess return drawdown
+                net_excess_return_drawdown=(pl.col("net_excess_return") - pl.col("net_excess_return").cum_max())
             )
         )
 
-        return performance_df
+        if performance_df.is_empty():
+            logger.info("与基准指数对齐后无有效数据，无法展示绩效")
+            return
 
-    def calculate_alpha_statistics(
-        self,
-        benchmark_symbol: str | None = None,
-        performance_df: pl.DataFrame | None = None,
-    ) -> dict[str, Any]:
-        """Calculate fixed-capital arithmetic excess-return statistics."""
-        if performance_df is None:
-            if benchmark_symbol is None:
-                raise ValueError("benchmark_symbol is required when performance_df is omitted")
-            performance_df = self.calculate_performance(benchmark_symbol)
-        required = {"date", "net_daily_return", "benchmark_daily_return"}
-        missing = required - set(performance_df.columns)
-        if missing:
-            raise ValueError(f"performance_df is missing required columns: {sorted(missing)}")
-
-        alpha_df = performance_df.select(
-            "date",
-            (pl.col("net_daily_return") - pl.col("benchmark_daily_return")).alias("alpha_return"),
-        ).with_columns(
-            alpha_curve=pl.col("alpha_return").cum_sum(),
-        ).with_columns(
-            alpha_high=pl.max_horizontal(pl.col("alpha_curve").cum_max(), pl.lit(0.0)),
-        ).with_columns(
-            alpha_drawdown=pl.col("alpha_curve") - pl.col("alpha_high"),
-        )
-        total_days = alpha_df.height
-        if not total_days:
-            return {}
-
-        alpha_total_return = cast(float, alpha_df["alpha_return"].sum()) * 100
-        alpha_daily_return = cast(float, alpha_df["alpha_return"].mean()) * 100
-        std_value = alpha_df["alpha_return"].std()
-        alpha_return_std = float(std_value or 0.0) * 100
-        alpha_annual_return = alpha_daily_return * self.annual_days
-        alpha_sharpe = (
-            alpha_daily_return / alpha_return_std * np.sqrt(self.annual_days)
-            if alpha_return_std
-            else 0.0
-        )
-        alpha_max_drawdown = cast(float, alpha_df["alpha_drawdown"].min()) * 100
-        alpha_calmar = (
-            alpha_annual_return / abs(alpha_max_drawdown)
-            if alpha_max_drawdown
-            else 0.0
-        )
-        end_index = cast(int, alpha_df["alpha_drawdown"].arg_min())
-        end_date = alpha_df["date"][end_index]
-        start_index = cast(
-            int,
-            alpha_df.slice(0, end_index + 1)["alpha_curve"].arg_max(),
-        )
-        start_date = alpha_df["date"][start_index]
-        duration = (
-            (end_date - start_date).days
-            if isinstance(end_date, date) and isinstance(start_date, date)
-            else 0
-        )
-        return {
-            "alpha_total_return": alpha_total_return,
-            "alpha_annual_return": alpha_annual_return,
-            "alpha_daily_return": alpha_daily_return,
-            "alpha_return_std": alpha_return_std,
-            "alpha_sharpe": alpha_sharpe,
-            "alpha_max_drawdown": alpha_max_drawdown,
-            "alpha_calmar": alpha_calmar,
-            "alpha_max_drawdown_duration": duration,
-        }
-
-    def plot_performance(self, performance_df: pl.DataFrame) -> go.Figure:
-        """Plot an already calculated performance frame."""
         # Draw chart
         fig: go.Figure = make_subplots(
             rows=5,
             cols=1,
-            subplot_titles=["Return", "Alpha", "Turnover & cost", "Alpha Drawdown", "Alpha Drawdown with Cost"],
-            vertical_spacing=0.06,
-            specs=[
-                [{}],
-                [{}],
-                [{"secondary_y": True}],
-                [{}],
-                [{}],
-            ]
+            subplot_titles=["Return", "Alpha", "Turnover", "Alpha Drawdown", "Alpha Drawdown with Cost"],
+            vertical_spacing=0.06
         )
 
         strategy_curve: go.Scatter = go.Scatter(
@@ -742,7 +659,7 @@ class BacktestingEngine:
         )
         net_strategy_curve: go.Scatter = go.Scatter(
             x=performance_df["date"],
-            y=performance_df["net_cumulative_return"],
+            y=performance_df["cumulative_return"] - performance_df["cumulative_cost"],
             mode="lines",
             name="Strategy with Cost"
         )
@@ -766,14 +683,8 @@ class BacktestingEngine:
         )
         turnover_curve: go.Scatter = go.Scatter(
             x=performance_df["date"],
-            y=performance_df["daily_turnover"],
+            y=performance_df["turnover"] / performance_df["balance"].shift(1),
             name="Turnover",
-        )
-        cost_curve: go.Scatter = go.Scatter(
-            x=performance_df["date"],
-            y=performance_df["cost"],
-            mode="lines",
-            name="Daily Cost Ratio",
         )
         excess_drawdown_curve: go.Scatter = go.Scatter(
             x=performance_df["date"],
@@ -795,8 +706,7 @@ class BacktestingEngine:
         fig.add_trace(benchmark_curve, row=1, col=1)
         fig.add_trace(excess_curve, row=2, col=1)
         fig.add_trace(net_excess_curve, row=2, col=1)
-        fig.add_trace(turnover_curve, row=3, col=1, secondary_y=False)
-        fig.add_trace(cost_curve, row=3, col=1, secondary_y=True)
+        fig.add_trace(turnover_curve, row=3, col=1)
         fig.add_trace(excess_drawdown_curve, row=4, col=1)
         fig.add_trace(net_excess_drawdown_curve, row=5, col=1)
 
@@ -809,20 +719,14 @@ class BacktestingEngine:
             xaxis2=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
             xaxis3=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
             xaxis4=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
-            xaxis5=dict(showgrid=True, gridwidth=1, gridcolor='LightGray')
+            xaxis5=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
+            yaxis=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
+            yaxis2=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
+            yaxis3=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
+            yaxis4=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
+            yaxis5=dict(showgrid=True, gridwidth=1, gridcolor='LightGray')
         )
-        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="LightGray")
-        fig.update_yaxes(title_text="Turnover", row=3, col=1, secondary_y=False)
-        fig.update_yaxes(title_text="Daily Cost", row=3, col=1, secondary_y=True)
         fig.show()
-
-        return fig
-
-    def show_performance(self, benchmark_symbol: str) -> pl.DataFrame:
-        """Backward-compatible calculation and display entrypoint."""
-        performance_df = self.calculate_performance(benchmark_symbol)
-        self.plot_performance(performance_df)
-        return performance_df
 
     def update_daily_close(self, bars: dict[str, BarData], dt: datetime) -> None:
         """Update daily closing price"""
@@ -844,6 +748,7 @@ class BacktestingEngine:
 
     def new_bars(self, dt: datetime) -> None:
         """Push historical data"""
+        prev_date = self.prev_datetime.date() if self.prev_datetime else None
         self.datetime = dt
 
         bars: dict[str, BarData] = {}
@@ -877,177 +782,113 @@ class BacktestingEngine:
                 )
                 self.bars[vt_symbol] = fill_bar
 
-        self.strategy.on_open(bars)
-        self.cross_order(bars)
-        self.strategy.on_after_open(bars)
+        self.cross_order()
         self.strategy.on_bars(bars)
 
+        if self.rebalance_recorder:
+            close_prices = {vt_symbol: bar.close_price for vt_symbol, bar in self.bars.items()}
+            self.rebalance_recorder.record_rebalance(
+                target_date=dt.date(),
+                pos_data=dict(self.strategy.pos_data),
+                target_data=dict(self.strategy.target_data),
+                close_prices=close_prices,
+                sizes=self.sizes,
+                position_date=prev_date or dt.date(),
+                strategy_name=self.strategy.strategy_name,
+            )
+
         self.update_daily_close(self.bars, dt)
+        self.prev_datetime = dt
 
-    def cross_order(self, bars: dict[str, BarData] | None = None) -> None:
-        """Match at the open, processing sells before cash-constrained buys."""
-        current_bars = self.bars if bars is None else bars
-        orders = sorted(
-            self.active_limit_orders.values(),
-            key=lambda order: (
-                0 if order.direction == Direction.SHORT else 1,
-                order.vt_symbol,
-                int(order.orderid),
-            ),
-        )
+    def cross_order(self) -> None:
+        """Match limit orders"""
+        for order in list(self.active_limit_orders.values()):
+            bar: BarData = self.bars[order.vt_symbol]
 
-        executable_sells: list[tuple[OrderData, float, float]] = []
-        executable_buys: list[tuple[OrderData, float, float]] = []
-        for order in orders:
+            long_cross_price: float = bar.low_price
+            short_cross_price: float = bar.high_price
+            long_best_price: float = bar.open_price
+            short_best_price: float = bar.open_price
+
+            # Push order status update for unfilled orders
             if order.status == Status.SUBMITTING:
                 order.status = Status.NOTTRADED
                 self.strategy.update_order(order)
 
-            bar = current_bars.get(order.vt_symbol)
-            if bar is None or not self._valid_open(bar.open_price):
-                continue
-            limit_up, limit_down = self._get_price_limits(order.vt_symbol, bar)
-            remaining = order.volume - order.traded
-            if remaining <= 0:
-                continue
+            # Calculate price limits
+            pricetick: float = self.priceticks[order.vt_symbol]
+            pre_close: float = self.pre_closes.get(order.vt_symbol, 0)
 
-            if (
+            limit_up: float = round_to(pre_close * 1.1, pricetick)
+            limit_down: float = round_to(pre_close * 0.9, pricetick)
+
+            # Check limit orders that can be matched
+            long_cross: bool = (
                 order.direction == Direction.LONG
-                and order.price >= bar.open_price
-                and bar.open_price < limit_up
-            ):
-                executable_buys.append((order, bar.open_price, remaining))
-            elif (
+                and order.price >= long_cross_price
+                and long_cross_price > 0
+                and bar.low_price < limit_up        # Not a full-day limit-up market
+            )
+
+            short_cross: bool = (
                 order.direction == Direction.SHORT
-                and order.price <= bar.open_price
-                and bar.open_price > limit_down
-            ):
-                executable_sells.append((order, bar.open_price, remaining))
+                and order.price <= short_cross_price
+                and short_cross_price > 0
+                and bar.high_price > limit_down     # Not a full-day limit-down market
+            )
 
-        for order, price, volume in executable_sells:
-            self._fill_order(order, price, volume)
+            if not long_cross and not short_cross:
+                continue
 
-        buy_volumes = self._cash_feasible_buy_volumes(executable_buys)
-        for order, price, _ in executable_buys:
-            volume = buy_volumes.get(order.vt_orderid, 0.0)
-            if volume > 0:
-                self._fill_order(order, price, volume)
-            if order.vt_orderid in self.active_limit_orders:
-                self.cancel_order(self.strategy, order.vt_orderid)
-
-        if self.cash < -1e-8:
-            raise RuntimeError(f"cash became negative after matching: {self.cash}")
-        if abs(self.cash) < 1e-8:
-            self.cash = 0.0
-
-    @staticmethod
-    def _valid_open(price: float) -> bool:
-        return isinstance(price, (int, float)) and math.isfinite(price) and price > 0
-
-    def _get_price_limits(self, vt_symbol: str, bar: BarData) -> tuple[float, float]:
-        limit_up = bar.limit_up
-        limit_down = bar.limit_down
-        if not self._valid_open(limit_up) or not self._valid_open(limit_down):
-            pricetick = self.priceticks[vt_symbol]
-            pre_close = self.pre_closes.get(vt_symbol, 0)
-            if not self._valid_open(pre_close):
-                return math.inf, -math.inf
-            limit_up = round_to(pre_close * 1.1, pricetick)
-            limit_down = round_to(pre_close * 0.9, pricetick)
-        return limit_up, limit_down
-
-    def is_buyable_at_open(self, vt_symbol: str, bar: BarData | None) -> bool:
-        """Return whether a stock can be bought at this opening auction."""
-        if bar is None or not self._valid_open(bar.open_price):
-            return False
-        limit_up, _ = self._get_price_limits(vt_symbol, bar)
-        return bar.open_price < limit_up
-
-    def is_sellable_at_open(self, vt_symbol: str, bar: BarData | None) -> bool:
-        """Return whether a stock can be sold at this opening auction."""
-        if bar is None or not self._valid_open(bar.open_price):
-            return False
-        _, limit_down = self._get_price_limits(vt_symbol, bar)
-        return bar.open_price > limit_down
-
-    def _cash_feasible_buy_volumes(
-        self,
-        buys: list[tuple[OrderData, float, float]],
-    ) -> dict[str, float]:
-        if not buys or self.cash <= 0:
-            return {}
-
-        def volumes_and_cost(scale: float) -> tuple[dict[str, float], float]:
-            volumes: dict[str, float] = {}
-            cost = 0.0
-            for order, price, requested in buys:
-                step = self.volume_steps.get(order.vt_symbol, 1.0)
-                volume = math.floor(requested * scale / step + 1e-12) * step
-                if volume <= 0:
-                    continue
-                turnover = price * volume * self.sizes[order.vt_symbol]
-                commission = self.calculate_commission(order.vt_symbol, Direction.LONG, turnover)
-                volumes[order.vt_orderid] = volume
-                cost += turnover + commission
-            return volumes, cost
-
-        volumes, cost = volumes_and_cost(1.0)
-        if cost <= self.cash + 1e-8:
-            return volumes
-
-        low, high = 0.0, 1.0
-        for _ in range(60):
-            middle = (low + high) / 2
-            _, middle_cost = volumes_and_cost(middle)
-            if middle_cost <= self.cash:
-                low = middle
-            else:
-                high = middle
-        return volumes_and_cost(low)[0]
-
-    def _fill_order(self, order: OrderData, price: float, volume: float) -> None:
-        remaining = order.volume - order.traded
-        fill_volume = min(volume, remaining)
-        if fill_volume <= 0:
-            return
-
-        size = self.sizes[order.vt_symbol]
-        turnover = price * fill_volume * size
-        direction = cast(Direction, order.direction)
-        commission = self.calculate_commission(order.vt_symbol, direction, turnover)
-        if direction == Direction.LONG and turnover + commission > self.cash + 1e-8:
-            return
-
-        order.traded += fill_volume
-        if math.isclose(order.traded, order.volume, abs_tol=1e-9):
+            # Push order status update for filled orders
             order.traded = order.volume
             order.status = Status.ALLTRADED
-            self.active_limit_orders.pop(order.vt_orderid, None)
-        else:
-            order.status = Status.PARTTRADED
-        self.strategy.update_order(order)
+            self.strategy.update_order(order)
 
-        self.trade_count += 1
-        trade = TradeData(
-            symbol=order.symbol,
-            exchange=order.exchange,
-            orderid=order.orderid,
-            tradeid=str(self.trade_count),
-            direction=direction,
-            offset=order.offset,
-            price=price,
-            volume=fill_volume,
-            datetime=self.datetime,
-            gateway_name=self.gateway_name,
-        )
-        if direction == Direction.LONG:
-            self.cash -= turnover + commission
-        else:
-            self.cash += turnover - commission
+            if order.vt_orderid in self.active_limit_orders:
+                self.active_limit_orders.pop(order.vt_orderid)
 
-        self.strategy.update_trade(trade)
-        self.trades[trade.vt_tradeid] = trade
-        self.trade_commissions[trade.vt_tradeid] = commission
+            # Generate trade information
+            self.trade_count += 1
+
+            if long_cross:
+                trade_price = min(order.price, long_best_price)
+            else:
+                trade_price = max(order.price, short_best_price)
+
+            trade: TradeData = TradeData(
+                symbol=order.symbol,
+                exchange=order.exchange,
+                orderid=order.orderid,
+                tradeid=str(self.trade_count),
+                direction=order.direction,
+                offset=order.offset,
+                price=trade_price,
+                volume=order.volume,
+                datetime=self.datetime,
+                gateway_name=self.gateway_name,
+            )
+
+            # Update available funds
+            size: float = self.sizes[trade.vt_symbol]
+
+            trade_turnover: float = trade.price * trade.volume * size
+
+            if trade.direction == Direction.LONG:
+                trade_commission: float = trade_turnover * self.long_rates[trade.vt_symbol]
+            else:
+                trade_commission = trade_turnover * self.short_rates[trade.vt_symbol]
+
+            if trade.direction == Direction.LONG:
+                self.cash -= trade_turnover
+            else:
+                self.cash += trade_turnover
+
+            self.cash -= trade_commission
+
+            # Push trade information
+            self.strategy.update_trade(trade)
+            self.trades[trade.vt_tradeid] = trade
 
     def get_signal(self) -> pl.DataFrame:
         """Get model prediction signal for current time"""
@@ -1172,8 +1013,7 @@ class ContractDailyResult:
         start_pos: float,
         size: float,
         long_rate: float,
-        short_rate: float,
-        trade_commissions: dict[str, float],
+        short_rate: float
     ) -> None:
         """Calculate profit and loss"""
         # If there is no previous close price, use 1 instead to avoid division error
@@ -1205,7 +1045,7 @@ class ContractDailyResult:
 
             self.trading_pnl += pos_change * (self.close_price - trade.price) * size
             self.turnover += turnover
-            self.commission += trade_commissions.get(trade.vt_tradeid, turnover * rate)
+            self.commission += turnover * rate
 
         # Calculate daily profit and loss
         self.total_pnl = self.trading_pnl + self.holding_pnl
@@ -1251,8 +1091,7 @@ class PortfolioDailyResult:
         start_poses: dict[str, float],
         sizes: dict[str, float],
         long_rates: dict[str, float],
-        short_rates: dict[str, float],
-        trade_commissions: dict[str, float],
+        short_rates: dict[str, float]
     ) -> None:
         """Calculate profit and loss"""
         self.pre_closes = pre_closes
@@ -1264,8 +1103,7 @@ class PortfolioDailyResult:
                 start_poses.get(vt_symbol, 0),
                 sizes[vt_symbol],
                 long_rates[vt_symbol],
-                short_rates[vt_symbol],
-                trade_commissions,
+                short_rates[vt_symbol]
             )
 
             self.trade_count += contract_result.trade_count

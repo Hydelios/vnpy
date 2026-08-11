@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "D:/工作-gtzq/new_alpha"
+		},
+		{
+			"path": "../vnpy"
+		}
+	],
+	"settings": {
+		"python-envs.defaultEnvManager": "ms-python.python:conda",
+		"python-envs.defaultPackageManager": "ms-python.python:conda"
+	}
+}

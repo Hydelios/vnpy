@@ -1,0 +1,1110 @@
+name,calendar_year,calendar_id,title,category,sub_category,raw_category,normalized_category,source_file,source_start_line,source_end_line,input_frequency,output_frequency,available_at,required_fields,original_formula,implemented_formula,implementation_status,implementation_notes,implementation_key,proxy_of,duplicate_refs,duplicate_type,default_params,warmup_requirement
+calendar2026_1_1_1_u7ed3_6784_5316_53cd_8f6c,2026,1.1.1,结构化反转,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,5,43,1m,1d,T_close,open|high|low|close|volume|turnover,"Rev_{mom} = \sum_{i=1}^{period_{mom}} w_i log \frac{Close_{t-i+1}}{Close_{t-i}}, w_i \propto \frac{1}{volume_i}
+
+Rev_{rev} = \sum_{i=1}^{period_{rev}} w_i log \frac{Close_{t-i+1}}{Close_{t-i}}, w_i \propto volume_i
+
+Rev_{struct} = Rev_{rev} - Rev_{mom}",volume_weighted_return(bottom10pct(volume_1m)),exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'structured_reversal'},0
+calendar2026_1_1_2_u6b8b_5dee_53cd_8f6c,2026,1.1.2,残差反转,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,43,69,1m,1d,T_close,tick_trade,"S_t = \frac{\sum_{t-T}^{t} (buy_t - sell_t)}{\sum_{t-T}^{t} |buy_t - sell_t|}
+
+Ret20_t = a + b * S_t + \varepsilon_t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_1_3_u5c3e_76d8_534a_5c0f_65f6_6536_76ca_7387,2026,1.1.3,尾盘半小时收益率,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,69,99,1m,1d,T_close,close,"ret_{14:30-15:00,i} = \frac{close_{15:00,i}}{close_{14:30,i}} - 1",close(day_end)/close(day_end-30m)-1,exact,,intraday_period_return,,,,{'minutes': 30},0
+calendar2026_1_1_4_u6bcf_7b14_6210_4ea4_91cf_7b5b_9009_7684_5c40,2026,1.1.4,每笔成交量筛选的局部反转,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,99,129,1m,1d,T_close,tick_trade,\text{sum}\left(\left\text{ret}*i \middle| q_j(pvol_i) < pvol_i < q*{j+1}(pvol_i)\right\right),,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_1_5_u65e5_5185_9ec4_91d1_5206_5272_53cd_8f6c,2026,1.1.5,日内黄金分割反转,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,129,157,1m,1d,T_close,open|high|low|close|volume|turnover,Ret_{10:00-to-close} = \sum_{t=1}^{20} \ln \left( \frac{Close_t}{Price_t^{10:00}} \right),"sum(log(close/price_10:00),20)",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'golden_reversal', 'post_window': 20, 'post_stat': 'sum'}",20
+calendar2026_1_1_6_u5927_5355_63a8_52a8_6da8_5e45,2026,1.1.6,大单推动涨幅,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,157,197,1m,1d,T_close,tick_trade,"\prod_{n=t}^{t-T+1} \left( \text{prod} \left(1 + r_{i,j,n} \cdot I_{j \in IdxSet} \right) \right) - 1
+
+\text{平均单笔成交金额} = \sum_{j=1}^{N} Amt_{i,j,n} / \sum_{j=1}^{N} TrdNum_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_1_7_u9694_591c_8df3_7a7a,2026,1.1.7,隔夜跳空,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,197,225,1d,1d,T_close,open|close,absRet_{night} = \sum_{t=1}^{20} abs\left( \ln\left( \frac{Open_t}{Close_{t-1}} \right) \right),"ts_sum(ts_abs(ts_log(open/(ts_delay(close,1)+1e-12))),20)",exact,,legacy_expression,,,,{},21
+calendar2026_1_1_8_u4fee_6b63_7684_65e5_5185_53cd_8f6c,2026,1.1.8,修正的日内反转,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,225,258,1d,1d,T_close,open|close|a_share_market_val_in_circulation,① 对股票 i，计算 t 日的日内收益率 = t 日收盘价 / t 日开盘价 - 1；,"neutralize(ts_sum(close/open-1,20),log(float_market_cap))",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'base_expression': 'ts_sum(close/(open+1e-12)-1,20)', 'post_neutralize_market_cap': True}",20
+calendar2026_1_1_9_u4fee_6b63_7684_9694_591c_53cd_8f6c,2026,1.1.9,修正的隔夜反转,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,258,289,1d,1d,T_close,open|close|a_share_market_val_in_circulation,"① 对股票 i，计算 t 日的隔夜距离 = abs(t日隔夜收益率 - 横截面均值)；
+上述因子是借助波动率对隔夜反转做修正，也可借助换手率距离来做修正，即换手距离 = abs(t日换手率变化量 - 其横截面均值) 低于其横截面均值，未来更可能发生动量，其中，换手率变化量 = t日换手率与t-1日换手率。","neutralize(ts_sum(open/lag(close)-1,20),log(float_market_cap))",exact,,legacy_expression,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'base_expression': 'ts_sum(open/(ts_delay(close,1)+1e-12)-1,20)', 'post_neutralize_market_cap': True}",21
+calendar2026_1_1_10_u4fe1_566a_6bd4_589e_5f3a_53cd_8f6c,2026,1.1.10,信噪比增强反转,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,289,323,unknown,1d,T_close,,"\text{加强 } Reversal_i = Weight_i \times Reversal_i
+
+Weight_i = \frac{SNR_i - \min(SNR)}{\max(SNR) - \min(SNR)}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_1_11_u51f8_663e_6027_6536_76ca,2026,1.1.11,凸显性收益,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,323,366,1d,1d,T_close,close,"\sigma(r_{i,s}, \bar{r}*s) = \frac{|r*{i,s}| + |\bar{r}*s| - r*{i,s} - \bar{r}_s}{\theta}
+
+\omega_{i,s} = \frac{\delta_{k_{i,s}}}{\sum_{s'} \delta_{k_{i,s'}} \times \pi_s'}
+
+STR_i = \text{cov}[\omega_{i,s}, r_{i,s}]","cov(normalize(0.7**rank(salience)),return),monthly; salience=(abs(r)+abs(median)-r-median)/.1",exact,2026日历凸显性系数公式与2024版本不同，按年度文本单独实现,daily_salience_return,,,,{'variant': '2026'},21
+calendar2026_1_1_12_u60ca_6050_56e0_5b50,2026,1.1.12,惊恐因子,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,366,382,1d,1d,T_close,close|market_ret,\text{惊恐度} = \frac{\text{偏离度}}{\text{基准项}} = \frac{abs(\text{个股收益率}-\text{市场收益率}) + 0.1}{abs(\text{个股收益率}) + abs(\text{市场收益率})},"0.5*(mean(panic*return,20)+std(panic*return,20)); panic=(abs(r-rm)+.1)/(abs(r)+abs(rm))",exact,2026日历原式将0.1置于分子，按该年度文本单独实现,daily_panic_metric,,,,"{'metric': 'base', 'numerator_offset': True}",21
+calendar2026_1_1_13_u4e2a_80a1_6536_76ca_6700_9ad8_65f6_7684_4ef7,2026,1.1.13,个股收益最高时的价变共振,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,382,430,1m,1d,T_close,close|turnover,"RMMAX(N)*i = \frac{\sum*{t=n1}^{nN} MEANMKT_t}{N}
+
+MEANMKT_t = \frac{\sum_{i=1}^{I} r_{i,t}}{I}
+
+STDMAX_i = \frac{\sum_{t=n1}^{nN} StandardDeviation(r_t)}{N}
+
+COMAX_i = \frac{RMMAX(N)_i}{STDMAX_i}",cs_rank(mean(market_return at top5 stock_return minutes))/mean(market_cross_std at same minutes),exact,,intraday_market_event_metric,,,,"{'metric': 'resonance', 'side': 'high'}",0
+calendar2026_1_1_14_u6ce2_52a8_7387_52a0_5267_60ca_6050_56e0_5b50,2026,1.1.14,波动率加剧-惊恐因子,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,430,470,1m,1d,T_close,close|market_ret,\text{惊恐度} = \frac{\text{偏离度}}{\text{基准项}} = \frac{abs(\text{个股收益率}-\text{市场收益率})}{abs(\text{个股收益率}) + abs(\text{市场收益率}) + 0.1},"0.5*(mean(panic*return*intraday_vol,20)+std(...,20))",exact,,daily_panic_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'volatility'},21
+calendar2026_1_1_15_u4e2a_80a1_6536_76ca_6700_4f4e_65f6_7684_4ef7,2026,1.1.15,个股收益最低时的价变共振,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,470,518,1m,1d,T_close,close|turnover,"RMMIN(N)*i = \frac{\sum*{t=m1}^{mM} MEANMKT_t}{M}
+
+MEANMKT_t = \frac{\sum_{i=1}^{I} r_{i,t}}{I}
+
+STDMIN_i = \frac{\sum_{t=m1}^{mM} StandardDeviation(r_t)}{M}
+
+COMIN_i = \frac{RMMIN(N)_i}{STDMIN_i}",inverse_cs_rank(mean(market_return at bottom5 stock_return minutes))/mean(market_cross_std at same minutes),exact,,intraday_market_event_metric,,,,"{'metric': 'resonance', 'side': 'low'}",0
+calendar2026_1_1_16_u6781_7aef_6536_76ca_53cd_8f6c,2026,1.1.16,极端收益反转,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,518,544,1m,1d,T_close,close,"S = |r_{i,t} - \text{median}(r_{i,t})|
+
+\text{rank}\left(\frac{1}{20} \sum r_{i,t_{\max(S)}}\right) + \text{rank}\left(\frac{1}{20} \sum r_{i,t_{\max(S)-1}}\right)","cs_rank(mean(extreme_minute_return,20))+cs_rank(mean(pre_extreme_return,20))",exact,,intraday_extreme_reversal,,alpha101/158/191/360:concept_overlap,concept_overlap,{'window': 20},20
+calendar2026_1_1_17_u4e2a_4eba_6295_8d44_8005_4ea4_6613_6bd4_60ca,2026,1.1.17,个人投资者交易比-惊恐因子,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,544,588,1m,1d,T_close,tick_trade,"惊恐度 = \frac{偏离度}{基准项} = \frac{abs(个股收益率 - 市场收益率)}{abs(个股收益率) + abs(市场收益率) + 0.1}
+
+个人投资者交易比 = \frac{成交额小于4万元的个人投资买入和卖出金额均值}{个股总成交额}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_1_18_u4e2a_80a1_6536_76ca_6700_9ad8_65f6_7684_9886,2026,1.1.18,个股收益最高时的领先成交量异动,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,588,623,1m,1d,T_close,close|turnover,"AMTMAX(N)*i = \frac{\sum*{t=n1}^{nN} AMTPercent_{i,t-1}}{\sum_{t=1}^{T} AMTPercent_{i,t}/T}
+
+AMTPercent_{i,t} = \frac{AMT_{i,t}}{\sum_{i=1}^{I} AMT_{i,t}}",sum(lag(stock_amount/market_amount) at top30 return minutes)/mean(stock_amount/market_amount),exact,,intraday_market_event_metric,,,,"{'metric': 'leading_amount', 'side': 'high'}",0
+calendar2026_1_1_19_u8d85_5927_5355_6da8_8dcc_5e45,2026,1.1.19,超大单涨跌幅,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,623,661,1m,1d,T_close,orderbook,"\Delta \ln P_i = \text{当前成交价格的对数} \ln P_i - \text{上一笔成交价格的对数} \ln P_{i-1}
+
+\sum_{i \in S} \Delta \ln P_i",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_1_20_u6ce8_610f_529b_8870_51cf_60ca_6050_56e0_5b50,2026,1.1.20,注意力衰减-惊恐因子,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,661,703,1d,1d,T_close,close|market_ret,"惊恐度 = \frac{偏离度}{基准项} = \frac{abs(个股收益率 - 市场收益率)}{abs(个股收益率) + abs(市场收益率) + 0.1}
+
+衰减惊恐度_t = 惊恐度_t - \frac{(惊恐度_{t-1} + 惊恐度_{t-2})}{2}","0.5*(mean(max(panic-mean(lag1,lag2),0)*return,20)+std(...,20))",exact,,daily_panic_metric,,,,{'metric': 'decay'},23
+calendar2026_1_1_21_u4e2a_80a1_6536_76ca_6700_4f4e_65f6_7684_9886,2026,1.1.21,个股收益最低时的领先成交量异动,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,703,738,1m,1d,T_close,close|turnover,"AMTMIN(M)*k = \frac{\sum*{t=m_1}^{m_2} AMTPercent_{i,t-1}}{\sum_{t=1}^{T} AMTPercent_{i,t}/T}
+
+AMTPercent_{i,t} = \frac{AMT_{i,t}}{\sum_{i=1}^{I} AMT_{i,t}}",sum(lag(stock_amount/market_amount) at bottom30 return minutes)/mean(stock_amount/market_amount),exact,,intraday_market_event_metric,,,,"{'metric': 'leading_amount', 'side': 'low'}",0
+calendar2026_1_1_22_u5254_9664_8d85_5927_5355_5f71_54cd_540e_7684,2026,1.1.22,剔除超大单影响后的大单涨跌幅,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,738,776,1m,1d,T_close,orderbook,"\Delta \ln P_i = \text{当前成交价格的对数} \ln P_i - \text{上一笔成交价格的对数} \ln P_{i-1}
+
+\sum_{i \in S_2} \Delta \ln P_i",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_1_23_u8d8b_52bf_5360_6bd4,2026,1.1.23,趋势占比,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,776,806,1m,1d,T_close,open|high|low|close|volume|turnover,"trendratio_{D,i} = \frac{p_{T,D,i} - p_{1,D,i}}{\sum_{t=2}^{T} |p_{t,D,i} - p_{t-1,D,i}|}",(last(close_1m)-first(close_1m))/sum(abs(delta(close_1m))),exact,,intraday_path_metric,,,,{'metric': 'trend_ratio'},0
+calendar2026_1_1_24_u504f_950b_6da8_8dcc_5e45,2026,1.1.24,偏锋涨跌幅,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,806,833,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_1_25_u81ea_4fe1_6ea2_51fa_56e0_5b50,2026,1.1.25,“自信溢出”因子,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,833,863,unknown,1d,T_close,,① 焦点股票 i 的相邻股票数对因子效果影响不大，建议使用较少数量的股票（如 i=10）；,,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_1_26_u65e5_5185_6700_5927_56de_64a4,2026,1.1.26,日内最大回撤,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,863,893,1m,1d,T_close,close,"intradaymaxdrawdown_{D,i} = \min_{0<t<T} \min_{0<\tau\leq T-t} \frac{p_{t+\tau,D,i}}{p_{t,D,i}} - 1",min(close/cummax(close)-1),exact,,intraday_max_drawdown,,,,{},0
+calendar2026_1_1_27_u7d2f_8ba1_8df3_8dc3_7edd_5bf9_6536_76ca,2026,1.1.27,累计跳跃绝对收益,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,893,933,unknown,1d,T_close,,"JAR = e^{\sum_{t=1}^{D} \left |r_t| \cdot I_{jumpSwV,t} \right} - 1
+
+I_{jumpSwV} = I(T_{SwV} > \Phi^{-1}_{1-\alpha})",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_1_28_u6700_5927_6da8_5e45,2026,1.1.28,最大涨幅,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,933,963,1m,1d,T_close,open|high|low|close|volume|turnover,MAX_t = \prod_{i \in maxprod} (1 + r_i),product(1+top10pct(r_1m)),exact,,intraday_path_metric,,,,{'metric': 'max_rise'},0
+calendar2026_1_1_29_u9694_591c_6536_76ca_7387,2026,1.1.29,隔夜收益率,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,963,995,1d,1d,T_close,open|close,"overnightret_{t,i} = \frac{open_{t,i}}{close_{t-1,i}} - 1","open/lag(close,1)-1",exact,,overnight_return,,,,{},2
+calendar2026_1_1_30_u8000_773c_6536_76ca_7387,2026,1.1.30,耀眼收益率,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,995,1029,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_1_31_u65e5_5185_6536_76ca_7387,2026,1.1.31,日内收益率,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,1029,1061,1d,1d,T_close,open|close,"intradayret_{t,i} = \frac{close_{t,i}}{open_{t,i}} - 1",close/open-1,exact,,daily_intraday_return,,,,{},0
+calendar2026_1_1_32_apm,2026,1.1.32,APM 因子,高频因子,动量反转类,动量反转类,高频因子,factors2026.md,1061,1103,1m,1d,T_close,close|market_minute_ret,"r_i = \alpha + \beta R_i + \varepsilon_i
+
+\delta_t = \varepsilon_t^{am} - \varepsilon_t^{pm}
+
+\text{stat} = \frac{\mu(\delta_t)}{\sigma(\delta_t) / \sqrt{N}}
+
+\text{stat}_j = b \cdot \text{Ret20}_j + \varepsilon_j","residual(tstat(epsilon_am-epsilon_pm,20),return20)",exact,,intraday_apm,,,,{'window': 20},20
+calendar2026_1_2_1_u8df3_8dc3_5f3a_5ea6,2026,1.2.1,跳跃强度,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1105,1153,unknown,1d,T_close,,"T_{SuV} = \frac{BV_t}{N^{-1}\sqrt{\hat{\Omega}_{SuV}}} (1 - \frac{RV_t}{SuV_t}) \xrightarrow{d} N(0,1)
+
+\hat{\Omega}*{SuV} = \frac{\mu_6}{9} \frac{N^3}{N-5} \sum*{j=1}^{N-4} \prod_{k=0}^{4} |r_{t,j+k}|^{3/2}
+
+SuV_t = 2 \sum_{i=1}^{N} (R_{t,i} - r_{t,i})
+
+I_{JumpSuV} = I(T_{SuV} > \Phi_{1-\alpha}^{-1})
+
+JArr = \frac{1}{D} \sum_{t=1}^{D} I_{JumpSuV, t}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_2_2_u4e0b_884c_8df3_8dc3_6ce2_52a8_7387,2026,1.2.2,下行跳跃波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1153,1195,1m,1d,T_close,open|high|low|close|volume|turnover,"RVJN_t = \max(RS^-_t - \frac{1}{2} \widehat{IV}_t, 0)
+
+RS^-*t = \sum*{i=1}^{n} r^2_{t,i} I_{r_{t,i} > 0} \to_u \frac{1}{2} \int_0^t \sigma^2_s ds + \sum_{s \leq t} \Delta X^2_s I_{\Delta X_s < 0}
+
+\widehat{IV}*t = \mu^{-3}*{\frac{2}{3}} \sum_{i=k}^{n} |r_{t_i}|^{\frac{2}{3}} |r_{t_{i-1}}|^{\frac{2}{3}} |r_{t_{i-k+1}}|^{\frac{2}{3}}","max(down_semivariance-0.5*tripower_variation,0)",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'down_jump'},0
+calendar2026_1_2_3_u7406_60f3_632f_5e45_56e0_5b50,2026,1.2.3,理想振幅因子,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1195,1218,1d,1d,T_close,high|low|close,V(\lambda) = V_{\text{high}}(\lambda) - V_{\text{low}}(\lambda),"mean(amplitude|top25pct(close),20)-mean(amplitude|bottom25pct(close),20)",exact,,daily_ideal_amplitude,,,,"{'window': 20, 'fraction': 0.25}",20
+calendar2026_1_2_4_u4e3b_529b_6ce2_52a8_7387,2026,1.2.4,主力波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1218,1249,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_5_u4e0a_4e0b_884c_8df3_8dc3_6ce2_52a8_7684_4e0d,2026,1.2.5,上下行跳跃波动的不对称性,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1249,1285,1m,1d,T_close,open|high|low|close|volume|turnover,"SRVJ_t = RVLP_t - RVJN_t
+
+RVJP_t = \max(RS^+_t - \frac{1}{2}\widehat{IV}_t, 0)
+
+RVJN_t = \max(RS^-_t - \frac{1}{2}\widehat{IV}_t, 0)",up_jump-down_jump,exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'jump_asymmetry'},0
+calendar2026_1_2_6_u4fee_6b63_7684_632f_5e45,2026,1.2.6,修正的振幅,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1285,1325,1d,1d,T_close,high|low|close,\text{日度振幅} = \frac{\text{当日最高价} - \text{当日最低价}}{\text{上一日收盘价}},"(high-low)/(ts_delay(close,1)+1e-12)",exact,,legacy_expression,,,,{},1
+calendar2026_1_2_7_u91cf_6d8c_6ce2_52a8_7387,2026,1.2.7,量涌波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1325,1349,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_8_u9ad8_9891_4e0a_884c_6ce2_52a8_5360_6bd4,2026,1.2.8,高频上行波动占比,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1349,1379,1m,1d,T_close,close,\text{高频上行波动占比} = \frac{\sum_t (r_i^t I_{r_i^t > 0})^2}{\sum_t (r_i^t)^2},sum(r_1m**2 where r_1m>0)/sum(r_1m**2),exact,,intraday_return_measure,,alpha101/158/191/360:concept_overlap,concept_overlap,{'measure': 'up_share'},0
+calendar2026_1_2_9_u5927_7684_4e0a_884c_8df3_8dc3_6ce2_52a8_7387,2026,1.2.9,大的上行跳跃波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1379,1421,1m,1d,T_close,open|high|low|close|volume|turnover,"RVLJP_{\gamma,t} = \min(RVJP_t, \sum_{i=1}^{n} r_{i,t}^2 I_{r_{i,t} > \gamma})
+
+RVJP_t = \max(RS_t^+ - \frac{1}{2} \widehat{IV}_t, 0)
+
+\gamma = \alpha \Delta_n^{0.49} \sqrt{\widehat{IV}_t}","min(up_jump,sum(r**2 where r>gamma))",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'large_up_jump'},0
+calendar2026_1_2_10_u65e5_5185_8df3_8dc3_5ea6,2026,1.2.10,日内跳跃度,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1421,1483,1m,1d,T_close,open|high|low|close|volume|turnover,"= \frac{t\text{分钟收盘价}}{t-1\text{分钟收盘价}} - 1
+
+= \ln\left(\frac{t\text{分钟收盘价}}{t-1\text{分钟收盘价}}\right)
+
+= t\text{分钟单利收益率} - t\text{分钟连续复利收益率}
+
+= (t\text{分钟单复利差})^2 - 2 \cdot (t\text{分钟连续复利收益率})^2
+
+e^x = 1 + \frac{1}{1!}x + \frac{1}{2!}x^2 + \frac{1}{3!}x^3 + o(x^3)
+
+((e^x - 1) - \frac{1}{1!}x) * 2 - x^2 = \left(\frac{1}{2!}x^2 + \frac{1}{3!}x^3 + o(x^3)\right) * 2 - x^2 = \left(\frac{1}{3!}x^3 + o(x^3)\right) * 2",mean(2*(simple_return-log_return)-log_return**2),exact,,intraday_path_metric,,,,{'metric': 'jump_degree'},0
+calendar2026_1_2_11_u8000_773c_6ce2_52a8_7387,2026,1.2.11,耀眼波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1483,1517,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_12_u5c0f_7684_4e0b_884c_8df3_8dc3_6ce2_52a8_7387,2026,1.2.12,小的下行跳跃波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1517,1563,1m,1d,T_close,open|high|low|close|volume|turnover,"RVSJN_t = RVJN_t - RVLJN_{\gamma,t}
+
+RVLJN_{\gamma,t} = \min(RVJN_t, \sum_{i=1}^{n} r_{i,t}^2 I_{r_{i,t} < -\gamma})
+
+RVJN_t = \max(RS^-_t - \frac{1}{2} \widehat{IV}_t, 0)
+
+\gamma = \alpha \Delta_n^{0.49} \sqrt{\widehat{IV}_t}",down_jump-large_down_jump,exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'small_down_jump'},0
+calendar2026_1_2_13_u9ad8_9891_4e0b_884c_6ce2_52a8_5360_6bd4,2026,1.2.13,高频下行波动占比,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1563,1593,1m,1d,T_close,close,\text{高频下行波动占比} = \frac{\sum_t (r_i^t I_{r_i^t < 0})^2}{\sum_t (r_i^t)^2},sum(r_1m**2 where r_1m<0)/sum(r_1m**2),exact,,intraday_return_measure,,alpha101/158/191/360:concept_overlap,concept_overlap,{'measure': 'down_share'},0
+calendar2026_1_2_14_pca,2026,1.2.14,基于 PCA 的特质波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1593,1635,unknown,1d,T_close,,"r_{i,t} = \alpha_{i,t} + \beta_i^{F1} \times F1 + \cdots + \varepsilon_i
+
+IV = std(\varepsilon_i)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_15_u5927_7684_4e0a_4e0b_884c_8df3_8dc3_6ce2_52a8,2026,1.2.15,大的上下行跳跃波动不对称性,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1635,1673,1m,1d,T_close,open|high|low|close|volume|turnover,"SRVLJ_t = RVLJP_{\gamma,t} - RVLJN_{\gamma,t}
+
+RVLJN_{\gamma,t} = \min(RVJN_t, \sum_{i=1}^{n} r_{i,t}^2 I_{r_{i,t} < -\gamma})
+
+RVLJP_{\gamma,t} = \min(RVJP_t, \sum_{i=1}^{n} r_{i,t}^2 I_{r_{i,t} > \gamma})",large_up_jump-large_down_jump,exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'large_jump_asymmetry'},0
+calendar2026_1_2_16_u5df2_5b9e_73b0_6ce2_52a8_7387,2026,1.2.16,已实现波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1673,1703,1m,1d,T_close,close,"RV_t = \sum_{i=1}^{N} r_{t,i}^2",sum(log(close/lag(close))**2),exact,,intraday_return_measure,,alpha101/158/191/360:concept_overlap,concept_overlap,{'measure': 'realized_variance'},0
+calendar2026_1_2_17_u7279_8d28_65e5_5185_6536_76ca_6ce2_52a8_7387,2026,1.2.17,特质日内收益波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1703,1749,unknown,1d,T_close,,"IntradayRet_{i,t} = \frac{Close_{i,t}}{Open_{i,t}} - 1
+
+IntradayRet_{i,t} = \alpha_{i,t} + \beta_i^{F1} \times F1 + \cdots + \varepsilon_i
+
+IntradayRetIV = std(\varepsilon_i)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_18_u4e0b_884c_5df2_5b9e_73b0_6ce2_52a8_7387,2026,1.2.18,下行已实现波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1749,1781,1m,1d,T_close,close,"RS_t^- = \sum_{i=1}^{N} r_{t,i}^2 * I_{r_{t,i} \leq 0}",sum(r_1m**2 where r_1m<=0),exact,,intraday_semivariance,,alpha101/158/191/360:concept_overlap,concept_overlap,{'side': 'down'},0
+calendar2026_1_2_19_u7279_8d28_9694_591c_6536_76ca_6ce2_52a8_7387,2026,1.2.19,特质隔夜收益波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1781,1825,unknown,1d,T_close,,"OvernightRet_{i,t} = \frac{Open_{i,t}}{Close_{i,t-1}} - 1
+
+OvernightRet_{i,t} = \alpha_{i,t} + \beta_i^{F1} \times F1 + \cdots + \varepsilon_i
+
+OvernightRetIV = std(\varepsilon_i)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_20_u5e73_5747_6362_624b_65e5_5185_6b63_8df3_8dc3,2026,1.2.20,平均换手日内正跳跃收益,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1825,1875,unknown,1d,T_close,,"JS = N \frac{\hat{V}*{(0,1)}}{\sqrt{\hat{\Omega}*{SWV}}} \left(1 - \frac{RV_N}{SwV_N} \right) \sim N(0,1)
+
+RV_N = \sum_{k=1}^{N} r_k^2
+
+SwV_N = 2 \sum_{k=1}^{N} (R_k - r_k)
+
+\hat{V}*{(0,1)} = \frac{1}{\mu_1^2} \sum*{k=1}^{N-1} |r_{k+1}| |r_k|
+
+\hat{\Omega}*{SWV} = \frac{\mu_6}{9} \cdot \frac{N^3 \mu_1^{-6}}{N - 5} \sum*{k=0}^{N-6} \prod_{l=1}^{6} |r_{k+l}|
+
+\mu_p = 2^{p/2} \Gamma\left(\frac{p+1}{2}\right) / \sqrt{\pi}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_21_u8df3_8dc3_663e_8457_7a0b_5ea6_52a0_6743_7684,2026,1.2.21,跳跃显著程度加权的上下行跳跃波动不对称性,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1875,1915,unknown,1d,T_close,,"TSRJV = \frac{\sum_{t=1}^{D} \left( T_{t,i} / \Phi_{1-\alpha}^{-1} \cdot SRJV_{t,i} \right)}{\sum_{t=1}^{D} T_{t,i} / \Phi_{1-\alpha}^{-1}}
+
+SRJV_t = RVLP_t - RVJN_t
+
+T_{t,i} = \frac{BV_t}{N^{-1} \sqrt{\hat{\Omega}_{SwV}}} \left(1 - \frac{RV_t}{SwV_t} \right) \xrightarrow{d} N(0,1)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_22_u4e0a_884c_5df2_5b9e_73b0_6ce2_52a8_7387,2026,1.2.22,上行已实现波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1915,1947,1m,1d,T_close,close,"RS_t^+ = \sum_{i=1}^{N} r_{t,i}^2 * I_{r_{t,i} \geq 0}",sum(r_1m**2 where r_1m>0),exact,,intraday_semivariance,,alpha101/158/191/360:concept_overlap,concept_overlap,{'side': 'up'},0
+calendar2026_1_2_23_u7279_8d28_6362_624b_6ce2_52a8_7387,2026,1.2.23,特质换手波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1947,1989,unknown,1d,T_close,,"Turnover_{i,t} = \alpha_{i,t} + \beta_i^{F1} \times F1 + \cdots + \varepsilon_i
+
+TurnoverIV = std(\varepsilon_i)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_24_u65e5_5185_6536_76ca_6ce2_52a8_6bd4,2026,1.2.24,日内收益波动比,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,1989,2022,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_25_u4e0a_4e0b_884c_6ce2_52a8_7387_4e0d_5bf9_79f0,2026,1.2.25,上下行波动率不对称性,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2022,2054,1m,1d,T_close,close,RSJ_d = \frac{RVup_d - RVdown_d}{RV_d},(RV_up-RV_down)/RV,exact,,intraday_return_measure,,alpha101/158/191/360:concept_overlap,concept_overlap,{'measure': 'asymmetry'},0
+calendar2026_1_2_26_u5206_949f_7406_60f3_632f_5e45,2026,1.2.26,分钟理想振幅,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2054,2078,unknown,1d,T_close,,V(\lambda) = V_{high}(\lambda) - V_{low}(\lambda),,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_2_27_u5f02_5e38_9ad8_6ce2_52a8_4e0b_7684_6536_76ca,2026,1.2.27,异常高波动下的收益波动比,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2078,2113,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_28_u5df2_5b9e_73b0_53cc_5e42_6b21_53d8_5dee,2026,1.2.28,已实现双幂次变差,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2113,2153,1m,1d,T_close,open|high|low|close|volume|turnover,"RBV_t = \mu_1^{-2} \sum_{i=2}^{n} |r_{t_i}| \cdot |r_{t_{i-1}}|
+
+\mu_q = E(|Z|^q) = 2^{q/2} \frac{\Gamma\left(\frac{1}{2}(q+1)\right)}{\Gamma\left(\frac{1}{2}\right)}
+
+\Gamma(\alpha) = \int_0^{+\infty} x^{\alpha-1} e^{-x} dx",mu_1**-2*sum(abs(r_t)*abs(r_t-1)),exact,,intraday_path_metric,,,,{'metric': 'bipower_variation'},0
+calendar2026_1_2_29_u65e5_5185_632f_5e45_5207_5272_56e0_5b50,2026,1.2.29,日内振幅切割因子,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2153,2187,unknown,1d,T_close,,V(\lambda) = V_{\text{high}}(\lambda) - V_{\text{low}}(\lambda),,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_2_30_u9ad8_9891_7279_5f02_6ce2_52a8_7387,2026,1.2.30,高频特异波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2187,2217,1m,1d,T_close,factor_returns,"r_t = \alpha_t + \beta_{mkt} MKT_t + \beta_{smb} SMB_t + \beta_{hml} HML_t + \beta_{ret} RET_t + \beta_{liq} LIQ_t + \varepsilon_t
+
+\text{特异波动率} = \sqrt{\text{特异率}} \times \text{基础波动率}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_31_u5df2_5b9e_73b0_4e09_5e42_6b21_53d8_5dee,2026,1.2.31,已实现三幂次变差,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2217,2266,1m,1d,T_close,open|high|low|close|volume|turnover,"RTV_t = V_{\frac{2}{3}, \frac{2}{3}, \frac{2}{3}} \mu_{\frac{2}{3}}^{-3}
+
+V_{m_1, m_2, \ldots, m_k} = \sum_{i=k}^{n} |r_{t_i}|^{m_1} |r_{t_{i-1}}|^{m_2} \cdots |r_{t_{i-k+1}}|^{m_k}
+
+\mu_q = E(|Z|^q) = 2^{q/2} \frac{\Gamma\left(\frac{1}{2}(q + 1)\right)}{\Gamma\left(\frac{1}{2}\right)}
+
+\Gamma(\alpha) = \int_0^{+\infty} x^{\alpha - 1} e^{-x} dx",mu_2/3**-3*sum(abs(r_t*r_t-1*r_t-2)**(2/3)),exact,,intraday_path_metric,,,,{'metric': 'tripower_variation'},0
+calendar2026_1_2_32_u5e73_5747_65e5_5185_6b63_8df3_8dc3_6536_76ca,2026,1.2.32,平均日内正跳跃收益,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2266,2318,unknown,1d,T_close,,"JS = N \frac{\hat{V}*{(0,1)}}{\sqrt{\hat{\Omega}*{SWV}}} \left(1 - \frac{RV_N}{SwV_N} \right) \sim N(0,1)
+
+RV_N = \sum_{k=1}^{N} r_k^2
+
+SwV_N = 2 \sum_{k=1}^{N} (R_k - r_k)
+
+\hat{V}*{(0,1)} = \frac{1}{\mu_1^2} \sum*{k=1}^{N-1} |r_{k+1}| |r_k|
+
+\hat{\Omega}*{SWV} = \frac{\mu_6}{9} \cdot \frac{N^3 \mu_1^{-6}}{N - 5} \sum*{k=0}^{N-6} \prod_{l=1}^{6} |r_{k+l}|
+
+\mu_p = 2^{p/2} \Gamma\left(\frac{p+1}{2}\right) / \sqrt{\pi}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_2_33_u975e_7ebf_6027_9ad8_9891_6ce2_52a8_7387,2026,1.2.33,非线性高频波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2318,2358,1m,1d,T_close,factor_returns,"r_t = \alpha_t + \beta_{mkt} MKT_t + \beta_{smb} SMB_t + \beta_{hml} HML_t + \beta_{ret} RET_t + \beta_{liq} LIQ_t + \varepsilon_t
+
+norm_i = \frac{std_i - \min(std_i)}{\max(std_i) - \min(std_i)}
+
+std_i^{monlinear} = e^{norm_i}
+
+\text{特异波动率} = \sqrt{\text{特异率}} \times std^{monlinear}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_34_u5df2_5b9e_73b0_8df3_8dc3_6ce2_52a8_7387,2026,1.2.34,已实现跳跃波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2358,2404,1m,1d,T_close,open|high|low|close|volume|turnover,"RVJ_t = \max(RV_t - \widehat{IV}_t, 0)
+
+RV_t = \sum_{i=1}^{n} r_{i,n}^2 \to_u QV_t = \int_0^t \sigma_s^2 ds + \sum_{s \leq t} \Delta X_s^2 = IV_t + QJ_t
+
+\widehat{IV}*t = \mu*{\frac{2}{3}}^{-3} \sum_{i=k}^{n} |r_{t_i}|^{\frac{2}{3}} |r_{t_{i-1}}|^{\frac{2}{3}} |r_{t_{i-k+1}}|^{\frac{2}{3}}","max(realized_variance-tripower_variation,0)",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'jump_variation'},0
+calendar2026_1_2_35_u5e73_5747_65e5_5185_6b63_8df3_8dc3_6807_51c6,2026,1.2.35,平均日内正跳跃标准差,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2404,2454,unknown,1d,T_close,,"JS = N \frac{\hat{V}*{(0,1)}}{\sqrt{\hat{\Omega}*{SWV}}} \left(1 - \frac{RV_N}{SwV_N} \right) \sim N(0,1)
+
+RV_N = \sum_{k=1}^{N} r_k^2
+
+SwV_N = 2 \sum_{k=1}^{N} (R_k - r_k)
+
+\hat{V}*{(0,1)} = \frac{1}{\mu_1^2} \sum*{k=1}^{N-1} |r_{k+1}| |r_k|
+
+\hat{\Omega}*{SWV} = \frac{\mu_6}{9} \cdot \frac{N^3 \mu_1^{-6}}{N - 5} \sum*{k=0}^{N-6} \prod_{l=1}^{6} |r_{k+l}|
+
+\mu_p = 2^{p/2} \Gamma\left(\frac{p+1}{2}\right) / \sqrt{\pi}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_2_36_u9ad8_9891_6210_4ea4_91cf_6ce2_52a8,2026,1.2.36,高频成交量波动,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2454,2490,1m,1d,T_close,tick_trade,"\sigma_{day} = std(vol_i)
+
+\sigma_{vol} = \frac{std(\sigma_{day})}{mean(\sigma_{day})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_2_37_u4e0a_884c_8df3_8dc3_6ce2_52a8_7387,2026,1.2.37,上行跳跃波动率,高频因子,波动跳跃类,波动跳跃类,高频因子,factors2026.md,2490,2532,1m,1d,T_close,open|high|low|close|volume|turnover,"RVJP_t = \max(RS_t^+ - \frac{1}{2} \widehat{IV}_t, 0)
+
+RS_t^+ = \sum_{i=1}^{n} r_{t,i}^2 I_{r_{t,i} > 0} \to_u \frac{1}{2} \int_0^t \sigma_s^2 ds + \sum_{s \leq t} \Delta X_s^2 I_{\Delta X_s > 0}
+
+\widehat{IV}*t = \mu*{\frac{2}{3}}^{-3} \sum_{i=k}^{n} |r_{t_i}|^{\frac{2}{3}} |r_{t_{i-1}}|^{\frac{2}{3}} |r_{t_{i-k+1}}|^{\frac{2}{3}}","max(up_semivariance-0.5*tripower_variation,0)",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'up_jump'},0
+calendar2026_1_3_1_u77e5_60c5_4ea4_6613_6982_7387,2026,1.3.1,知情交易概率,高频因子,资金流类,资金流类,高频因子,factors2026.md,2534,2558,1m,1d,T_close,orderbook,PIN = \frac{\alpha \mu}{\alpha \mu + 2\varepsilon},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_2_u8d85_5927_5355_548c_5c0f_5355_7684_540c_6b65,2026,1.3.2,超大单和小单的同步相关性,高频因子,资金流类,资金流类,高频因子,factors2026.md,2558,2588,1m,1d,T_close,tick_trade,"RankCorr\left(EL_t, S_t\right)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_3_u77e5_60c5_4e3b_5356_5360_6bd4,2026,1.3.3,知情主卖占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,2588,2635,1m,1d,T_close,tick_trade,"R_{i,j,n} = \gamma_0 + \sum_{k=1}^{4} \gamma_{1,k} D_{k,i,j,n}^{weekday} + \sum_{k=1}^{3} \gamma_{2,k} D_{k,i,j,n}^{Period} + \gamma_{3,1} R_{i,j-1,n} + \varepsilon_{i,j,n}
+
+\text{知情主卖占比} = \frac{1}{T} \sum_{n=t-T+1}^{n=t} \frac{\sum_{j \in 9:30-14:56} \text{知情主卖成交额}*{i,j,n}}{\sum*{j \in 9:30-14:56} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_4_u5f00_76d8_540e_51c0_4e3b_4e70_5f3a_5ea6,2026,1.3.4,开盘后净主买强度,高频因子,资金流类,资金流类,高频因子,factors2026.md,2635,2674,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\text{mean}(净主买成交额}*{i,j,n})}{\text{std}(净主买成交额}*{i,j,n})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_5_u5c0f_5355_548c_5c0f_5355_7684_9519_4f4d_76f8,2026,1.3.5,小单和小单的错位相关性,高频因子,资金流类,资金流类,高频因子,factors2026.md,2674,2703,1m,1d,T_close,tick_trade,"RankCorr\left(S_t, S_{t+1}\right)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_6_u51c0_59d4_4e70_53d8_5316_7387,2026,1.3.6,净委买变化率,高频因子,资金流类,资金流类,高频因子,factors2026.md,2703,2743,1m,1d,T_close,orderbook,"\text{净委买变化率}*{k,t}^T = \frac{\text{净委买变化量}*{k,t}^T}{\text{流通股本}_T}
+
+\text{净委买变化率}*{k,t}^T = \sum*{j=1}^{k} \text{委买变化量}*{j,t}^T - \sum*{j=1}^{k} \text{委卖变化量}_{j,t}^T",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_7_u77e5_60c5_4e3b_4e70_5360_6bd4,2026,1.3.7,知情主买占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,2743,2790,1m,1d,T_close,tick_trade,"R_{i,T,j} = \gamma_0 + \sum_{k=1}^{4} \gamma_{1,k} D_{T,k,j}^{weekday} + \sum_{k=1}^{3} \gamma_{2,k} D_{T,k,j}^{Period} + \gamma_{3,1} R_{i,T,j-1} + \varepsilon_{i,j}
+
+\text{知情主买占比} = \frac{1}{T} \sum_{n=t}^{n=t-T+1} \frac{\sum_{j \in 9:30-14:56} \text{知情主买成交额}*{i,j,n}}{\sum*{j \in 9:30-14:56} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_8_u6539_8fdb_5927_5355_4ea4_6613_5360_6bd4,2026,1.3.8,改进大单交易占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,2790,2818,1m,1d,T_close,orderbook,改进大单交易占比 = \frac{(-1) \times 大买非大卖 + (-1) \times 非大买大卖 + 大买大卖}{总成交量},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_9_u5c0f_4e70_5355_4e3b_52a8_6210_4ea4_5ea6,2026,1.3.9,小买单主动成交度,高频因子,资金流类,资金流类,高频因子,factors2026.md,2818,2854,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} \text{小买单主动成交额}*{i,j,n}}{\sum*{j=1}^{N} \text{小买单成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_10_u5f00_76d8_540e_51c0_59d4_4e70_589e_989d_5360,2026,1.3.10,开盘后净委买增额占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,2854,2890,1m,1d,T_close,orderbook,"\text{开盘后净委买增额占比} = \frac{1}{T} \sum_{n=t-T+1}^{n=t} \frac{\sum_{j \in 9:30-10:00} \text{净委买增额}*{i,j,n}}{\text{成交额}*{i,j,n}}
+
+\text{净委买增额}*{i,j,n} = \text{委托买单增加量}*{i,j,n} - \text{委托卖单增加量}_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_11_u6563_6237_7f8a_7fa4_6548_5e94,2026,1.3.11,散户羊群效应,高频因子,资金流类,资金流类,高频因子,factors2026.md,2890,2924,1m,1d,T_close,tick_trade,"RankCorr(R_t, S_{t+1})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_12_u6f2b_957f_8ba2_5355_4ea4_6613_5360_6bd4,2026,1.3.12,漫长订单交易占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,2924,2957,1m,1d,T_close,orderbook,VolumeLong = \frac{\sum VolumeLongBuy_i + \sum VolumeLongSell_i}{Volume},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_13_u8d85_5927_5355_4e70_5165_5360_6bd4,2026,1.3.13,超大单买入占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,2957,2991,1m,1d,T_close,orderbook,"\text{超大单买入占比}*{i,t} = \frac{SuperBigBuy*{i,t}}{SuperBigBuy_{i,t} + SuperBigSell_{i,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_14_u5f00_76d8_540e_4e70_5165_610f_613f_5360_6bd4,2026,1.3.14,开盘后买入意愿占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,2991,3029,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} (\text{买入意愿}*{i,j,n})}{\sum*{j=1}^{N} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_15_u5e73_5747_5355_7b14_6d41_51fa_91d1_989d_5360,2026,1.3.15,平均单笔流出金额占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3029,3065,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t-T+1}^{t} \frac{\sum_{j=1}^{N} Amt_{i,j,n} \cdot I_{r_{i,j,n}<0} / \sum_{j=1}^{N} TrdNum_{i,j,n} \cdot I_{r_{i,j,n}<0}}{\sum_{j=1}^{N} Amt_{i,j,n} / \sum_{j=1}^{N} TrdNum_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_16_u65e9_5c3e_76d8_590d_5408_4ea4_6613_5360_6bd4,2026,1.3.16,早尾盘复合交易占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3065,3093,1m,1d,T_close,tick_trade,\text{早尾盘复合交易占比} = \frac{\text{非早尾盘买单}  \text{非早尾盘卖单的成交量} - \text{早盘买单}  \text{早盘卖单的成交量}}{\text{总成交量}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_17_u5254_9664_8d85_5927_5355_540e_7684_666e_901a,2026,1.3.17,剔除超大单后的普通大单买入占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3093,3125,1m,1d,T_close,orderbook,"\text{剔除超大单后的普通大单买入占比}*{i,t} = \frac{NormalBigBuy*{i,t}}{NormalBigBuy_{i,t} + NormalBigSell_{i,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_18_u5f00_76d8_540e_4e70_5165_610f_613f_5f3a_5ea6,2026,1.3.18,开盘后买入意愿强度,高频因子,资金流类,资金流类,高频因子,factors2026.md,3125,3167,1m,1d,T_close,orderbook,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\text{mean}(买入意愿}*{i,j,n})}{\text{std}(买入意愿}*{i,j,n})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_19_u5927_5355_8d44_91d1_51c0_6d41_5165_7387,2026,1.3.19,大单资金净流入率,高频因子,资金流类,资金流类,高频因子,factors2026.md,3167,3208,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} Amt_{i,j,n} \cdot I_{r_{i,j,n}>0, j \in IdxSet} - \sum_{j=1}^{N} Amt_{i,j,n} \cdot I_{r_{i,j,n}<0, j \in IdxSet}}{\sum_{j=1}^{N} Amt_{i,j,n}}
+
+\sum_{j=1}^{N} Amt_{i,j,n} / \sum_{j=1}^{N} TrdNum_{i,j,n}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_20_u9ad8_4f4e_4ef7_590d_5408_4ea4_6613_5360_6bd4,2026,1.3.20,高低价复合交易占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3208,3236,1m,1d,T_close,orderbook,高低价复合交易占比 = \frac{非高低价买单非高低价卖单的成交量 - 高价买单高价卖单的成交量}{总成交量},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_21_u7f8a_7fa4_884c_4e3a,2026,1.3.21,羊群行为,高频因子,资金流类,资金流类,高频因子,factors2026.md,3236,3286,1m,1d,T_close,trade_direction,"H(i,T) = \left| \frac{B(i,T)}{B(i,T) + S(i,T)} - p_T \right| - AF(i,T)
+
+AF(i,T) = \sum_{k=0}^{N_{i,T}} \binom{N_{i,T}}{k} p_T^k (1 - p_T)^{N_{i,T}-k} \left| \frac{k}{N_{i,T}} - p_T \right|
+
+HB(i,T) = H(i,T) \quad \text{if } \frac{B(i,T)}{B(i,T)+S(i,T)} > p_T
+
+HS(i,T) = H(i,T) \quad \text{if } \frac{B(i,T)}{B(i,T)+S(i,T)} < p_T",,blocked_data,精确实现依赖当前数据审计未发现的数据域: trade_direction,,,,,{},0
+calendar2026_1_3_22_u5927_5355_4e70_5165_5360_6bd4,2026,1.3.22,大单买入占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3286,3322,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} \text{大买单成交额}*{i,j,n}}{\sum*{j=1}^{N} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_23_u57fa_4e8e_5927_5c0f_5355_548c_6210_4ea4_65f6,2026,1.3.23,基于大小单和成交时长的精选复合交易占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3322,3352,1m,1d,T_close,orderbook,VolumeLongBigSelect = \frac{大买漫长的\大卖 + 漫长的\大买非漫长的\大卖}{总成交量} - \frac{非漫长的\非大买非漫长的\大卖 + 非漫长的\大买非漫长的\非大卖}{总成交量},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_24_u6b8b_5dee_8d44_91d1_6d41_5f3a_5ea6_56e0_5b50,2026,1.3.24,残差资金流强度因子,高频因子,资金流类,资金流类,高频因子,factors2026.md,3352,3391,1m,1d,T_close,tick_trade,"S_t = \frac{\sum_{t-T}^{t} (buy_t - sell_t)}{\sum_{t-T}^{t} |buy_t - sell_t|}
+
+S_t = a + bRet20_t + \varepsilon_t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_25_u4ef7_683c_51b2_51fb_504f_5dee,2026,1.3.25,价格冲击偏差,高频因子,资金流类,资金流类,高频因子,factors2026.md,3391,3433,1m,1d,T_close,tick_trade,"return_i = gamma^{up} \cdot I_i \cdot MF_i + gamma^{down} \cdot (1 - I_i) \cdot MF_i
+
+MF_i = MoneyFlow_i / Amount_i
+
+gammabias = \frac{gamma_{up} - gamma_{down}}{(gamma_{up} - gamma_{down})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_26_u4ea4_6613_91cf_540c_6b65_7684_77e5_60c5_4ea4,2026,1.3.26,交易量同步的知情交易概率,高频因子,资金流类,资金流类,高频因子,factors2026.md,3433,3476,1m,1d,T_close,orderbook,"VPIN = \frac{\alpha\mu}{\alpha\mu + 2\varepsilon} \approx \frac{E[|V_\tau^S - V_\tau^B|]}{V}
+= \frac{\sum_{i=1}^{n} |V_\tau^S - V_\tau^B|}{nV}
+
+V_\tau^B = \sum_{i=t(\tau-1)+1}^{t(\tau)} V_i \cdot Z\left( \frac{P_i - P_{i-1}}{\sigma_{\Delta P}} \right)
+
+V_\tau^S = \sum_{i=t(\tau-1)+1}^{t(\tau)} V_i \cdot \left[ 1 - Z\left( \frac{P_i - P_{i-1}}{\sigma_{\Delta P}} \right) \right] = V - V_\tau^B",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_27_u4fee_6b63_7684_51c0_6d41_5165_7387,2026,1.3.27,修正的净流入率,高频因子,资金流类,资金流类,高频因子,factors2026.md,3476,3522,1m,1d,T_close,tick_trade,"B_P = B_{Extra} + B_{Large} + B_{Med}
+
+S_P = S_{Extra} + S_{Large} + S_{Med}
+
+\ln(B_P / S_P) = \alpha + \beta \times Ret + \varepsilon
+
+\hat{B}_P = \frac{e^\varepsilon}{1 + e^\varepsilon} \times (B_P + S_P)
+
+\hat{S}_P = \frac{1}{1 + e^\varepsilon} \times (B_P + S_P)
+
+CNIR = \frac{\sum_i^N (\hat{B}*{P,i} - \hat{S}*{P,i})}{\sum_i^N (\hat{B}*{P,i} + \hat{S}*{P,i})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_28_u5f00_76d8_540e_5927_5355_51c0_4e70_5165_5f3a,2026,1.3.28,开盘后大单净买入强度,高频因子,资金流类,资金流类,高频因子,factors2026.md,3522,3558,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{mean(大买单成交额_{i,j,n} - 大卖单成交额_{i,j,n})}{std(大买单成交额_{i,j,n} - 大卖单成交额_{i,j,n})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_29_u5f15_5165_4e3b_52a8_4e70_5356_7279_5f81_7684,2026,1.3.29,引入主动买卖特征的改进大单交易占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3558,3588,1m,1d,T_close,orderbook,\text{改进大单交易占比} = \frac{\text{大买}&\text{大卖}&\text{主卖} - \text{大买}&\text{非大卖}&\text{主买} - \text{非大买}&\text{大卖}&\text{主卖}}{\text{总成交量}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_30_u57fa_4e8e_7269_7406_65f6_95f4_4ea4_6613_91cf,2026,1.3.30,基于物理时间交易量加权的知情交易概率,高频因子,资金流类,资金流类,高频因子,factors2026.md,3588,3626,1m,1d,T_close,orderbook,"VWPIN = \frac{\alpha\mu}{\alpha\mu + 2\varepsilon} \approx \sum_{i=1}^{n} w_i \frac{|S_i - B_i|}{S_i + B_i}
+
+w_i = \frac{Volume_i}{\sum_{i=1}^{n} Volume_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_31_u535a_5f08_56e0_5b50,2026,1.3.31,博弈因子,高频因子,资金流类,资金流类,高频因子,factors2026.md,3626,3666,1m,1d,T_close,orderbook,"Stren = \frac{\sum weight_t \times VolBuy_t}{\sum weight_t \times VolSell_t}
+
+VolBuy_t = \sum volbuy_i
+
+VolSell_t = \sum volsell_i",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_32_u4e70_5355_96c6_4e2d_5ea6,2026,1.3.32,买单集中度,高频因子,资金流类,资金流类,高频因子,factors2026.md,3666,3700,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} \text{买单成交额}*{i,j,n}^2}{\text{总成交额}*{i,n}^2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_33_u4e3b_4e70_6210_4ea4_7279_5f02_6027,2026,1.3.33,主买成交特异性,高频因子,资金流类,资金流类,高频因子,factors2026.md,3700,3728,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_3_34_u52a8_6001_77e5_60c5_4ea4_6613_6982_7387,2026,1.3.34,动态知情交易概率,高频因子,资金流类,资金流类,高频因子,factors2026.md,3728,3774,1m,1d,T_close,orderbook,"R_{i,j} = \gamma_0 + \sum_{k=1}^{4} \gamma_{1i,k} D_k^{Day} + \sum_{k=1}^{48} \gamma_{2i,k} D_k^{Int} + \sum_{k=1}^{12} \gamma_{3i,k} R_{i,j-k} + \varepsilon_{i,j}
+
+DPIN_{BASE}^{i,j} = \frac{NB_{i,j}}{NT_{i,j}} * (\varepsilon_{i,j} < 0) + \frac{NS_{i,j}}{NT_{i,j}} * (\varepsilon_{i,j} > 0)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_3_35_u6734_7d20_4e3b_52a8_5360_6bd4,2026,1.3.35,朴素主动占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3774,3808,1m,1d,T_close,tick_trade,"**主动买入金额**$*i = Amount_i \times t\left(\dfrac{Close_i - Close*{i-1}}{\sigma_{\Delta close}}, df\right)$
+**朴素主动占比因子** $= \dfrac{\sum_{i=1}^{N} 主动买入金额_i}{\sum_{i=1}^{N} Amount_i}$",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_36_u4e3b_4e70_5360_6bd4,2026,1.3.36,主买占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3808,3842,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} \text{主动买入成交额}*{i,j,n}}{\sum*{j=1}^{N} \text{成交额}_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_37_u8679_5438_6548_5e94,2026,1.3.37,虹吸效应,高频因子,资金流类,资金流类,高频因子,factors2026.md,3842,3874,1m,1d,T_close,tick_trade,"① 计算成交量放大倍数：AM = 个股第 t 分钟成交量 / 个股第 t-1 分钟成交量；
+⑤ 计算虹吸效应：计算“热度时间”中，“个股每分钟主卖成交额占比”和“市场每分钟主卖成交额占比”的相关系数，其中：个股每分钟主卖成交额占比 = 个股每分钟主卖成交额 / 市场当日主卖成交额之和，市场每分钟主卖成交额占比 = 市场每分钟主卖成交额 / 市场当日主卖成交额之和；",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_38_u5c0f_5355_7684_52a8_6001_77e5_60c5_4ea4_6613,2026,1.3.38,小单的动态知情交易概率,高频因子,资金流类,资金流类,高频因子,factors2026.md,3874,3923,1m,1d,T_close,tick_trade,"R_{i,j} = \gamma_0 + \sum_{k=1}^{4} \gamma_{1,k} D_{k}^{Dow} + \sum_{k=1}^{48} \gamma_{2,k} D_{k}^{Int} + \sum_{k=1}^{12} \gamma_{3,k} R_{i,j-k} + \epsilon_{i,j}
+
+DPIN_{SMALL}^{i,j} = \frac{NB_{i,j}}{NT_{i,j}} * (\epsilon_{i,j} < 0) + \frac{NS_{i,j}}{NT_{i,j}} * (\epsilon_{i,j} > 0)(ST_{i,j})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_39_t,2026,1.3.39,T分布主动占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3923,3959,1m,1d,T_close,tick_trade,"T\text{分布主动买入金额}*i = Amount_i \times t\left(\frac{ret_i}{\sigma*{ret}}, df\right)
+
+T\text{分布主动占比因子} = \frac{\sum_{i=1}^{N} T\text{分布主动买入金额}*i}{\sum*{i=1}^{N} Amount_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_40_u5f00_76d8_540e_51c0_4e3b_4e70_5360_6bd4,2026,1.3.40,开盘后净主买占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,3959,3998,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\sum_{j=1}^{N} 净主买成交额_{i,j,n}}{\sum_{j=1}^{N} 成交额_{i,j,n}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_41_u4e3b_52a8_4e70_5356_56e0_5b50,2026,1.3.41,主动买卖因子,高频因子,资金流类,资金流类,高频因子,factors2026.md,3998,4030,1m,1d,T_close,tick_trade,"ACT_{\text{正向}t} = \frac{\text{主动买入金额（大单+中单）}-\text{主动卖出金额（大单+中单）}}{\text{主动买入金额（大单+中单）}+\text{主动卖出金额（大单+中单）}}
+
+ACT_{\text{负向}t} = \frac{\text{主动买入金额（小单）}-\text{主动卖出金额（小单）}}{\text{主动买入金额（小单）}+\text{主动卖出金额（小单）}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_42_u5927_5355_7684_52a8_6001_77e5_60c5_4ea4_6613,2026,1.3.42,大单的动态知情交易概率,高频因子,资金流类,资金流类,高频因子,factors2026.md,4030,4078,1m,1d,T_close,tick_trade,"R_{i,j} = \gamma_0 + \sum_{k=1}^{4} \gamma_{1,k} D_k^{Day} + \sum_{k=1}^{48} \gamma_{2i,k} D_k^{Int} + \sum_{k=1}^{12} \gamma_{3i,k} R_{i,j-k} + \varepsilon_{i,j}
+
+DPIN_{SIZE}^{i,j} = \left[ \frac{NB_{i,j}}{NT_{i,j}} * (\varepsilon_{i,j} < 0) + \frac{NS_{i,j}}{NT_{i,j}} * (\varepsilon_{i,j} > 0) \right] (LT_{i,j})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_43_u7f6e_4fe1_6b63_6001_5206_5e03_4e3b_52a8_5360,2026,1.3.43,置信正态分布主动占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,4078,4108,1m,1d,T_close,tick_trade,"**置信正态分布主动买入金额**$_i = Amount_i \times N\left(\dfrac{ret_i}{0.1} \times 1.96\right)$
+**置信正态分布主动占比因子** $= \dfrac{\sum_{i=1}^{N} \text{置信正态分布主动买入金额}*i}{\sum*{i=1}^{N} Amount_i}$",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_44_u5927_5355_4e70_5165_5f3a_5ea6,2026,1.3.44,大单买入强度,高频因子,资金流类,资金流类,高频因子,factors2026.md,4108,4142,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{mean(大买单成交额_{i,j,n})}{std(大买单成交额_{i,j,n})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_45_u4ea4_6613_91cf_53d8_5f02_7cfb_6570,2026,1.3.45,交易量变异系数,高频因子,资金流类,资金流类,高频因子,factors2026.md,4142,4174,1m,1d,T_close,open|high|low|close|volume|turnover,"VCV_{i,\gamma} = \frac{\hat{\sigma}*{Vi,t\in\gamma}}{\hat{\mu}*{Vi,t\in\gamma}}",std(turnover_1m)/mean(turnover_1m),exact,,intraday_path_metric,,,,{'metric': 'turnover_cv'},0
+calendar2026_1_3_46_u5747_5300_5206_5e03_4e3b_52a8_5360_6bd4,2026,1.3.46,均匀分布主动占比,高频因子,资金流类,资金流类,高频因子,factors2026.md,4174,4202,1m,1d,T_close,tick_trade,"**均匀分布主动买入金额**$_i$ = $Amount_i \times \dfrac{ret_i - 0.1}{0.2}$
+**均匀分布主动占比因子** = $\dfrac{\sum_{i=1}^{N} \text{均匀分布主动买入金额}*i}{\sum*{i=1}^{N} Amount_i}$",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_3_47_u4e3b_4e70_5f3a_5ea6,2026,1.3.47,主买强度,高频因子,资金流类,资金流类,高频因子,factors2026.md,4202,4236,1m,1d,T_close,tick_trade,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{\text{mean}(主动买入成交额}*{i,j,n})}{\text{std}(主动买入成交额}*{i,j,n})}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_4_1_u9ad8_9891_5f39_6027_56e0_5b50,2026,1.4.1,高频弹性因子,高频因子,流动性类,流动性类,高频因子,factors2026.md,4238,4277,unknown,1d,T_close,,"p_t = q_t + z_t
+
+Z_k = \sum_{t=1}^{D} z_t e^{-\frac{i2\pi kt}{D}}, \quad (k=1, 2, \cdots, D)
+
+|\bar{Z}_k| = \frac{1}{D} |Z_k|
+
+Resiliency_{i,t} = \frac{\sum_{k=1}^{[\frac{D_{i,t}}{2}]} 2|\bar{Z}*{k,i,t}| \cdot f*{k,i,t}}{\sum_{k=1}^{[\frac{D_{i,t}}{2}]} 2|\bar{Z}_{k,i,t}|}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_4_2_u4e70_5356_59d4_6258_4ef7_683c_6bd4_7387,2026,1.4.2,买卖委托价格比率,高频因子,流动性类,流动性类,高频因子,factors2026.md,4277,4305,1m,1d,T_close,orderbook,"PIR_t = \frac{P_t^{WB} - P_t^{WA}}{P_t^{WB} + P_t^{WA}}
+
+P_t^{WB(WA)} = \frac{\sum w_i \times P_{i,t}^{B(A)}}{\sum w_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_3_u975e_6d41_52a8_6027,2026,1.4.3,非流动性,高频因子,流动性类,流动性类,高频因子,factors2026.md,4305,4347,1m,1d,T_close,open|high|low|close|volume|turnover,"shortcut = 2 * (high - low) - |close - open|
+
+ILLIQ_t = \frac{1}{d} \sum_{i=1}^{d} \left( \sum_{j=1}^{p} \frac{\text{ShortCut}_j}{\text{Value}*j} \right)*{t-i}","mean(sum((2*(high-low)-abs(close-open))/turnover),20)",exact,,intraday_path_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'shortcut_illiquidity', 'post_window': 20, 'post_stat': 'mean'}",20
+calendar2026_1_4_4_u4ef7_683c_5f39_6027,2026,1.4.4,价格弹性,高频因子,流动性类,流动性类,高频因子,factors2026.md,4347,4378,1m,1d,T_close,open|high|low|close|volume|turnover,resiliency = \frac{high - low}{turnover},mean((high_1m-low_1m)/turnover_1m),exact,,intraday_path_metric,,,,{'metric': 'price_elasticity'},0
+calendar2026_1_4_5_u4e09_5c0f_5c06_64a4_5355_7387,2026,1.4.5,三小将-撤单率,高频因子,流动性类,流动性类,高频因子,factors2026.md,4378,4408,1m,1d,T_close,orderbook,\text{撤单率} = \frac{\text{撤单量}}{\text{自由流通股本}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_6_u5356_5355_975e_6d41_52a8_6027,2026,1.4.6,卖单非流动性,高频因子,流动性类,流动性类,高频因子,factors2026.md,4408,4445,1m,1d,T_close,tick_trade,"r_{i,t} = \alpha + \beta_1 * S_{i,t} + \beta_2 * B_{i,t} + \epsilon_{it}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_1_4_7_u5356_76d8_6df1_5ea6,2026,1.4.7,卖盘深度,高频因子,流动性类,流动性类,高频因子,factors2026.md,4445,4477,1m,1d,T_close,orderbook,askdepth = \Sigma \left| \frac{av_i * mid_{price}}{a_i - last_{mid} + \epsilon} \right|,,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_8_u6bd2_6d41_52a8_6027,2026,1.4.8,毒流动性,高频因子,流动性类,流动性类,高频因子,factors2026.md,4477,4507,1m,1d,T_close,orderbook,\text{毒流动性} = \frac{\text{5秒内撤单数量}}{\text{30秒内撤单数量}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_9_u4e70_76d8_6df1_5ea6,2026,1.4.9,买盘深度,高频因子,流动性类,流动性类,高频因子,factors2026.md,4507,4539,1m,1d,T_close,orderbook,biddepth = \Sigma \left| \frac{bv_i * mid_{price}}{b_i - last_{mid} + \epsilon} \right|,,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_10_u4e70_5355_975e_6d41_52a8_6027,2026,1.4.10,买单非流动性,高频因子,流动性类,流动性类,高频因子,factors2026.md,4539,4575,1m,1d,T_close,tick_trade,"r_{i,t} = \alpha + \beta_1 * S_{i,t} + \beta_2 * B_{i,t} + \epsilon_{it}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_1_4_11_u6709_6548_4ef7_5dee,2026,1.4.11,有效价差,高频因子,流动性类,流动性类,高频因子,factors2026.md,4575,4607,1m,1d,T_close,orderbook,"ES_{i,t} = 2D_{i,k} \frac{P_{i,t} - \left( \frac{Ask_{i,t} + Bid_{i,t}}{2} \right)}{(Ask_{i,t} + Bid_{i,t})/2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_12_u8ba2_5355_5931_8861,2026,1.4.12,订单失衡,高频因子,流动性类,流动性类,高频因子,factors2026.md,4607,4655,1m,1d,T_close,orderbook,"VOI_t = \Delta V_t^{WB} - \Delta V_t^{WA}
+
+\Delta V_t^{WB} = 
+\begin{cases}
+0 & P_t^B < P_{t-1}^B 
+V_t^{WB} - V_{t-1}^{WB} & P_t^B = P_{t-1}^B 
+V_t^{WB} & P_t^B > P_{t-1}^B
+\end{cases}
+\quad
+\Delta V_t^{WA} = 
+\begin{cases}
+V_t^{WA} & P_t^A < P_{t-1}^A 
+V_t^{WA} - V_{t-1}^{WA} & P_t^A = P_{t-1}^A 
+0 & P_t^A > P_{t-1}^A
+\end{cases}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_13_u76d8_53e3_5e73_5747_6df1_5ea6,2026,1.4.13,盘口平均深度,高频因子,流动性类,流动性类,高频因子,factors2026.md,4655,4685,1m,1d,T_close,orderbook,avgdepth = \frac{av_1 + bv_1}{2},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_14_u767e_5206_6bd4_5b9e_73b0_4ef7_5dee,2026,1.4.14,百分比实现价差,高频因子,流动性类,流动性类,高频因子,factors2026.md,4685,4719,1m,1d,T_close,orderbook,"PRS_{i,t} = 2D_{i,k} \left( \ln(P_{i,t}) - \ln\left( \frac{Ask_{i,t+5} + Bid_{i,t+5}}{2} \right) \right)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_15_u6709_6548_6df1_5ea6,2026,1.4.15,有效深度,高频因子,流动性类,流动性类,高频因子,factors2026.md,4719,4749,1m,1d,T_close,orderbook,"effectivedepth = \min(av_1, bv_1)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_16_u8ba2_5355_5931_8861_7387,2026,1.4.16,订单失衡率,高频因子,流动性类,流动性类,高频因子,factors2026.md,4749,4785,1m,1d,T_close,orderbook,"OIR_t = \frac{V_t^{WB} - V_t^{WA}}{V_t^{WB} + V_t^{WA}}
+
+V_t^{WB(WA)} = \frac{\sum w_i \times V_{i,t}^{B(A)}}{\sum w_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_17_u5355_4f4d_4ea4_6613_989d_7684_6709_6548_4ef7,2026,1.4.17,单位交易额的有效价差,高频因子,流动性类,流动性类,高频因子,factors2026.md,4785,4823,1m,1d,T_close,orderbook,"ESI_{i,t} = \frac{ES_{i,t}}{vol_{i,t}}
+
+ES_{i,t} = 2D_{i,k} \frac{P_{i,t} - \left( \frac{Ask_{i,t} + Bid_{i,t}}{2} \right)}{(Ask_{i,t} + Bid_{i,t})/2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_18_u9010_6863_8ba2_5355_5931_8861_7387,2026,1.4.18,逐档订单失衡率,高频因子,流动性类,流动性类,高频因子,factors2026.md,4823,4850,1m,1d,T_close,orderbook,"SOIR_t = \frac{\sum_{i=1}^{5} w_i SOIR_{i,t}}{\sum_{i=1}^{5} w_i} \quad SOIR_{i,t} = \frac{V_{i,t}^B - V_{i,t}^A}{V_{i,t}^B + V_{i,t}^A}
+
+w = 1 - (i - 1)/5,  i = 1,2,3,4,5",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_19_u5355_4f4d_6210_4ea4_989d_7684_767e_5206_6bd4,2026,1.4.19,单位成交额的百分比实现价差,高频因子,流动性类,流动性类,高频因子,factors2026.md,4850,4890,1m,1d,T_close,orderbook,"PRSI_{i,t} = \frac{PRS_{i,t}}{vol_{i,t}}
+
+PRS_{i,t} = 2D_{i,k} \left( \ln(P_{i,t}) - \ln\left( \frac{Ask_{i,t+5} + Bid_{i,t+5}}{2} \right) \right)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_20_u4e2d_95f4_4ef7_53d8_5316_7387_6700_5927_503c,2026,1.4.20,中间价变化率最大值,高频因子,流动性类,流动性类,高频因子,factors2026.md,4890,4926,1m,1d,T_close,orderbook,"MPC_{\max} = \max_{d,k} MPC_{d,t,k}, t = k+1, \ldots, N_d
+
+MPC_{d,t,k} = \frac{M_{d,t} - M_{d,t-k}}{M_{d,t}} \quad M_{d,t} = \frac{P^B_{d,t} + P^A_{d,t}}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_21_u6536_76d8_59d4_6258_4ef7_5dee,2026,1.4.21,收盘委托价差,高频因子,流动性类,流动性类,高频因子,factors2026.md,4926,4960,1m,1d,T_close,orderbook,"CPQSI_{i,t} = \frac{CPQS_{i,t}}{vol_{i,t}}
+
+CPQS_{i,t} = \frac{ClosingAsk_{i,t} - ClosingBid_{i,t}}{(ClosingAsk_{i,t} + ClosingBid_{i,t})/2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_22_u591a_5c42_6b21_8ba2_5355_5931_8861,2026,1.4.22,多层次订单失衡,高频因子,流动性类,流动性类,高频因子,factors2026.md,4960,5008,1m,1d,T_close,orderbook,"MOFI_{weight} = \frac{\sum w_i \times OFI_t^{(i)}}{\sum w_i},\ w_i = \frac{i}{5}, i = 1,2,3,4,5
+
+\Delta V_t^B = 
+\begin{cases}
+-V_{t-1}^B & P_t^B < P_{t-1}^B 
+V_t^B - V_{t-1}^B & P_t^B = P_{t-1}^B 
+V_t^B & P_t^B > P_{t-1}^B
+\end{cases}
+\quad
+\Delta V_t^A = 
+\begin{cases}
+V_t^A & P_t^A < P_{t-1}^A 
+V_t^A - V_{t-1}^A & P_t^A = P_{t-1}^A 
+-V_{t-1}^A & P_t^A > P_{t-1}^A
+\end{cases}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_23_u6d41_52a8_6027_6ea2_4ef7_56e0_5b50_7b49_6743,2026,1.4.23,流动性溢价因子-等权,高频因子,流动性类,流动性类,高频因子,factors2026.md,5008,5046,1m,1d,T_close,orderbook,"Cap_{need} = Sum(Vol_{i,need} \times Close_{i,n})
+
+Cap_{actual} = Sum(Vol_{i,actual} \times Close_{i,n})
+
+f = \frac{Sum(Cap_{need}, T)}{Sum(Cap_{actual}, T)} - 1",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_24_u6d41_52a8_6027_6ea2_4ef7_56e0_5b50_52a0_6743,2026,1.4.24,流动性溢价因子-加权,高频因子,流动性类,流动性类,高频因子,factors2026.md,5046,5082,1m,1d,T_close,orderbook,"Cap_{need} = Sum(Vol_{i, need} \times Close_{i,n})
+
+Cap_{actual} = Sum(Vol_{i, actual} \times Close_{i,n})
+
+f = \frac{\sum_T Cap_{need}^t \times weight^t}{\sum_T Cap_{actual}^t \times weight^t} - 1",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_25_u57fa_4e8e_9ad8_4f4e_4ef7_7684_4e70_5356_4ef7,2026,1.4.25,基于高低价的买卖价差,高频因子,流动性类,流动性类,高频因子,factors2026.md,5082,5124,1m,1d,T_close,orderbook,"HLI_{i,t} = \frac{HL_{i,t}}{vol_{i,t}}
+
+HL_{i,t} = \frac{2 * (e^{\alpha_t} - 1)}{1 + e^{\alpha_t}}
+
+\alpha_t = \frac{\sqrt{2 * \beta_t} - \sqrt{\beta_t}}{3 - 2\sqrt{2}} - \sqrt{\frac{\gamma_t}{3 - 2\sqrt{2}}}
+
+\beta_t = \frac{\sum_{j=0}^{1} \left[ \ln \left( \frac{H_{t+j}^0}{L_{t+j}^0} \right) \right]^2}{2}, \quad \gamma_t = \left[ \ln \left( \frac{H_{t,t+1}^0}{L_{t,t+1}^0} \right) \right]^2",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_26_u8fb9_9645_4ea4_6613_6210_672c,2026,1.4.26,边际交易成本,高频因子,流动性类,流动性类,高频因子,factors2026.md,5124,5166,1m,1d,T_close,orderbook,"MCI_A = \frac{VWAPM_A}{DotVol_A}
+
+VWAPM_A = \frac{VWAP_A - M}{M} \quad VWAP_A = \frac{\sum_i^n P_{A,i} \times Q_{A,i}}{\sum_i^n Q_{A,i}} = \frac{DotVol_A}{\sum_i^n Q_{A,i}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_27_u5e02_4ef7_504f_79bb_5ea6,2026,1.4.27,市价偏离度,高频因子,流动性类,流动性类,高频因子,factors2026.md,5166,5203,1m,1d,T_close,orderbook,MPB_t = \overline{TP}*t - \frac{M_t + M*{t-1}}{2} = \overline{TP}_t - \overline{MP}_t,,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_28_u591a_5c42_8ba2_5355_659c_7387,2026,1.4.28,多层订单斜率,高频因子,流动性类,流动性类,高频因子,factors2026.md,5203,5245,1m,1d,T_close,orderbook,"MLQS_{weight} = \frac{\sum w_i \times LogquoteSlope_t^{(i)}}{\sum w_i},\ w_i = \frac{i}{5},\ i = 1,2,3,4,5
+
+LogquoteSlope_t = \frac{\log \left(P_t^A\right) - \log \left(P_t^B\right)}{\log \left(V_t^A\right) + \log \left(V_t^B\right)}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_29_u4e2d_95f4_4ef7_53d8_5316_7387,2026,1.4.29,中间价变化率,高频因子,流动性类,流动性类,高频因子,factors2026.md,5245,5279,1m,1d,T_close,orderbook,"MPC_{t,k} = \frac{M_t - M_{t-k}}{M_{t-k}} \quad M_t = \frac{P_t^B + P_t^A}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_30_gamma,2026,1.4.30,非流动性因子 Gamma,高频因子,流动性类,流动性类,高频因子,factors2026.md,5279,5323,1d,1d,T_close,close|turnover|market_ret,"r_{i,d+1,t}^e = \theta_{i,t} + \phi_{i,t} r_{i,d,t} + \gamma_{i,t} sign\left(r_{i,d,t}^e\right) * v_{i,d,t} + \epsilon_{i,d+1,t}
+
+d = 1, \ldots, D
+
+Gam_{i,t} = -|\gamma_{i,t}|","-abs(gamma from next_excess_return~1+return+sign(excess_return)*turnover,monthly)",exact,,daily_gamma_illiquidity,,research_report_factors:concept_overlap,concept_overlap,{},21
+calendar2026_1_4_31_u76d8_53e3_4ef7_5dee,2026,1.4.31,盘口价差,高频因子,流动性类,流动性类,高频因子,factors2026.md,5323,5353,1m,1d,T_close,orderbook,spread = \frac{2 * (a_1 - b_1)}{a_1 + b_1},,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_4_32_u4e2d_95f4_4ef7_53d8_5316_7387_504f_5ea6,2026,1.4.32,中间价变化率偏度,高频因子,流动性类,流动性类,高频因子,factors2026.md,5353,5389,1m,1d,T_close,orderbook,"MPCskew_{d,k} = \frac{1}{N_d - k - 1} \sum_{t=k+1}^{N_d} \left( \frac{MPC_{d,t,k} - \overline{MPC_{d,t,k}}}{\sigma_{d,t,k}} \right)^3
+
+MPC_{d,t,k} = \frac{M_{d,t} - M_{d,t-k}}{M_{d,t-k}} \quad \quad M_{d,t} = \frac{P^B_{d,t} + P^A_{d,t}}{2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_5_1_u5f85_8457_800c_6551_56e0_5b50,2026,1.5.1,“待著而救”因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5391,5417,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_5_2_u52a0_6743_6536_76d8_4ef7_6bd4_56e0_5b50,2026,1.5.2,加权收盘价比因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5417,5449,1m,1d,T_close,open|high|low|close|volume|turnover,加权收盘价比 = \frac{\sum_{t=1}^{T} \frac{vol_t}{VOL} close_t}{\frac{1}{T} \sum_{t=1}^{T} close_t},"vwap(close_1m,volume_1m)/mean(close_1m)",exact,,intraday_path_metric,,,,{'metric': 'weighted_close_ratio'},0
+calendar2026_1_5_3_u968f_6ce2_9010_6d41_56e0_5b50,2026,1.5.3,“随波逐流”因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5449,5495,1m,1d,T_close,call_auction,"\text{合理收益率}*t = \frac{1}{20} \sum*{n=0}^{19} \text{日内收益率}*{t-n} = \frac{1}{20} \sum*{n=0}^{19} \left( \frac{\text{收盘价}*{t-n}}{\text{开盘价}*{t-n}} - 1 \right)
+
+\text{相对开盘收益率}*{m,t} = \frac{\text{收盘价}*{m,t}}{\text{开盘价}_t} - 1
+
+\text{高位成交额}*t = \sum*{m=1}^{240} \text{分钟成交额}*m I*{\text{相对开盘收益率}_{m,t} > \text{合理收益率}_t}
+
+\text{低位成交额}*t = \sum*{m=1}^{240} \text{分钟成交额}*m I*{\text{相对开盘收益率}_{m,t} < \text{合理收益率}_t}
+
+\text{高低额差}_t = \frac{\text{高位成交额}_t - \text{低位成交额}_t}{\text{收盘时流通市值}_t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: call_auction,,,,,{},0
+calendar2026_1_5_4_u91cf_5cf0_52a0_6743_4ef7_683c_5206_4f4d_70b9,2026,1.5.4,量峰加权价格分位点,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5495,5521,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_5_5_u5b64_96c1_51fa_7fa4_56e0_5b50,2026,1.5.5,“孤雁出群”因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5521,5551,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_5_6_u8c37_5cad_52a0_6743_4ef7_683c_6bd4,2026,1.5.6,谷岭加权价格比,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5551,5579,1m,1d,T_close,tick_trade,\text{谷岭加权价格比} = \frac{\text{每日量谷成交额加权价格}}{\text{同日量岭成交额加权价格}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_5_7_u6210_4ea4_989d_5360_6bd4_71b5,2026,1.5.7,成交额占比熵,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5579,5615,1m,1d,T_close,open|high|low|close|volume|turnover,"\text{成交额占比熵} = H\left(\frac{\text{amount}_1}{\text{AMOUNT}}, \frac{\text{amount}_2}{\text{AMOUNT}}, \ldots, \frac{\text{amount}_N}{\text{AMOUNT}}\right)
+
+H(p_1, p_2, \ldots, p_n) = -\sum_{i=1}^{N} p_i \ln(p_i)",-sum((turnover_i/sum(turnover))*log(turnover_i/sum(turnover))),exact,,intraday_path_metric,,,,{'metric': 'amount_entropy'},0
+calendar2026_1_5_8_u671d_6ca1_6668_96fe_56e0_5b50,2026,1.5.8,"""朝没晨雾"" 因子",高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5615,5644,1m,1d,T_close,close|volume,"ret_t = \frac{close_t}{close_{t-1}} - 1
+
+voldiff_t = volume_t - volume_{t-1}
+
+ret_t = \alpha_0 + \alpha_1 voldiff_t + \alpha_2 voldiff_{t-1} + \cdots + \alpha_5 voldiff_{t-5} + \varepsilon_t","mean(std(tvalues(lag1..lag5) in return~1+volume_delta_lag0..5),20)",exact,,intraday_volume_diff_regression,,,,{'metric': 'morning'},20
+calendar2026_1_5_9_u4ef7_91cf_76f8_5173_6027_5e73_5747_6570_56e0,2026,1.5.9,价量相关性平均数因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5644,5670,1m,1d,T_close,open|high|low|close|volume|turnover|a_share_market_val_in_circulation,"PVcorr = corr(v_t, p_t)","neutralize(mean(corr(close_1m,volume_1m),20),log(float_market_cap))",exact,,intraday_path_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'price_volume_corr', 'post_window': 20, 'post_stat': 'mean', 'post_neutralize_market_cap': True}",20
+calendar2026_1_5_10_u6bcf_7b14_6210_4ea4_91cf_6536_76ca_7387_76f8,2026,1.5.10,每笔成交量收益率相关性,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5670,5702,1m,1d,T_close,tick_trade,"\frac{\sum w_i \times ret_i}{std(pvol_i) \times std(ret_i)} = corr(pvol, ret)
+
+w_i = pvol_i - mean(pvol_i)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_5_11_u5348_853d_53e4_6728_56e0_5b50,2026,1.5.11,“午蔽古木”因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5702,5741,1m,1d,T_close,close|volume,"ret_t = \frac{close_t}{close_{t-1}} - 1
+
+voldiff_t = volume_t - volume_{t-1}
+
+ret_t = \alpha_0 + \alpha_1 voldiff_t + \alpha_2 voldiff_{t-1} + \ldots + \alpha_6 voldiff_{t-5} + \varepsilon_t",sign(F-all-cross_mean(F-all))*abs(t_intercept),exact,,intraday_volume_diff_regression,,,,{'metric': 'noon'},0
+calendar2026_1_5_12_u4ef7_91cf_76f8_5173_6027_6ce2_52a8_6027_56e0,2026,1.5.12,价量相关性波动性因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5741,5767,1m,1d,T_close,open|high|low|close|volume|turnover|a_share_market_val_in_circulation,"PVcorr = \text{corr}(v_t, p_t)","neutralize(std(corr(close_1m,volume_1m),20),log(float_market_cap))",exact,,intraday_path_metric,,alpha101/158/191/360:concept_overlap|research_report_factors:concept_overlap,concept_overlap,"{'metric': 'price_volume_corr', 'post_window': 20, 'post_stat': 'std', 'post_neutralize_market_cap': True}",20
+calendar2026_1_5_13_u59d4_6258_6210_4ea4_76f8_5173_6027,2026,1.5.13,委托成交相关性,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5767,5811,1m,1d,T_close,orderbook,"\text{净委买变化率}*{k,t}^T = \frac{\text{净委买变化量}*{k,t}^T}{\text{流通股本}_T}
+
+\text{净委买变化量}*{k,t}^T = \sum*{j=1}^{k} \text{委买变化量}*{j,t}^T - \sum*{j=1}^{k} \text{委卖变化量}_{j,t}^T
+
+\text{委托成交相关性}*T^i = \text{corr}(r*{T,t}^i, \text{netBid}_{T,t}^i)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: orderbook,,,,,{},0
+calendar2026_1_5_14_u5355_4e00_6210_4ea4_989d_5360_6bd4_71b5,2026,1.5.14,单一成交额占比熵,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5811,5849,1m,1d,T_close,open|high|low|close|volume|turnover,"\text{单一成交额占比熵} = H\left(\frac{vol_1}{VOL} \frac{close_1}{CLOSE}, \frac{vol_2}{VOL} \frac{close_2}{CLOSE}, \ldots, \frac{vol_N}{VOL} \frac{close_N}{CLOSE}\right)
+
+H(p_1, p_2, \ldots, p_n) = -\sum_{i=1}^{N} p_i \ln(p_i)",-sum((volume_i/VOL*close_i/CLOSE)*log(volume_i/VOL*close_i/CLOSE)),exact,,intraday_path_metric,,,,{'metric': 'single_amount_entropy'},0
+calendar2026_1_5_15_u591c_7720_971c_8def_56e0_5b50,2026,1.5.15,“夜眠霜路”因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5849,5886,1m,1d,T_close,close|volume,"ret_t = \frac{close_t}{close_{t-1}} - 1
+
+voldiff_t = volume_t - volume_{t-1}
+
+ret_t = \alpha_0 + \alpha_1 voldiff_t + \alpha_2 voldiff_{t-1} + \ldots + \alpha_6 voldiff_{t-5} + \varepsilon_t","mean_peer(abs(corr(t_intercept_stock,t_intercept_peer,20)))",exact,,intraday_volume_diff_regression,,,,{'metric': 'night'},20
+calendar2026_1_5_16_u4ef7_91cf_76f8_5173_6027_7efc_5408_56e0_5b50,2026,1.5.16,价量相关性综合因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5886,5910,1m,1d,T_close,close|volume|a_share_market_val_in_circulation,PVcorr = \frac{PVcorravg - mean(PVcorravg)}{std(PVcorravg)} + \frac{PVcorrstd - mean(PVcorrstd)}{std(PVcorrstd)},z(PVcorravg)+z(PVcorrstd),exact,,intraday_price_volume_composite,,research_report_factors:concept_overlap,concept_overlap,"{'mode': 'composite', 'window': 20}",20
+calendar2026_1_5_17_u4ef7_91cf_76f8_5173_6027_8d8b_52bf_56e0_5b50,2026,1.5.17,价量相关性趋势因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5910,5941,1m,1d,T_close,open|high|low|close|volume|turnover,"\rho_t = \text{corr}(v_t, p_t)
+
+\rho_t = \beta t + \varepsilon_t \quad \text{其中},\ t = 1, 2, 3, ..., 20;","slope(corr(close_1m,volume_1m),20)",exact,,intraday_path_metric,,research_report_factors:concept_overlap,concept_overlap,"{'metric': 'price_volume_corr', 'post_window': 20, 'post_stat': 'slope'}",20
+calendar2026_1_5_18_u5206_949f_6210_4ea4_989d_81ea_76f8_5173_6027,2026,1.5.18,分钟成交额自相关性,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5941,5971,1m,1d,T_close,turnover,"ACMA_i = \text{corr}(Amount_{t-i}, Amount_t)","corr(turnover,lag(turnover,1))",exact,,intraday_autocorr,,,,"{'field': 'turnover', 'lag': 1}",0
+calendar2026_1_5_19_u4ef7_91cf_76f8_5173_6027_56e0_5b50,2026,1.5.19,价量相关性因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5971,5993,1m,1d,T_close,close|volume|a_share_market_val_in_circulation,CPV = \frac{PVcorrderet20 - \text{mean}(PVcorrderet20)}{\text{std}(PVcorrderet20)} + \frac{PVcorrtrend - \text{mean}(PVcorrtrend)}{\text{std}(PVcorrtrend)},"z(residual(PVcorravg+PVcorrstd,return20))+z(PVcorrtrend)",exact,,intraday_price_volume_composite,,research_report_factors:concept_overlap,concept_overlap,"{'mode': 'cpv', 'window': 20}",40
+calendar2026_1_5_20_u7edd_5bf9_6536_76ca_4e0e_6210_4ea4_91cf_76f8,2026,1.5.20,绝对收益与成交量相关性,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,5993,6025,1m,1d,T_close,close|turnover,"CORA = corr(|Ret_t|, Amount_t), t \in [1, 240]","corr(abs(r_1m),turnover)",exact,,intraday_return_turnover_corr,,,,"{'return_lag': 0, 'turnover_lag': 0}",0
+calendar2026_1_5_21_u5927_6210_4ea4_91cf_4ef7_91cf_76f8_5173_6027,2026,1.5.21,大成交量价量相关性,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6025,6057,1m,1d,T_close,tick_trade,"corrVP_{D,i} = corr\left(v_{t,D,i}, p_{t,D,i}\right)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap|research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_1_5_22_u7edd_5bf9_6536_76ca_4e0e_6ede_540e_6210_4ea4,2026,1.5.22,绝对收益与滞后成交量相关性,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6057,6089,1m,1d,T_close,close|turnover,"CORAA = corr(|Ret_t|, Amount_{t-1}), t \in [1, 240]","corr(abs(r_1m),lag(turnover,1))",exact,,intraday_return_turnover_corr,,,,"{'return_lag': 0, 'turnover_lag': 1}",0
+calendar2026_1_5_23_u806a_660e_94b1_56e0_5b50,2026,1.5.23,聪明钱因子,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6089,6119,1m,1d,T_close,close|volume,"S_t = \frac{|R_t|}{V_t^{0.25}}
+
+\text{聪明钱因子} = \frac{VWAP_{smart}}{VWAP_{all}}","VWAP(top_S_until_20pct_volume,last10d)/VWAP(all,last10d)",exact,,intraday_smart_money,,,,{'window': 10},10
+calendar2026_1_5_24_u91cf_5cad_5206_949f_6536_76ca,2026,1.5.24,量岭分钟收益,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6119,6143,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_5_25_u6ede_540e_7edd_5bf9_6536_76ca_4e0e_6210_4ea4,2026,1.5.25,滞后绝对收益与成交量相关性,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6143,6175,1m,1d,T_close,close|turnover,"CORAR = \text{corr}(|Ret_{t-1}|, Amount_t),\ t \in [1, 240]","corr(lag(abs(r_1m),1),turnover)",exact,,intraday_return_turnover_corr,,,,"{'return_lag': 1, 'turnover_lag': 0}",0
+calendar2026_1_5_26_u4e3b_529b_4ea4_6613_60c5_7eea,2026,1.5.26,主力交易情绪,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6175,6207,1m,1d,T_close,tick_trade,"TE = \text{RankCorr}(A_{order}, C_{minute})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_5_27_u91cf_8c37_76f8_5bf9_52a0_6743_4ef7_683c,2026,1.5.27,量谷相对加权价格,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6207,6231,1m,1d,T_close,close|volume,\text{量谷相对加权价格比} = \frac{\text{每日量谷的成交量加权价格}}{\text{同日总成交量加权价格}},"mean(VWAP(volume<=mean20_same_slot+std20_same_slot)/VWAP(all),20)",exact,过去20日同时点阈值仅使用当前日之前的数据,intraday_volume_valley_price,,,,{},40
+calendar2026_1_5_28_u7edd_5bf9_6536_76ca_4e0e_8c03_6574_540e_6ede,2026,1.5.28,绝对收益与调整后滞后成交量相关性,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6231,6267,1d,1d,T_close,close|turnover,"adjCORAA = \text{corr}(|Ret_t|, adjAmount_{t-1}),\ Ret_t \neq 0
+
+adjAmount_t = \frac{Amount_t - \mu_t}{\sigma_t}","ts_corr(ts_abs(close/(ts_delay(close,1)+1e-12)-1),ts_delay((turnover-cs_mean(turnover))/(cs_std(turnover)+1e-12),1),20)",exact,,legacy_expression,,,,{},21
+calendar2026_1_5_29_u6210_4ea4_91cf_6f6e_6c50_7684_4ef7_683c_53d8,2026,1.5.29,成交量“潮汐”的价格变动速率,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6267,6299,1m,1d,T_close,open|high|low|close|volume|turnover,,"mean(((close_ebb-close_rise)/close_rise)/(t_ebb-t_rise),20)",exact,,intraday_path_metric,,,,"{'metric': 'tide_rate', 'post_window': 20, 'post_stat': 'mean'}",20
+calendar2026_1_5_30_u91cf_5cad_76f8_5bf9_52a0_6743_4ef7_683c,2026,1.5.30,量岭相对加权价格,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6299,6327,1m,1d,T_close,tick_trade,\text{量岭相对加权价格} = \frac{\text{每日量岭的成交量加权价格}}{\text{同日总成交量加权价格}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_5_31_u6ede_540e_7edd_5bf9_6536_76ca_4e0e_8c03_6574,2026,1.5.31,滞后绝对收益与调整后成交量相关性,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6327,6363,1d,1d,T_close,close|turnover,"adjCORAR = corr(|Ret_{t-1}|, adjAmount_t),\ Ret_{t-1} \neq 0
+
+adjAmount_t = \frac{Amount_t - \mu_t}{\sigma_t}","ts_corr(ts_delay(ts_abs(close/(ts_delay(close,1)+1e-12)-1),1),(turnover-cs_mean(turnover))/(cs_std(turnover)+1e-12),20)",exact,,legacy_expression,,,,{},21
+calendar2026_1_5_32_u6a21_7cca_5173_8054_5ea6,2026,1.5.32,模糊关联度,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6363,6394,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_5_33_u91cf_8c37_52a0_6743_4ef7_683c_5206_4f4d_70b9,2026,1.5.33,量谷加权价格分位点,高频因子,量价相关性类,量价相关性类,高频因子,factors2026.md,6394,6420,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_6_1_u6362_624b_7387_5206_5e03_5747_5300_5ea6,2026,1.6.1,换手率分布均匀度,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6422,6452,1m,1d,T_close,close|volume|a_share_market_val_in_circulation,"TurnVolDaily = std\left(分钟换手率\right)
+
+分钟换手率 = \frac{分钟成交量}{当日流通股本}
+
+UTD = \frac{std(TurnVolDaily)}{mean(TurnVolDaily)}","std(std(volume_1m/float_shares),20)/mean(std(volume_1m/float_shares),20)",exact,,intraday_turnover_uniformity,,alpha101/158/191/360:concept_overlap,concept_overlap,{'window': 20},20
+calendar2026_1_6_2_u6210_4ea4_91cf_5360_6bd4_5cf0_5ea6,2026,1.6.2,成交量占比峰度,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6452,6482,1m,1d,T_close,volume,kurt\left(\frac{volume_i}{\sum volume_i}\right),kurtosis(volume/sum(volume)),exact,,intraday_volume_share_stat,,,,{'stat': 'kurtosis'},0
+calendar2026_1_6_3_u8dcc_5e45_6700_5927_65f6_523b_7b14_5747_6210,2026,1.6.3,跌幅最大时刻笔均成交金额,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6482,6521,1m,1d,T_close,tick_trade,"ATD_{DownTop10} = \frac{\sum_{t \in P} Amt_t}{\sum_{t \in P} DealNum_t}
+
+ATD_T = \frac{\sum_{t \in T} Amt_t}{\sum_{t \in T} DealNum_t}
+
+SATD_{DownTop10} = \frac{ATD_{DownTop10}}{ATD_T}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_4_u91cf_5cad_95f4_9694_504f_5ea6,2026,1.6.4,量岭间隔偏度,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6521,6551,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_6_5_u5355_7b14_6210_4ea4_91d1_989d_5206_4f4d_6570,2026,1.6.5,单笔成交金额分位数,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6551,6588,1m,1d,T_close,tick_trade,S = \frac{A_{0.1} - A_{min}}{A_{max} - A_{min}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_6_u6210_4ea4_91cf_5206_6876_71b5,2026,1.6.6,成交量分桶熵,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6588,6620,1m,1d,T_close,open|high|low|close|volume|turnover,"volentropy(V) = -\sum_{k=0}^{\min(maxbin,\ len(V))} p_k \ln(p_k) \cdot 1_{(p_k > 0)}",entropy(histogram(volume_1m)),exact,,intraday_path_metric,,,,{'metric': 'volume_bucket_entropy'},0
+calendar2026_1_6_7_u8dcc_5e45_6700_5927_65f6_523b_4e3b_5356_7b14,2026,1.6.7,跌幅最大时刻-主卖笔均成交金额,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6620,6656,1m,1d,T_close,tick_trade,"ATD_{DownTop10Sell} = \frac{\sum_{t \in PSell} Amt_t}{\sum_{t \in PSell} DealNum_t}
+
+ATD_T = \frac{\sum_{t \in T} Amt_t}{\sum_{t \in T} DealNum_t}
+
+SATD_{DownTop10Sell} = \frac{ATD_{DownTop10Sell}}{ATD_T}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_8_u5cf0_5cad_6210_4ea4_6bd4,2026,1.6.8,峰岭成交比,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6656,6684,1m,1d,T_close,tick_trade,\text{峰岭成交比} = \frac{20\text{日量峰总成交额}}{20\text{日量岭总成交额}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_9_u4e3b_529b_4ea4_6613_5f3a_5ea6,2026,1.6.9,主力交易强度,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6684,6716,1m,1d,T_close,tick_trade,"TS = \text{RankCorr}(A_{order}, A_{minute})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_10_u6210_4ea4_91cf_652f_6491_533a_57df_4e0b_9650,2026,1.6.10,成交量支撑区域下限与收盘价差异,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6716,6742,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_6_11_u80a1_4ef7_6700_4f4e_65f6_523b_7b14_5747_6210,2026,1.6.11,股价最低时刻笔均成交金额,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6742,6780,1m,1d,T_close,tick_trade,"ATD_{PriceLowest10} = \frac{\sum_{t \in P} Amt_t}{\sum_{t \in P} DealNum_t}
+
+ATD_T = \frac{\sum_{t \in T} Amt_t}{\sum_{t \in T} DealNum_t}
+
+SATD_{PriceLowest10} = \frac{ATD_{PriceLowest10}}{ATD_T}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_12_u55b7_53d1_6210_4ea4_989d_8ddf_968f_6bd4_4f8b,2026,1.6.12,喷发成交额跟随比例,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6780,6802,1m,1d,T_close,tick_trade,\text{喷发成交额跟随比例} = \frac{\text{过去20日喷发成交时点的下一分钟总成交额}}{\text{过去20日喷发成交时点的总成交额}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_13_u5c3e_76d8_6210_4ea4_5360_6bd4,2026,1.6.13,尾盘成交占比,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6802,6834,1m,1d,T_close,volume,"\frac{1}{T} \sum_{n=t}^{t-T+1} \frac{Vol_{i,14:30-15:00,n}}{Vol_{i,n}}","sum(volume,last30m)/sum(volume,day)",exact,,intraday_tail_share,,,,"{'field': 'volume', 'minutes': 30}",0
+calendar2026_1_6_14_p,2026,1.6.14,p 型成交量分布,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6834,6864,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_6_15_u55b7_53d1_6210_4ea4_989d_76f8_5173_6027,2026,1.6.15,喷发成交额相关性,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6864,6895,1m,1d,T_close,tick_trade,"Corr(\text{过去20日喷发成交时点分钟成交额序列}, \text{下一分钟成交额序列})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_16_u80a1_4ef7_6700_4f4e_65f6_523b_4e3b_5356_7b14,2026,1.6.16,股价最低时刻-主卖笔均成交金额,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6895,6931,1m,1d,T_close,tick_trade,"ATD_{PriceLowest10Sell} = \frac{\sum_{t \in PSell} Amt_t}{\sum_{t \in PSell} DealNum_t}
+
+ATD_T = \frac{\sum_{t \in T} Amt_t}{\sum_{t \in T} DealNum_t}
+
+SATD_{PriceLowest10Sell} = \frac{ATD_{PriceLowest10Sell}}{ATD_T}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_17_b,2026,1.6.17,b型成交量分布,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6931,6959,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_6_18_u65e5_5185_5f02_5e38_4ea4_6613_91cf,2026,1.6.18,日内异常交易量,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6959,6988,unknown,1d,T_close,,"ATV_{t,i} = \frac{\text{实际交易量}}{\text{预期交易量}} = \frac{\text{t日第i分钟交易量}}{\text{mean(过去一段时间分钟交易量)}}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_6_19_u540c_65f6_70b9_5cf0_5cad_6570_76f8_5173_6027,2026,1.6.19,同时点峰岭数相关性,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,6988,7015,unknown,1d,T_close,,"\text{Corr} \left( \text{过去20日同一时点的量峰数序列}, \text{过去20日同一时点的量岭数序列} \right)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_6_20_u6a2a_76d8_65f6_523b_4e3b_4e70_7b14_5747_6210,2026,1.6.20,横盘时刻-主买笔均成交金额,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7015,7051,1m,1d,T_close,tick_trade,"ATD_{ZeroBuy} = \frac{\sum_{t \in PBuy} Amt_t}{\sum_{t \in PBuy} DealNum_t}
+
+ATD_T = \frac{\sum_{t \in T} Amt_t}{\sum_{t \in T} DealNum_t}
+
+SATD_{ZeroBuy} = \frac{ATD_{ZeroBuy}}{ATD_T}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_21_u6a21_7cca_91d1_989d_6bd4,2026,1.6.21,模糊金额比,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7051,7086,1m,1d,T_close,open|high|low|close|volume|turnover,④ 计算“日模糊金额比” = “雾中金额” / “总体金额”。,"0.5*(mean(mean(turnover|ambiguity>daily_mean)/mean(turnover),20)+std(...,20))",exact,,intraday_path_metric,,,,"{'metric': 'fuzzy_amount', 'post_window': 20, 'post_stat': 'mean_std'}",20
+calendar2026_1_6_22_u6301_7eed_5f02_5e38_4ea4_6613_91cf,2026,1.6.22,持续异常交易量,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7086,7126,unknown,1d,T_close,,"ATV_{t,i} = \frac{\text{实际交易量}}{\text{预期交易量}} = \frac{t\text{日第}i\text{分钟交易量}}{\text{mean}(过去一段时间分钟交易量)}
+
+PATV_t = \frac{\text{mean}(rankATV_{t,i})}{\text{std}(rankATV_{t,i})} + \text{kurt}(rankATV_{t,i})",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_6_23_u53cd_8f6c_6b8b_5dee_6210_4ea4_4e0d_5e73_8861,2026,1.6.23,反转残差成交不平衡因子,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7126,7154,1m,1d,T_close,tick_trade,\text{成交单不平衡} = \frac{\text{主买成交单数} - \text{主卖成交单数}}{\text{主买成交单数} + \text{主卖成交单数}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_6_24_u6210_4ea4_91cf_6700_9ad8_65f6_523b_7b14_5747,2026,1.6.24,成交量最高时刻笔均成交金额,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7154,7188,1m,1d,T_close,tick_trade,"ATD_{VolumeHigh10} = \frac{\sum_{t \in P} Amt_t}{\sum_{t \in P} DealNum_t}
+
+ATD_T = \frac{\sum_{t \in T} Amt_t}{\sum_{t \in T} DealNum_t}
+
+SATD_{VolumeHigh10} = \frac{ATD_{VolumeHigh10}}{ATD_T}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_25_u4e0b_8dcc_65f6_523b_7b14_5747_6210_4ea4_91d1,2026,1.6.25,下跌时刻笔均成交金额,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7188,7230,1m,1d,T_close,tick_trade,"ATD_{Down} = \frac{\sum_{t \in P} Amt_t}{\sum_{t \in P} DealNum_t}
+
+ATD_T = \frac{\sum_{t \in T} Amt_t}{\sum_{t \in T} DealNum_t}
+
+SATD_{Down} = \frac{ATD_{Down}}{ATD_T}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_26_u6a21_7cca_6570_91cf_6bd4,2026,1.6.26,模糊数量比,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7230,7272,1m,1d,T_close,open|high|low|close|volume|turnover,④ 计算“日模糊数量比” = “雾中数量” / “总体数量”。,"0.5*(mean(mean(volume|ambiguity>daily_mean)/mean(volume),20)+std(...,20))",exact,,intraday_path_metric,,,,"{'metric': 'fuzzy_volume', 'post_window': 20, 'post_stat': 'mean_std'}",20
+calendar2026_1_6_27_u5c3e_76d8_6210_4ea4_989d_5360_6bd4,2026,1.6.27,尾盘成交额占比,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7272,7308,1m,1d,T_close,turnover,"APL_{t,d} = \frac{\sum_{i=240-t}^{240} Amount_{t,d}}{TotalAmount_d}
+
+APL_t = \frac{\sum_{i=1}^{N} APL_{t,d}}{N}","sum(turnover,last30m)/sum(turnover,day)",exact,,intraday_tail_share,,,,"{'field': 'turnover', 'minutes': 30}",0
+calendar2026_1_6_28_u53cd_8f6c_6b8b_5dee_975e_5b64_7acb_6210_4ea4,2026,1.6.28,反转残差非孤立成交不平衡因子,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7308,7338,1m,1d,T_close,tick_trade,\text{成交单不平衡} = \frac{\text{主买成交单数} - \text{主卖成交单数}}{\text{主买成交单数} + \text{主卖成交单数}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_6_29_u6210_4ea4_91cf_6700_9ad8_65f6_523b_4e3b_5356,2026,1.6.29,成交量最高时刻-主卖笔均成交金额,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7338,7374,1m,1d,T_close,tick_trade,"ATD_{VolumeHigh10Sell} = \frac{\sum_{t \in PSell} Amt_t}{\sum_{t \in PSell} DealNum_t}
+
+ATD_T = \frac{\sum_{t \in T} Amt_t}{\sum_{t \in T} DealNum_t}
+
+SATD_{VolumeHigh10Sell} = \frac{ATD_{VolumeHigh10Sell}}{ATD_T}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_30_u4fee_6b63_6a21_7cca_4ef7_5dee,2026,1.6.30,修正模糊价差,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7374,7414,1m,1d,T_close,open|high|low|close|volume|turnover,“日模糊价差”因子 = “日模糊金额比” - “日模糊数量比”；,"0.5*(mean(cross_section_rescaled_negative(fuzzy_amount-fuzzy_volume),20)+std(...,20))",exact,,intraday_fuzzy_spread,,,,{},29
+calendar2026_1_6_31_u5206_949f_6210_4ea4_989d_65b9_5dee,2026,1.6.31,分钟成交额方差,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7414,7448,1m,1d,T_close,turnover,"VMA = \frac{1}{N} \sum_{t=1}^{N} (Amount_t - \mu)^2
+
+\mu = \frac{1}{N} \sum_{t=1}^{N} Amount_t",intraday_var(turnover),exact,,intraday_reduce,,,,"{'field': 'turnover', 'stat': 'var'}",0
+calendar2026_1_6_32_u6210_4ea4_91cf_5360_6bd4,2026,1.6.32,成交量占比,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7448,7492,1m,1d,T_close,call_auction,"OCVP_t = \frac{1}{d} \sum_{i=1}^{d} w_{t-i} \left( \frac{\text{每日开盘前集合竞价阶段成交量 } VOL_{call}}{\text{日内个股总成交量 } VOL_{total}} \right)_{t-i}
+
+BCVP_t = \frac{1}{d} \sum_{i=1}^{d} \left( \frac{\text{收盘前5分钟内个股成交量 } VOL_{call}}{\text{日内个股总成交量 } VOL_{total}} \right)_{t-i}
+
+OBCVP_t = \alpha OCVP_t + (1 - \alpha) BCVP_t",,blocked_data,精确实现依赖当前数据审计未发现的数据域: call_auction,,,,,{},0
+calendar2026_1_6_33_u60c5_7eea_6ea2_51fa_56e0_5b50,2026,1.6.33,“情绪溢出”因子,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7492,7522,unknown,1d,T_close,,① 焦点股票 i 的相邻股票数对因子效果影响不大，建议使用较少量的股票（如 i=10）；,,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_6_34_u4e70_5165_6d6e_4e8f_5360_6bd4_56e0_5b50,2026,1.6.34,买入浮亏占比因子,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7522,7554,1m,1d,T_close,tick_trade,HCVOL = \frac{\sum_{i}^{N} volume_{buyi} * I_{p_{buyi} > close}}{totalvolume},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_35_u6210_4ea4_91cf_6bd4_503c,2026,1.6.35,成交量比值,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7554,7592,1m,1d,T_close,open|high|low|close|volume|turnover,VR_t = \frac{1}{d} \sum_{i=1}^{d} w_{t-i} * \left( \frac{Vol_{morning}}{Vol_{afternoon}} \right)_{t-i},"sum(volume,09:30-10:00)/sum(volume,13:00-13:30)",exact,,intraday_path_metric,,,,{'metric': 'volume_ratio'},0
+calendar2026_1_6_36_u91cf_4ef7_80cc_79bb_65f6_523b_4e3b_5356_7b14,2026,1.6.36,量价背离时刻-主卖笔均成交金额,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7592,7632,1m,1d,T_close,tick_trade,"ATD_{PriceVolCorrLower50Sell} = \frac{\sum_{t \in PSell} Amt_t}{\sum_{t \in PSell} DealNum_t}
+
+ATD_T = \frac{\sum_{t \in T} Amt_t}{\sum_{t \in T} DealNum_t}
+
+SATD_{PriceVolCorrLower50Sell} = \frac{ATD_{PriceVolCorrLower50Sell}}{ATD_T}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_6_37_u6bcf_7b14_6210_4ea4_91cf_5dee_5206_6807_51c6,2026,1.6.37,每笔成交量差分标准差,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7632,7668,1m,1d,T_close,tick_trade,"diff_i = volb_i - volb_{i-1}
+
+diffmean_{day} = mean\left(abs\left(\frac{diff_i}{mean(volb_i)}\right)\right)
+
+diffstd_{volb} = mean(diffstd_{day})",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_38_u5356_51fa_53cd_5f39_5360_6bd4_56e0_5b50,2026,1.6.38,卖出反弹占比因子,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7668,7700,1m,1d,T_close,tick_trade,LCVOL = \frac{\sum_{i}^{N} volume_{selli} * I_{p_{selli}<close}}{totalvolume},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_6_39_u4e00_81f4_4ea4_6613,2026,1.6.39,一致交易,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7700,7746,unknown,1d,T_close,,"|close - open| <= \alpha |high - low|
+
+TCV_t = \frac{1}{d} \sum_{i=1}^{d} \left( \frac{ConsistentVolume}{Volume} \right)_{t-i}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_6_40_u91cf_5cf0_5206_949f_6570,2026,1.6.40,量峰分钟数,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7746,7770,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_6_41_u6210_4ea4_91cf_6ce2_5cf0_8ba1_6570_56e0_5b50,2026,1.6.41,成交量波峰计数因子,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7770,7794,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_6_42_u6210_4ea4_91cf_5360_6bd4_6807_51c6_5dee,2026,1.6.42,成交量占比标准差,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7794,7824,1m,1d,T_close,volume,\text{std}\left(\frac{\text{volume}_i}{\sum \text{volume}_i}\right),std(volume/sum(volume)),exact,,intraday_volume_share_stat,,,,{'stat': 'std'},0
+calendar2026_1_6_43_u4e00_81f4_4e70_5165_4ea4_6613,2026,1.6.43,一致买入交易,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7824,7857,unknown,1d,T_close,,"|close - open| \leq \alpha |high - low|
+
+PCV_t = \frac{1}{d} \sum_{i=1}^{d} \left( \frac{ConsistentVolume_{rise}}{Volume} \right)_{t-i}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_6_44_u91cf_5cad_5206_949f_6570,2026,1.6.44,量岭分钟数,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7857,7881,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_6_45_u6210_4ea4_91cf_5360_6bd4_504f_5ea6,2026,1.6.45,成交量占比偏度,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7881,7907,1m,1d,T_close,volume,\text{skew}\left(\frac{\text{volume}_i}{\sum \text{volume}_i}\right),skew(volume/sum(volume)),exact,,intraday_volume_share_stat,,,,{'stat': 'skew'},0
+calendar2026_1_6_46_u4e00_81f4_5356_51fa_4ea4_6613,2026,1.6.46,一致卖出交易,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7907,7949,unknown,1d,T_close,,"|close - open| <= \alpha |high - low|
+
+NCV_t = \frac{1}{d} \sum_{i=1}^{d} \left( \frac{ConsistentVolume_{fall}}{Volume} \right)_{t-i}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_6_47_u91cf_5cf0_95f4_9694_5cf0_5ea6,2026,1.6.47,量峰间隔峰度,高频因子,成交分布类,成交分布类,高频因子,factors2026.md,7949,7979,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_1_7_1_u9ad8_9891_5df2_5b9e_73b0_504f_5ea6,2026,1.7.1,高频已实现偏度,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,7981,8019,1m,1d,T_close,close,"RSkew_i = \frac{\sqrt{N} \sum_{j=1}^{N} (r_{ij} - \bar{r}_i)^3}{RVar_i^{3/2}}
+
+RVar_i = \sum_{j=1}^{N} (r_{ij} - \bar{r}_i)^2","intraday_skew(log(close/ts_delay(close,1)))",exact,,intraday_return_stat,,,,{'stat': 'skew'},0
+calendar2026_1_7_2_u8dcc_5e45_65f6_95f4_91cd_5fc3_504f_79bb,2026,1.7.2,跌幅时间重心偏离,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8019,8083,unknown,1d,T_close,,"R_u = [r_1^u, r_2^u, \ldots, r_n^u]
+
+U = [u_1, u_2, \ldots, u_n]
+
+R_d = [r_1^d, r_2^d, \ldots, r_m^d]
+
+D = [d_1, d_2, \ldots, d_m]
+
+G_u = U R_u^T / R_u_1
+
+G_d = U R_d^T / R_d_1
+
+G_d = \alpha + \beta G_u + \varepsilon
+
+TGD = \frac{1}{N} \sum_{i=1}^{N} \varepsilon",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_7_3_u9ad8_9891_5df2_5b9e_73b0_5cf0_5ea6,2026,1.7.3,高频已实现峰度,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8083,8121,1m,1d,T_close,close,"Rkurt_i = \frac{N \sum_{j=1}^{N} (r_{ij} - \bar{r}_i)^4}{RV ar_i^2}
+
+RV ar_i = \sum_{j=1}^{N} (r_{ij} - \bar{r}_i)^2","intraday_kurtosis(log(close/ts_delay(close,1)))",exact,,intraday_return_stat,,,,{'stat': 'kurtosis'},0
+calendar2026_1_7_4_u65f6_95f4_91cd_5fc3_504f_79bb,2026,1.7.4,时间重心偏离,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8121,8167,unknown,1d,T_close,,"G_u = f_u\left(\bar{R}*u, R_1, R_2, R*{overnight}\right) + \varepsilon_u
+
+G_d = f_d\left(\bar{R}*d, R_1, R_2, R*{overnight}\right) + \varepsilon_d
+
+\varepsilon_d = \alpha + \beta \varepsilon_u + \varepsilon
+
+TGD = \frac{1}{N} \sum_{i=1}^{N} \varepsilon",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_7_5_u52a0_6743_504f_5ea6,2026,1.7.5,加权偏度,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8167,8201,1m,1d,T_close,open|high|low|close|volume|turnover,加权偏度 = \frac{\sum_{t=1}^{T} w_t (close_t - \overline{close})^3}{close_\sigma^3},sum(volume_weight*(close-mean(close))**3)/std(close)**3,exact,,intraday_path_metric,,,,{'metric': 'weighted_skew'},0
+calendar2026_1_7_6_u5927_6210_4ea4_91cf_5df2_5b9e_73b0_504f_5ea6,2026,1.7.6,大成交量已实现偏度,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8201,8237,1m,1d,T_close,tick_trade,"realskew_{D,i} = \frac{1}{T - 1} \sum_{t=2}^{T} \frac{(r_{t,D,i} - \bar{r}*{D,i})^3}{realvar*{D,i}^{3/2}}
+
+realvar_{D,i} = \frac{1}{T - 2} \sum_{t=2}^{T} (r_{t,D,i} - \bar{r}_{D,i})^2",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_7_7_u65e5_5185_4fe1_566a_6bd4,2026,1.7.7,日内信噪比,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8237,8275,unknown,1d,T_close,,"P(t) = \sum_{i=1}^{n} IMF_i(t) + r(t)
+
+SNR = \log \left( \frac{\text{std}(r_n(t))}{\text{std}(P(t) - r_n(t))} \right)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_7_8_u591a_5c42_52a0_6743_65e5_5185_4fe1_566a_6bd4,2026,1.7.8,多层加权日内信噪比,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8275,8313,unknown,1d,T_close,,"\text{新}SNR = Weight_{Vol} \times SNR_{layer2} + (1 - Weight_{Vol}) \times SNR_{layer3}
+
+Weight_{Vol} = 0.5 + \frac{Vol_{std} - 0.5}{\delta}
+
+Vol_{std} = \frac{Vol - \min(Vol)}{\max(Vol) - \min(Vol)}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_1_7_9_u65e5_5185_6761_4ef6_5728_9669_4ef7_503c,2026,1.7.9,日内条件在险价值,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8313,8349,1m,1d,T_close,open|high|low|close|volume|turnover,"VCVaR_T = CVaR_\alpha(VWAR_t)
+
+VWAR = \frac{\sum Return_t * Volume_t}{\sum Volume_t}",CVaR_5pct(r_1m*volume_1m/sum(volume_1m)),exact,,intraday_path_metric,,,,{'metric': 'intraday_cvar'},0
+calendar2026_1_7_10_u65f6_95f4_52a0_6743_5e73_5747_7684_80a1_7968,2026,1.7.10,时间加权平均的股票相对价格位置,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8349,8389,1m,1d,T_close,open|high|low|close|volume|turnover,"RPP_{i,t} = \frac{(P_{i,t} - L_i)}{(H_i - L_i)}
+
+ARPP_i = \int_0^T RPP_{i,t} \cdot dt \Rightarrow ARPP_{i,t} = \frac{\left( \int_0^T P_{i,t} \cdot dt - L_i \right)}{(H_i - L_i)}",(mean((open+high+low+close)/4)-low)/(high-low),exact,,intraday_path_metric,,,,{'metric': 'time_weighted_relative_price'},0
+calendar2026_1_7_11_u53cd_5411_65e5_5185_9006_8f6c_7684_9891_7387,2026,1.7.11,反向日内逆转的频率,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8389,8419,1d,1d,T_close,open|close,"NR_{i,t} = \frac{\sum_{d=1}^{T} I_{RETCO_{i,d}>0} * I_{RETOC_{i,d}<0}}{T}",monthly_mean(overnight_return>0 and intraday_return<0),exact,,daily_reversal_frequency,,,,"{'direction': 'negative', 'abnormal': False}",21
+calendar2026_1_7_12_u6b63_5411_65e5_5185_9006_8f6c_7684_9891_7387,2026,1.7.12,正向日内逆转的频率,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8419,8449,1d,1d,T_close,open|close,"PR_{i,t} = \frac{\sum_{d=1}^{T} I_{RETCO_{i,d}<0} * I_{RETOC_{i,d}>0}}{T}",monthly_mean(overnight_return<0 and intraday_return>0),exact,,daily_reversal_frequency,,,,"{'direction': 'positive', 'abnormal': False}",21
+calendar2026_1_7_13_u53cd_5411_65e5_5185_9006_8f6c_7684_5f02_5e38,2026,1.7.13,反向日内逆转的异常频率,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8449,8483,1d,1d,T_close,open|close,"ABNR_{i,t} = \frac{NR_{i,t}}{\frac{1}{12} \sum_{k=0}^{11} NR_{i,t-k}}
+
+NR_{i,t} = \frac{\sum_{d=1}^{T} I_{RETCO_{i,d}>0} * I_{RETOC_{i,d}<0}}{T}","negative_reversal_frequency/mean(negative_reversal_frequency,12m)",exact,,daily_reversal_frequency,,,,"{'direction': 'negative', 'abnormal': True}",252
+calendar2026_1_7_14_u6b63_5411_65e5_5185_9006_8f6c_7684_5f02_5e38,2026,1.7.14,正向日内逆转的异常频率,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8483,8517,1d,1d,T_close,open|close,"ABPR_{i,t} = \frac{PR_{i,t}}{\frac{1}{12} \sum_{k=0}^{11} PR_{i,t-k}}
+
+PR_{i,t} = \frac{\sum_{d=1}^{T} I_{RETCO_{i,d}<0} * I_{RETOC_{i,d}>0}}{T}","positive_reversal_frequency/mean(positive_reversal_frequency,12m)",exact,,daily_reversal_frequency,,,,"{'direction': 'positive', 'abnormal': True}",252
+calendar2026_1_7_15_u5356_51fa_53cd_5f39_504f_79bb_56e0_5b50,2026,1.7.15,卖出反弹偏离因子,高频因子,收益分布类,收益分布类,高频因子,factors2026.md,8517,8547,1m,1d,T_close,tick_trade,LCP = \frac{\sum_{i}^{N} \overline{price}*{selli} * I*{pselli < close}}{close} - 1,,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_1_8_1_u91cf_4ef7_80cc_79bb_65f6_523b_7b14_5747_6210,2026,1.8.1,量价背离时刻笔均成交金额,高频因子,成交分析类,成交分析类,高频因子,factors2026.md,8549,8583,1m,1d,T_close,tick_trade,"ATD_{PriceVolCorrLower50} = \frac{\sum_{t \in P} Amt_t}{\sum_{t \in P} DealNum_t}
+
+ATD_T = \frac{\sum_{t \in T} Amt_t}{\sum_{t \in T} DealNum_t}
+
+SATD_{PriceVolCorrLower50} = \frac{ATD_{PriceVolCorrLower50}}{ATD_T}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_9_1_u8df3_8dc3_5173_8054_76f8_5bf9_52a8_91cf,2026,1.9.1,跳跃关联相对动量,高频因子,联动类,联动类,高频因子,factors2026.md,8585,8620,unknown,1d,T_close,,"JS = N \frac{\hat{V}*{(0,1)}}{\sqrt{\hat{\Omega}*{SWV}}} \left(1 - \frac{RV_N}{SwV_N}\right) \sim N(0,1)
+
+Corr_{i,j} = \frac{cojumpnum_{i,j}}{jumpnum_i}
+
+PeerRet_{i,t} = \frac{\sum\limits_{j=1}^{N} Corr_{i,j} * Ret_{j,t}}{\sum\limits_{j=1}^{N} Corr_{i,j}}, \quad i \neq j",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_1_10_1_u4e70_5165_6d6e_4e8f_504f_79bb_56e0_5b50,2026,1.10.1,买入浮亏偏离因子,高频因子,收盘分布类,收盘分布类,高频因子,factors2026.md,8622,8650,1m,1d,T_close,tick_trade,HCP = \frac{\sum_{i}^{N} price_{buy_i} * I_{price_{buy_i} > close}}{close} - 1,,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_2_1_1_u7b79_7801_6362_624b_7387,2026,2.1.1,筹码换手率,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,8654,8676,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,PTR = \frac{\text{当日股票最高价与最低价之间筹码占比}}{tunover_t},chip_share(low<=price<=high)/turnover_rate,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,alpha101/158/191/360:concept_overlap|research_report_factors:concept_overlap,concept_overlap,{'metric': 'chip_turnover'},0
+calendar2026_2_1_2_u4e70_5165_6d6e_76c8_7cfb_6570_4fee_6b63_540e,2026,2.1.2,买入浮盈系数修正后的积极灵活筹码,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,8676,8718,1d,1d,T_close,tick_trade,"\alpha_i = \frac{Close_t}{TradePrice_i}
+
+AFHClose = \frac{\sum_{i=1}^{N} \alpha_i * VolAFH_i}{\sum_{t=T-20}^{T} Volume_t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_2_1_3_u7b79_7801_5206_5e03_6210_672c_91cd_5fc3,2026,2.1.3,筹码分布成本重心,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,8718,8748,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,CKDP_t = \frac{mean_t - ChipLowest_t}{ChipHighest_t - ChipLowest_t},sum(chip_price*chip_weight),exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'reference_price'},0
+calendar2026_2_1_4_u7b79_7801_7a7f_900f_7387,2026,2.1.4,筹码穿透率,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,8748,8780,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"PTR = \frac{winner_t - winner_{t-1}}{turnover_t}
+
+winner_t = t\text{日盈利筹码占总筹码的比例}",(winner_ratio-lag(winner_ratio))/turnover_rate,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'chip_penetration'},0
+calendar2026_2_1_5_u6d3b_52a8_7b79_7801_5360_6bd4,2026,2.1.5,活动筹码占比,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,8780,8816,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"ASR_t = \frac{\sum_{price_i \in [minprice, maxprice]*t} vol*{i,t}}{\sum vol_{i,t}}",sum(chip_weight where close*(1-limit)<=price<=close*(1+limit)),exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'active_share'},0
+calendar2026_2_1_6_u4e0a_65b9_4e0b_65b9_6d3b_52a8_7b79_7801_5360,2026,2.1.6,上方\下方活动筹码占比,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,8816,8861,unknown,1d,T_close,,"ASRupper_t = \frac{\sum vol_{price_i \in [close_t, 高位价格], t}}{\sum vol_{i,t}}
+
+ASRlower_t = \frac{\sum vol_{price_i \in [低位价格, close_t], t}}{\sum vol_{i,t}}
+
+高位价格 = close_t * (1 + volatility)
+
+低位价格 = close_t * (1 - volatility)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_2_1_7_u4e0a_65b9_4e0b_65b9_9501_5b9a_7b79_7801_5360,2026,2.1.7,上方\下方锁定筹码占比,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,8861,8906,unknown,1d,T_close,,"ASRabove_t = \frac{\sum vol_{price_i \in [\text{高位价格}, ChipHighest]*t}}{\sum vol*{i,t}}
+
+ASRbelow_t = \frac{\sum vol_{price_i \in [ChipLowest, \text{低位价格}]*t}}{\sum vol*{i,t}}
+
+\text{高位价格} = close_t * (1 + volatility)
+
+\text{低位价格} = close_t * (1 - volatility)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_2_1_8_u7b79_7801_96c6_4e2d_5ea6,2026,2.1.8,筹码集中度,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,8906,8942,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"chipdistri_t = \frac{price95_t - price05_t}{ChipHighest_t}
+
+chipdistri_t = \frac{2 * (price95_t - price05_t)}{price95_t + price05_t}",2*(price95-price05)/(price95+price05),exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'concentration'},0
+calendar2026_2_1_9_u590d_6742_516c_53f8_52a8_91cf,2026,2.1.9,复杂公司动量,行为金融因子,筹码分布,筹码分布,动量因子,factors2026.md,8942,8972,1d,1d,T_close,business_segments,"COMRET_{i,t} = \frac{\sum_{j \in Ind_i} W_{i,j,t} RET_{j,t}}{\sum_{j \in Ind_i} W_{i,j,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: business_segments,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_2_1_10_u7b79_7801_4e56_79bb_7387,2026,2.1.10,筹码乖离率,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,8972,9000,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,BIAS_t = winner_t * turnover_t + BIAS_{t-1} * (1 - turnover_t),winner_ratio*turnover+lag(chip_bias)*(1-turnover),exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'chip_bias'},0
+calendar2026_2_1_11_u5f53_65e5_65b0_589e_7b79_7801_76c8_5229_5360,2026,2.1.11,当日新增筹码盈利占比,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,9000,9043,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"TGRatio_{i,t} = \frac{TG_{i,t}}{PG_{i,t}}
+
+PG_{i,t} = \sum (IF(p \leq close_{i,t},\ Chip_{i,t,p} * (close_{i,t} - p),\ 0))
+
+TG_{i,t} = \sum (IF(p \leq close_{i,t},\ Vol_{i,t,p} * (close_{i,t} - p) * T_{i,t},\ 0))",new_chip_gain/total_paper_gain,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'new_gain_ratio'},0
+calendar2026_2_1_12_u5f53_65e5_65b0_589e_7b79_7801_4e8f_635f_5360,2026,2.1.12,当日新增筹码亏损占比,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,9043,9085,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"TLRatio_{i,t} = \frac{TL_{i,t}}{PL_{i,t}}
+
+PL_{i,t} = \sum (IF(p > close_{i,t},\ Chip_{i,t,p} * (p - close_{i,t}),\ 0))
+
+TL_{i,t} = \sum (IF(p > close_{i,t},\ Vol_{i,t,p} * (p - close_{i,t}) * T_{i,t},\ 0))",new_chip_loss/total_paper_loss,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'new_loss_ratio'},0
+calendar2026_2_1_13_u79ef_6781_7075_6d3b_7b79_7801,2026,2.1.13,积极灵活筹码,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,9085,9103,1d,1d,T_close,tick_trade,\sum_{i=T-20}^{T} \frac{\text{主动买入且金额小于5万元的成交量}_i}{\text{当日成交量}_i},,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_2_1_14_u7b79_7801_5206_5e03_76f8_5bf9_4ef7_4f4d,2026,2.1.14,筹码分布相对价位,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,9103,9135,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,CKDP_t = \frac{close_t - mean_t}{ChipHighest_t - ChipLowest_t},(close-chip_mean)/(chip_highest-chip_lowest),exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'relative_position'},0
+calendar2026_2_1_15_u53cd_5411_4ea4_6613_7cfb_6570_4fee_6b63_540e,2026,2.1.15,反向交易系数修正后的积极灵活筹码,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,9135,9177,1d,1d,T_close,tick_trade,"\alpha_i = \frac{TradePrice_i}{Open_t}
+
+AFHOpen = \frac{\sum_{i=1}^{N} \alpha_i * VolAFH_i}{\sum_{t=T-20}^{T} Volume_t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_2_1_16_u7b79_7801_5206_5e03_53d8_5f02_7cfb_6570,2026,2.1.16,筹码分布变异系数,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,9177,9211,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,coefofvar_t = \frac{std_t}{mean_t},chip_std/chip_mean,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'coefficient_of_variation'},0
+calendar2026_2_1_17_u7b79_7801_5206_5e03_6210_672c_5bbd_5e26,2026,2.1.17,筹码分布成本宽带,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,9211,9239,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,CBW_t = \frac{ChipHighest_t - ChipLowest_t}{ChipLowest_t},(chip_highest-chip_lowest)/chip_lowest,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'cost_bandwidth'},0
+calendar2026_2_1_18_u7b79_7801_5206_5e03_5cf0_5ea6_504f_5ea6,2026,2.1.18,筹码分布峰度（偏度）,行为金融因子,筹码分布,筹码分布,行为金融因子,factors2026.md,9239,9277,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"kurtosis_t = \sum \left( \frac{price_{i,t} - mean_t}{std_t} \right)^4 * p_{i,t}
+
+skewness_t = \sum \left( \frac{price_{i,t} - mean_t}{std_t} \right)^3 * p_{i,t}",sum(((price-chip_mean)/chip_std)**4*chip_weight),exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'kurtosis'},0
+calendar2026_2_2_1_u57fa_4e8e_5e02_573a_6ce2_52a8_7387_7684_6ce8,2026,2.2.1,基于市场波动率的注意力捕捉,行为金融因子,投资者注意力,投资者注意力,波动率因子,factors2026.md,9279,9317,1d,1d,T_close,factor_returns,"indusvol_d = std(\text{行业内成分股的日度收益序列 } r_{i,d})
+
+r_{i,d} = \nu_{i,t} + \beta_{i,t} indusvol_d + \rho_{1,i,t} Mkt_d + \rho_{2,i,t} SMB_d + \rho_{3,i,t} HML_d + \rho_{4,i,t} UMD_d + \varepsilon_{i,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_2_2_2_csad,2026,2.2.2,CSAD模型(基于时序回归变形),行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9317,9361,1d,1d,T_close,close,"CSAD_t = \frac{1}{10} \sum_{i=1}^{10} |r_{it} - r_{*t}|
+
+ratio[t_1, t_2] = \frac{\sigma_{[t_1, t_2]}(CSAD)}{\sigma_{[t_1, t_2]}(r_*)}
+
+f_{jt} = - \frac{ratio[t-19, t]}{ratio[t-119, t]}","-(std(CSAD,20)/std(r_focal,20))/(std(CSAD,120)/std(r_focal,120))",exact,,daily_peer_csad,,,,{'metric': 'ratio'},120
+calendar2026_2_2_3_u57fa_4e8e_5f02_5e38_6536_76ca_7684_6ce8_610f,2026,2.2.3,基于异常收益的注意力捕捉,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9361,9395,1d,1d,T_close,factor_returns,"indusabn_d = \frac{n_{>=top7,d}}{N_d}
+
+r_{i,d} = u_{i,t} + \beta_{i,t}indusabn_d + \rho_{1,i,t}Mkt_d + \rho_{2,i,t}SMB_d + \rho_{3,i,t}HML_d + \rho_{4,i,t}UMD_d + \varepsilon_{i,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,,,{},0
+calendar2026_2_2_4_u4e2a_4eba_6295_8d44_8005_4ea4_6613_70ed_5ea6,2026,2.2.4,个人投资者交易热度,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9395,9429,1d,1d,T_close,tick_trade,"TURNRETAIL = \frac{1}{m} \sum_{t=1}^{t-m+1} \frac{INFLOWRETAIL_{i,t} + OUTFLOWRETAIL_{i,t}}{CAP_{i,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_2_2_5_u673a_6784_4ea4_6613_70ed_5ea6,2026,2.2.5,机构交易热度,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9429,9462,1d,1d,T_close,tick_trade,"TURNINST = \frac{1}{m} \sum_{t=1}^{t-m+1} \frac{INFLOWINST_{i,t} + OUTFLOWINST_{i,t}}{CAP_{i,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_2_2_6_u5173_6ce8_4e8b_4ef6,2026,2.2.6,关注事件,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9462,9488,unknown,1d,T_close,,,,blocked_formula,源文档未提供可执行的明确公式,,,,,{},0
+calendar2026_2_2_7_u57fa_4e8e_6da8_8dcc_505c_7684_6ce8_610f_529b,2026,2.2.7,基于涨跌停的注意力捕捉,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9488,9530,1d,1d,T_close,factor_returns,"LIMITPROP_d = \frac{n_{upper,d} + n_{lower,d}}{N_d}
+
+r_{i,d} = u_{i,t} + \beta_{i,t} LIMITPROP_d + \rho_{1,i,t} Mkt_d + \rho_{2,i,t} SMB_d 
+
+- \rho_{3,i,t} HML_d + \rho_{4,i,t} UMD_d + \varepsilon_{i,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,,,{},0
+calendar2026_2_2_8_u57fa_4e8e_6caa_6df1_603b_6210_4ea4_989d_7684,2026,2.2.8,基于沪深总成交额的注意力捕捉,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9530,9572,1d,1d,T_close,factor_returns,"mktvol_d = 沪市总成交额_d + 深市总成交额_d
+
+r_{i,d} = u_{i,t} + \beta_{i,t} mktvol_d + \rho_{1,i,t} Mkt_d + \rho_{2,i,t} SMB_d 
+
+- \rho_{3,i,t} HML_d + \rho_{4,i,t} UMD_d + \varepsilon_{i,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,,,{},0
+calendar2026_2_2_9_u7ed3_5408_4e1a_52a1_590d_6742_5ea6_7684_76f8,2026,2.2.9,结合业务复杂度的相似业务收益联动因子,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9572,9611,1d,1d,T_close,business_segments,"Linkage_{i,t} = complexity_{i,t} * \left( \frac{\sum_{j=1}^{N} SIM_{i,j,t} * Ret_{j,t}}{\sum_{j=1}^{N}(SIM_{i,j,t})} - Ret_{i,t} \right)
+
+complexity_{i,t} = \sum_{j=1}^{n} \frac{SIM_{i,j,t}}{n} - \sum_{k=1}^{m} \frac{SIM_{i,k,t}}{m}
+
+SIM_{i,j,t} = \frac{P_{i,t} * P_{j,t}}{||P_{i,t}|| * ||P_{j,t}||}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: business_segments,,,,,{},0
+calendar2026_2_2_10_u57fa_4e8e_6362_624b_7387_7684_6ce8_610f_529b,2026,2.2.10,基于换手率的注意力捕捉,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9611,9653,1d,1d,T_close,factor_returns,"industurn_d = \text{std}(行业内成分股的日度换手率序列 turnover_{i,d})
+
+r_{i,d} = u_{i,t} + \beta_{i,t} industurn_d + \rho_{1,i,t} Mkt_d + \rho_{2,i,t} SMB_d + \rho_{3,i,t} HML_d 
+
+- \rho_{4,i,t} UMD_d + \varepsilon_{i,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_2_2_11_u57fa_4e8e_6362_624b_7387_7684_6ce8_610f_529b,2026,2.2.11,基于换手率的注意力溢出,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9653,9695,1d,1d,T_close,close|volume|a_share_market_val_in_circulation|first_industry_code,"ATTN_{i,t} = \frac{1}{m} \sum_{t=1}^{t-m+1} TURN_{i,t}
+
+SPILL = \overline{ATTN}_i - ATTN_i",mean(peer_monthly_turnover)-monthly_turnover,proxy,代理实现：当前lab仅有申万一级行业，替代原定义的中信一级行业；行业内仍严格按3:4:3市值分组,daily_attention_spillover,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'turnover'},20
+calendar2026_2_2_12_u5e73_5747_6362_624b_7387,2026,2.2.12,平均换手率,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9695,9725,1d,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation,"TURN AVG = \frac{1}{m} \sum_{t=1}^{t-m+1} TURN_{i,t}","mean(volume*close/float_market_cap,20)",exact,,daily_liquidity_metric,,alpha101/158/191/360:concept_overlap,concept_overlap,"{'metric': 'turnover_mean', 'window': 20, 'long_window': 250}",21
+calendar2026_2_2_13_u57fa_4e8e_5f02_5e38_6536_76ca_7684_6ce8_610f,2026,2.2.13,基于异常收益的注意力溢出,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9725,9769,1d,1d,T_close,close|volume|a_share_market_val_in_circulation|first_industry_code,"ATTN_{i,t} = \frac{1}{m} \sum_{t}^{t-m+1} (r_{i,t} - \bar{r}_t)^2
+
+SPILL = \overline{ATTN_i} - ATTN_i",mean(peer_monthly_squared_abnormal_return)-monthly_squared_abnormal_return,proxy,代理实现：当前lab仅有申万一级行业，替代原定义的中信一级行业；行业内仍严格按3:4:3市值分组,daily_attention_spillover,,,,{'metric': 'abnormal_return'},20
+calendar2026_2_2_14_u6700_5927_5f02_5e38_65e5_6536_76ca_7387,2026,2.2.14,最大异常日收益率,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9769,9803,1d,1d,T_close,close|volume,"ABNRETD = \max_t |r_{i,t} - \bar{r}_t|","max(abs(daily_return),20)",exact,,daily_attention_metric,,,,"{'metric': 'max_abnormal_return', 'window': 20, 'baseline_window': 250}",21
+calendar2026_2_2_15_u6bcf_65e5_6700_5927_5f02_5e38_6210_4ea4_91cf,2026,2.2.15,每日最大异常成交量,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9803,9837,1d,1d,T_close,close|volume,"ABNVOLD = \max_t \left( \frac{VOL_{i,t}}{\overline{VOL}_{i,t}} \right)","max(volume/mean(volume,250),20)",exact,,daily_attention_metric,,,,"{'metric': 'max_abnormal_volume', 'window': 20, 'baseline_window': 250}",270
+calendar2026_2_2_16_u6bcf_65e5_5e73_5747_5f02_5e38_6210_4ea4,2026,2.2.16,每日平均异常成交,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9837,9871,1d,1d,T_close,close|volume,"ABNVOLAVG = \frac{1}{m} \sum_{t=1}^{m} \left( \frac{VOL_{i,t}}{\overline{VOL}_{i,t}} \right)","mean(volume/mean(volume,250),20)",exact,,daily_attention_metric,,,,"{'metric': 'mean_abnormal_volume', 'window': 20, 'baseline_window': 250}",270
+calendar2026_2_2_17_u8870_51cf_52a0_6743_6708_9891_6210_4ea4_91cf,2026,2.2.17,衰减加权月频成交量,行为金融因子,投资者注意力,投资者注意力,投资因子,factors2026.md,9871,9903,1d,1d,T_close,close|volume,"ATTN = \frac{(12 - m)}{\sum_{m=1}^{11} m} VOL_{i,t}","linear_decay(volume,20)",exact,,daily_attention_metric,,,,"{'metric': 'decay_volume', 'window': 20, 'baseline_window': 250}",20
+calendar2026_2_3_1_v,2026,2.3.1,V型处置效应,行为金融因子,处置效应,处置效应,行为金融因子,factors2026.md,9905,9940,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"VNSP_t = Gain_t + \sigma |Loss_t|
+
+Gain_t = \sum_{n=0}^{N-1} \omega_{t-n} * gain_{t-n}
+
+Loss_t = \sum_{n=0}^{N-1} \omega_{t-n} * loss_{t-n}",gain_tendency+0.23*abs(loss_tendency),exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,,,{'metric': 'v_tendency'},0
+calendar2026_2_3_2_u57fa_4e8e_7b79_7801_5206_5e03_7684_5904_7f6e,2026,2.3.2,基于筹码分布的处置效应,行为金融因子,处置效应,处置效应,行为金融因子,factors2026.md,9940,9975,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"CPGR_{i,t} = \frac{\text{已实现盈利}*{i,t}}{\text{已实现盈利}*{i,t} + \text{账面盈利}_{i,t}}
+
+CPLR_{i,t} = \frac{\text{已实现亏损}*{i,t}}{\text{已实现亏损}*{i,t} + \text{账面亏损}_{i,t}}
+
+CDE_{i,t} = CPGR_{i,t} - CPLR_{i,t}",realized_profit_ratio-realized_loss_ratio,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'disposition_effect'},0
+calendar2026_2_3_3_u8d44_672c_5229_5f97_7a81_51fa_91cf,2026,2.3.3,资本利得突出量,行为金融因子,处置效应,处置效应,行为金融因子,factors2026.md,9975,10015,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"RP_t = \frac{1}{k} \sum_{n=0}^{T-1} \left( V_{t-n} \prod_{s=1}^{n-1} (1 - V_{t-n+s}) \right) P_{t-n}
+
+CGO_{i,t} = \frac{Close_{i,t} - RP_t}{Close_{i,t}}",(close-reference_price)/close,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'capital_gain_overhang'},0
+calendar2026_2_3_4_u4e8f_635f_5356_51fa_503e_5411,2026,2.3.4,亏损卖出倾向,行为金融因子,处置效应,处置效应,行为金融因子,factors2026.md,10015,10056,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"loss_t = \frac{Close_t - P_{t-n}}{Close_t} * \mathbf{1}*{Close_t < P*{t-n}}
+
+Loss_t = \sum_{n=0}^{N-1} \omega_{t-n} * loss_{t-n}
+
+\omega_{t-n} = \frac{1}{k} V_{t-n} \prod_{s=1}^{n-1} (1 - V_{t-n+s})
+
+k = \sum_{n=1}^{T} V_{t-n} \prod_{s=1}^{n-1} (1 - V_{t-n+s})","sum(min((close-price)/close,0)*chip_weight)",exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,,,{'metric': 'loss_tendency'},0
+calendar2026_2_3_5_u5df2_5b9e_73b0_76c8_5229_6bd4_7387,2026,2.3.5,已实现盈利比率,行为金融因子,处置效应,处置效应,行为金融因子,factors2026.md,10056,10095,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"Chip_{i,t,p} = Vol_{i,t,p} * T_{i,t} + Chip_{i,t-1,p} * (1 - T_{i,t})
+
+已实现盈利_{i,t} = \sum_p (Close_{i,t} - Price_{i,p}) * (Chip_{i,t-1,p} * T_{i,t}) * I_{Close_{i,t} \geq Price_{i,p}}
+
+账面盈利_{i,t} = \sum_p (Close_{i,t} - Price_{i,p}) * Chip_{i,t,p} * I_{Close_{i,t} \geq Price_{i,p}}
+
+CPGR_{i,t} = \frac{已实现盈利_{i,t}}{已实现盈利_{i,t} + 账面盈利_{i,t}}",realized_gain/(realized_gain+paper_gain),exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,,,{'metric': 'realized_profit_ratio'},0
+calendar2026_2_3_6_u76c8_5229_5356_51fa_503e_5411,2026,2.3.6,盈利卖出倾向,行为金融因子,处置效应,处置效应,行为金融因子,factors2026.md,10095,10123,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"gain_t = \frac{Close_t - P_{t-n}}{Close_t} * \mathbf{1}*{Close_t \geq P*{t-n}}
+
+Gain_t = \sum_{n=0}^{N-1} \omega_{t-n} * gain_{t-n}
+
+\omega_{t-n} = \frac{1}{k} V_{t-n} \prod_{s=1}^{n-1} (1 - V_{t-n+s})
+
+k = \sum_{n=1}^{T} V_{t-n} \prod_{s=1}^{n-1} (1 - V_{t-n+s})","sum(max((close-price)/close,0)*chip_weight)",exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,,,{'metric': 'gain_tendency'},0
+calendar2026_2_3_7_u5df2_5b9e_73b0_4e8f_635f_6bd4_7387,2026,2.3.7,已实现亏损比率,行为金融因子,处置效应,处置效应,行为金融因子,factors2026.md,10123,10162,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"Chip_{i,t,p} = Vol_{i,t,p} * T_{i,t} + Chip_{i,t-1,p} * (1 - T_{i,t})
+
+已实现亏损_{i,t} = \sum_p abs(Close_{i,t} - Price_{i,p}) * (Chip_{i,t-1,p} * T_{i,t}) * I_{Close_{i,t} < Price_{i,p}}
+
+账面亏损_{i,t} = \sum_p abs(Close_{i,t} - Price_{i,p}) * Chip_{i,t,p} * I_{Close_{i,t} < Price_{i,p}}
+
+CPLR_{i,t} = \frac{已实现亏损_{i,t}}{已实现亏损_{i,t} + 账面亏损_{i,t}}",realized_loss/(realized_loss+paper_loss),exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,,,{'metric': 'realized_loss_ratio'},0
+calendar2026_2_3_8_v,2026,2.3.8,基于筹码分布的 V 型处置效应,行为金融因子,处置效应,处置效应,行为金融因子,factors2026.md,10162,10211,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"CPGR_{i,t} = \frac{\text{已实现盈利}*{i,t}}{\text{已实现盈利}*{i,t} + \text{账面盈利}_{i,t}}
+
+CPLR_{i,t} = \frac{\text{已实现亏损}*{i,t}}{\text{已实现亏损}*{i,t} + \text{账面亏损}_{i,t}}
+
+VCDE1_{i,t} = abs(CPGR_{i,t} - CPLR_{i,t})
+
+VCDE2_{i,t} = CPGR_{i,t} + 0.23 * CPLR_{i,t}
+
+VCDE3_{i,t} = CPGR_{i,t} + CPLR_{i,t}",realized_profit_ratio+0.23*realized_loss_ratio,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,research_report_factors:concept_overlap,concept_overlap,{'metric': 'v_disposition_effect'},0
+calendar2026_2_4_1_pb_tk,2026,2.4.1,基于 PB 的前景价值 TK,行为金融因子,前景理论,前景理论,行为金融因子,factors2026.md,10213,10245,1d,1d,T_close,pb_ratio_ttm,"\left(r_{pb,-m}, \frac{1}{N}; r_{pb,-1}, \frac{1}{N}; r_{pb,0}, \frac{1}{N}; r_{pb,1}, \frac{1}{N}; \ldots, r_{pb,m}, \frac{1}{N}\right)
+
+TK = \sum_{i=-m}^{-1} v(r_{pb,i})[w^-(\frac{i+m+1}{N}) - w^-(\frac{i+m}{N})] + \sum_{i=1}^{n} v(r_{pb,i})[w^+(\frac{n-i+1}{N}) - w^+(\frac{n-i}{N})]","prospect_value(delta_log_pb,20,alpha=.88,lambda=2.25,gamma=.61,delta=.69)",exact,,daily_prospect_value,,,,"{'source': 'pb', 'window': 20}",21
+calendar2026_2_4_2_tk,2026,2.4.2,前景价值 TK,行为金融因子,前景理论,前景理论,行为金融因子,factors2026.md,10245,10308,1d,1d,T_close,close,"\left( r_{-m}, \frac{1}{N}; r_{-1}, \frac{1}{N}; r_0, \frac{1}{N}; r_1, \frac{1}{N}; \ldots; r_m, \frac{1}{N} \right)
+
+TK = \sum_{i=-m}^{-1} v(r_i) \left[ w^- \left( \frac{i + m + 1}{N} \right) - w^- \left( \frac{i + m}{N} \right) \right] + \sum_{i=1}^{n} v(r_i) \left[ w^+ \left( \frac{n - i + 1}{N} \right) - w^+ \left( \frac{n - i}{N} \right) \right]
+
+v(x) =
+\begin{cases}
+x^\alpha & x \geq 0 
+-\lambda (-x)^\alpha & x < 0
+\end{cases}
+
+\pi_l =
+\begin{cases}
+w^+(p_i + \cdots p_n) - w^+(p_{i+1} + \cdots p_n) & 0 \leq l \leq n 
+w^-(p_m + \cdots p_n) - w^+(p_{i+1} + \cdots p_n) & 0 \leq i \leq n 
+w^-(p_m + \cdots p_i) - w^-(p_m + \cdots p_{i-1}) & -m \leq i < 0
+\end{cases}
+
+w^+(P) = \frac{P^\gamma}{\left( P^\gamma + (1 - P)^\gamma \right)^{\frac{1}{\gamma}}}
+
+w^-(P) = \frac{P^\delta}{\left( P^\delta + (1 - P)^\delta \right)^{\frac{1}{\delta}}}","prospect_value(log_return,20,alpha=.88,lambda=2.25,gamma=.61,delta=.69)",exact,,daily_prospect_value,,,,"{'source': 'return', 'window': 20}",21
+calendar2026_2_4_3_u672a_5b9e_73b0_76c8_5229_91cf,2026,2.4.3,未实现盈利量,行为金融因子,前景理论,前景理论,行为金融因子,factors2026.md,10308,10346,1m,1d,T_close,high|low|close|volume|a_share_market_val_in_circulation,"CGO_t = \frac{P_t - RP_t}{RP_t}
+
+RP_t = \frac{1}{k} \sum_{n=1}^{N} V_{t-n} \prod_{\tau=1}^{n-1} (1 - V_{t-\tau}) P_{t-n}",(close-reference_price)/reference_price,exact,按分钟成交量价格分布与日换手存活模型重建筹码分布，价格网格精度1e-4,chip_distribution_metric,,,,{'metric': 'unrealized_profit'},0
+calendar2026_2_5_1_u4e70_5165_6d6e_4e8f_5360_6bd4_5c0f_5355_56e0,2026,2.5.1,买入浮亏占比小单因子,行为金融因子,遗憾规避,遗憾规避,行为金融因子,factors2026.md,10348,10385,1d,1d,T_close,tick_trade,"HCVOLS = \frac{\sum_{i}^{N} volume_{buy,i} * I_{p_{sell,i} > close} * I_{vol < vol_{mean}}}{totalvolume}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_2_5_2_u5356_51fa_53cd_5f39_5360_6bd4_5c0f_5355_56e0,2026,2.5.2,卖出反弹占比小单因子,行为金融因子,遗憾规避,遗憾规避,行为金融因子,factors2026.md,10385,10429,1d,1d,T_close,tick_trade,"LCVOLS = \frac{\sum_{i}^{N} volume_{sell,i} * I_{p_{sell,i}<close} * I_{vol<vol_{mean}}}{totalvolume}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_2_5_3_u4e70_5165_6d6e_4e8f_504f_79bb_5c0f_5355_56e0,2026,2.5.3,买入浮亏偏离小单因子,行为金融因子,遗憾规避,遗憾规避,行为金融因子,factors2026.md,10429,10465,1d,1d,T_close,tick_trade,"HCPS = \frac{\sum_{i}^{N} \overline{price}*{buy,i} * I*{p_{buy,i} > close} * I_{vol < vol_{mean}}}{close} - 1",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_2_5_4_u5356_51fa_53cd_5f39_504f_79bb_5c0f_5355_56e0,2026,2.5.4,卖出反弹偏离小单因子,行为金融因子,遗憾规避,遗憾规避,行为金融因子,factors2026.md,10465,10501,1d,1d,T_close,tick_trade,"LCPS = \frac{\sum_{i}^{N} \overline{price}*{buy,i} * I*{p_{buy,i} < close} * I_{vol < volmean}}{close} - 1",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_2_6_1_cssd,2026,2.6.1,CSSD 模型,行为金融因子,羊群效应,羊群效应,行为金融因子,factors2026.md,10503,10533,unknown,1d,T_close,,"CSSD = \sqrt{\frac{\sum_{i=1}^{N}(r_i - r_m)^2}{N - 1}}
+
+CSSD = \alpha + \beta_1 D_t^u + \beta_2 D_t^d + \varepsilon",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_2_6_2_csad,2026,2.6.2,CSAD 模型,行为金融因子,羊群效应,羊群效应,行为金融因子,factors2026.md,10533,10559,unknown,1d,T_close,,"CSAD = \frac{\sum_{i=1}^{N} |r_i - R_m|}{N}
+
+CSAD = \alpha + \beta_1 |R_{mt}| + \beta_2 |R_{mt}|^2 + \varepsilon",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_2_6_3_csad,2026,2.6.3,CSAD 模型（基于“小型”板块）,行为金融因子,羊群效应,羊群效应,行为金融因子,factors2026.md,10559,10600,1d,1d,T_close,close,"CSAD_t = \frac{1}{10} \sum_{i=1}^{10} |r_{it} - \bar{r}_t|
+
+Z_{jt} = \frac{CSAD_{jt} - \mu_{CSAD_j}}{\sigma_{CSAD_j}}
+
+f_{jt} = -\frac{1}{20} \sum_{k=1}^{20} Z_{j,t-k+1}","-mean(zscore(CSAD_peer_mean,120),20)",exact,,daily_peer_csad,,,,{'metric': 'small'},120
+calendar2026_2_6_4_csad,2026,2.6.4,CSAD 模型（基于板块中地位）,行为金融因子,羊群效应,羊群效应,行为金融因子,factors2026.md,10600,10641,1d,1d,T_close,close,"CSAD_t = \frac{1}{10} \sum_{i=1}^{10} |r_{it} - r_{*t}|
+
+Z_{jt} = \frac{CSAD_{jt} - \mu_{CSAD_j}}{\sigma_{CSAD_j}}
+
+f_{jt} = -\frac{1}{20} \sum_{k=1}^{20} Z_{j,t-k+1}","-mean(zscore(CSAD_focal_center,120),20)",exact,,daily_peer_csad,,,,{'metric': 'position'},120
+calendar2026_2_6_5_slsv,2026,2.6.5,SLSV 模型,行为金融因子,羊群效应,羊群效应,行为金融因子,factors2026.md,10641,10689,1d,1d,T_close,tick_trade,"SLSV_{i,t} = 
+\begin{cases}
+LSV_{i,t}, & p_{i,t} > p_t 
+-LSV_{i,t}, & p_{i,t} < p_t
+\end{cases}
+
+LSV_{i,t} = |p_{i,t} - p_t| - E|p_{i,t} - p_t|
+
+E|p_{i,t} - p_t| = AF(i,t) = \sum_{k=1}^{N_{i,t}} C_k^{N_{i,t}} p_t^k (1 - p_t)^{N_{i,t}-k} \left| \frac{k}{N_{i,t}} - p_t \right|
+
+p_{i,t} = \frac{B(i,t)}{B(i,t) + S(i,t)}, \quad p_t = \frac{\sum_{i=1}^N p_{i,t}}{N}, \quad N_{i,t} = B(i,t) + S(i,t)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_2_6_6_lsv,2026,2.6.6,LSV 模型,行为金融因子,羊群效应,羊群效应,行为金融因子,factors2026.md,10689,10729,1d,1d,T_close,trade_direction,"LSV_{i,t} = |p_{i,t} - p_t| - E|p_{i,t} - p_t|
+
+E|p_{i,t} - p_t| = AF(i,t) = \sum_{k=1}^{N_{i,t}} C_k^{N_{i,t}} p_t^k (1 - p_t)^{N_{i,t}-k} \left| \frac{k}{N_{i,t}} - p_t \right|
+
+p_{i,t} = \frac{B(i,t)}{B(i,t) + S(i,t)}, \quad p_t = \frac{\sum_{i=1}^{N} p_{i,t}}{N}, \quad N_{i,t} = B(i,t) + S(i,t)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: trade_direction,,,,,{},0
+calendar2026_2_7_1_pe,2026,2.7.1,基于 PE 的分析师锚效益偏差,行为金融因子,锚定效应,锚定效应,分析师预期类,factors2026.md,10731,10767,1d,1d,T_close,analyst,"CAFEP_{i,t} = \frac{FEP_{i,t} - IFEP_t}{IFEP_t}
+
+FEP_{i,t} = \frac{1}{FPE_{i,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2026_2_7_2_pb,2026,2.7.2,基于 PB 的分析师锚效益偏差,行为金融因子,锚定效应,锚定效应,分析师预期类,factors2026.md,10767,10803,1d,1d,T_close,analyst,"CAFBP_{i,t} = \frac{FBP_{i,t} - IFBP_t}{IFBP_t}
+
+FBP_{i,t} = \frac{1}{FPB_{i,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,,,{},0
+calendar2026_3_1_1_u6539_8fdb_7684_5ba2_6237_52a8_91cf_56e0_5b50,2026,3.1.1,改进的客户动量因子 (基于信息离散度),图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,10807,10843,1d,1d,T_close,supply_chain,"cmom_i^{1M} = \sum_{j=1}^{N_i} w_{ij}^{sales} mom_j^{1M}, i = 1, 2, \ldots, N
+
+ID_{c,t} = sign(CR_{c,t}) \times [neg_{c,t} - pos_{c,t}]",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_2_u4e0b_6e38_4f20_5bfc_52a8_91cf,2026,3.1.2,下游传导动量,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,10843,10887,1d,1d,T_close,supply_chain,"wgt_{A,B,t} = \frac{\sum_i prdIncome_{A,i,t} \times 1i \to j, i \in A + \sum_j prdIncome_{B,j,t} \times 1i \to j, j \in B}{\sum_i prdIncome_{A,i,t} + \sum_j prdIncome_{B,j,t}}
+
+upstreamMomen_{A,t} = \frac{\sum_{A \neq B} wgt_{A,B,t} \times rtn_{B,t}}{\sum_{A \neq B} wgt_{A,B,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_3_u884c_4e1a_52a8_91cf_6ea2_51fa_6548_5e94,2026,3.1.3,行业动量溢出效应,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,10887,10921,1d,1d,T_close,network,"RET_{it}^{IND} = Industrialweight_{ij,t} \times ReT_{jt}
+
+Industrialweight_{ij,t} = \frac{IMV_{j,t}}{\sum_{j=1 and j \ne i}^{N} IMV_{j,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_4_u6539_8fdb_7684_5ba2_6237_52a8_91cf_56e0_5b50,2026,3.1.4,改进的客户动量因子,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,10921,10965,1d,1d,T_close,supply_chain,"cmom_i^{1M} = \sum_{j=1}^{N_i} w_{ij}^{sales} mom_j^{1M},\ i = 1,2,\ldots,N
+
+nearnessto52weekhigh = \frac{月末收盘价}{过去52周内最高价}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_5_u5730_7406_52a8_91cf_6ea2_51fa_6548_5e94,2026,3.1.5,地理动量溢出效应,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,10965,10999,1d,1d,T_close,network,"RET_{it}^{GEO} = geographicweight_{ij,t} \times ReT_{jt}
+
+geographicweight_{ij,t} = \frac{GMV_{j,t}}{\sum_{j=1 \text{ and } j \ne i}^{N} GMV_{j,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_6_downstream,2026,3.1.6,年度搜索比 (downstream),图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,10999,11036,1d,1d,T_close,news,"f_{ij}^t = \frac{\sum_{d=1}^{365} (\text{Daily Searches for } j \text{ after } i)*d}{\sum*{d=1}^{365} (\text{Daily Searches for } i \text{ and then any firm } j \neq i)_d}
+
+R_{i,t} = \frac{\sum_{j=1}^{N} f_{ij}^t \times Ret_j}{\sum_{j=1}^{N} f_{ij}^t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2026_3_1_7_u6d77_5916_8fd0_8425_4fe1_606f,2026,3.1.7,海外运营信息,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11036,11066,1d,1d,T_close,network,"InfoProxy_{i,j,t-1}(Foreign) = \sum_{c \neq U.S.} f^c_{i,t-1} R^c_{j,t-1}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,,,{},0
+calendar2026_3_1_8_symmetric,2026,3.1.8,年度搜索比例 (symmetric),图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11066,11103,1d,1d,T_close,news,"f_{ij}^t = \frac{\sum_{d=1}^{365} (\text{Daily Searches for } j \text{ after or before } i)*d}{\sum*{d=1}^{365} (\text{Daily Searches for } i \text{ and then any firm } j \neq i)_d}
+
+R_{i,t} = \frac{\sum_{j=1}^{N} f_{ij}^t \times Ret_j}{\sum_{j=1}^{N} f_{ij}^t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2026_3_1_9_u57fa_4e8e_6295_8d44_8005_4ea4_6d41_7684_5173,2026,3.1.9,基于投资者交流的关联动量,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11103,11133,1d,1d,T_close,network,"MRR_{m,t} = \frac{1}{5} \sum_{j=1}^{5} Ret_{j,m,t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_10_u4e0a_6e38_4f20_5bfc_52a8_91cf,2026,3.1.10,上游传导动量,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11133,11177,1d,1d,T_close,supply_chain,"wgt_{(B,j),(A,i),t} = \frac{(prdIncome_{B,j,t} + prdIncome_{A,i,t}) \times 1j \to i}{\sum_i prdIncome_{A,i,t} + \sum_j prdIncome_{B,j,t}}
+
+upstreamMomen_{A,t} = \frac{\sum_{A \neq B} wgt_{A,B,t} \times rtn_{B,t}}{\sum_{A \neq B} wgt_{A,B,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_11_u4fee_6b63_540e_7684_5e74_5ea6_641c_7d22_6bd4,2026,3.1.11,修正后的年度搜索比例,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11177,11218,1d,1d,T_close,news,"f_{ij}^t = \frac{\sum_{d=1}^{365} (\text{Daily Searches for } j \text{ after } i)*d}{\sum*{d=1}^{365} (\text{Daily Searches for } i \text{ and then any firm } j \neq i)_d}
+
+\hat{f}*{ij}^t = \frac{f*{ij}^t = \frac{i\text{then}j}{i}}{\frac{i\text{then}j}{!i}}
+
+R_{i,t} = \frac{\sum_{j=1}^{N} \hat{f}*{ij}^t \times Ret_j}{\sum*{j=1}^{N} \hat{f}_{ij}^t}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2026_3_1_12_u76f8_4f3c_4e1a_52a1_6536_76ca_8054_52a8_56e0,2026,3.1.12,相似业务收益联动因子,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11218,11254,1d,1d,T_close,network,"Linkage_{i,t} = \frac{\sum_{j=1}^{N} SIM_{i,j,t} * Ret_{j,t}}{\sum_{j=1}^{N}(SIM_{i,j,t})} - Ret_{i,t}
+
+SIM_{i,j,t} = \frac{P_{i,t} * P_{j,t}}{||P_{i,t}|| * ||P_{j,t}||}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,,,{},0
+calendar2026_3_1_13_u4fee_6b63_7684_76f8_4f3c_4e1a_52a1_6536_76ca,2026,3.1.13,修正的相似业务收益联动因子,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11254,11294,1d,1d,T_close,network,"Linkage_{i,t} = \frac{\sum_{j=1}^{N} SIM_{i,j,t} * VOL_{j,t} * EV_{j,t} * Ret_{j,t}}{\sum_{j=1}^{N} (SIM_{i,j,t} * VOL_{j,t} * EV_{j,t})} - Ret_{i,t}
+
+SIM_{i,j,t} = \frac{P_{i,t} * P_{j,t}}{||P_{i,t}|| * ||P_{j,t}||}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,,,{},0
+calendar2026_3_1_14_u65b0_95fb_7f51_7edc_9886_5148_6536_76ca,2026,3.1.14,新闻网络领先收益,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11294,11340,1d,1d,T_close,news,"l_{ij,T} \overset{\text{def}}{=} \bigcup_{m_d \in D_T} \left (i,j)*{m_d} \mid j \text{ in } m_d \text{ title}, i \text{ in } m_d \text{ headline}, i \neq j \right
+\quad
+\mathcal{W}T = [\omega{ij,T}]*{n \times n} = \left[ \frac{l_{ij,T}}{\sum_{j=1}^n l_{ij,T}} \right]_{n \times n}
+
+\omega_{ij,T}^w \overset{\text{def}}{=} Ii,j \text{ from same sector} \cdot \omega_{ij,T}
+
+\omega_{ij,T}^c \overset{\text{def}}{=} Ii,j \text{ from diff sector} \cdot \omega_{ij,T}
+
+\mathcal{LR}*{i,t}^{+(-)}(\omega*{ij,t-l:t}) \overset{\text{def}}{=} \sum_{j=1}^{n} \omega_{ij,t-l:t} \cdot \left| r_{j,t}^{+(-)} \right|
+
+\mathcal{LR}*{agg}(\omega*{ij,t-365:t}) = \mathcal{LR}^+(\omega_{ij,t-365:t}^w) + \mathcal{LR}^-(\omega_{ij,t-365:t}^w) + \mathcal{LR}^-(\omega_{ij,t-365:t}^c) - \mathcal{LR}^+(\omega_{ij,t-365:t}^c)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2026_3_1_15_u6700_5927_5ba2_6237_52a8_91cf,2026,3.1.15,最大客户动量,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11340,11370,1d,1d,T_close,supply_chain,cmom_i^{1M} = mom_{jmaxsales}^{1M},,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_16_u516c_53f8_7279_5f81_76f8_4f3c_5ea6_52a8_91cf,2026,3.1.16,公司特征相似度动量因子,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11370,11410,1d,1d,T_close,network,"D_{i,j} = \sqrt{(Prc_i - Prc_j)^2 + (SIZE_i - SIZE_j)^2 + (BM_i - BM_j)^2 + (OP_i - OP_j)^2 + (INV_i - INV_j)^2}
+
+SIM = \frac{\sum_{k \in N(i)} w_k \cdot R_{excess,k}}{\sum_{k \in N(i)} w_k}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_17_u57fa_4e8e_8df3_8dc3_9891_7387_5173_8054_7684,2026,3.1.17,基于跳跃频率关联的点度中心性,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11410,11445,1m,1d,T_close,network,"JS = N \frac{\hat{V}*{(0.1)}}{\sqrt{\hat{\Omega}*{SWV}}} \left(1 - \frac{RV_N}{SwV_N} \right) \sim N(0,1)
+
+Corr_{i,j} = \frac{cojumpnum_{i,j}}{jumpnum_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,,,{},0
+calendar2026_3_1_18_u8df3_8dc3_5173_8054_975e_6b63_8df3_8dc3_76f8,2026,3.1.18,跳跃关联非正跳跃相对动量,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11445,11484,1m,1d,T_close,network,"JS = N \frac{\hat{V}*{(0,1)}}{\sqrt{\Omega*{SWV}}} \left(1 - \frac{RV_N}{SwV_N} \right) \sim N(0,1)
+
+Corr_{i,j} = \frac{cojumpnum_{i,j}}{jumpnum_i}
+
+PeerNegjumpRet_{i,t} = \frac{\sum\limits_{j=1}^{N} Corr_{i,j} * NegJumpRet_{j,t}}{\sum\limits_{j=1}^{N} Corr_{i,j}}, \quad i \ne j
+
+PeerNojumpRet_{i,t} = \frac{\sum\limits_{j=1}^{N} Corr_{i,j} * NoJumpRet_{j,t}}{\sum\limits_{j=1}^{N} Corr_{i,j}}, \quad i \ne j",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_19_u6700_5927_4f9b_5e94_5546_52a8_91cf,2026,3.1.19,最大供应商动量,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11484,11514,1d,1d,T_close,supply_chain,smom_i^{1M} = mom_{jmaxsales}^{1M},,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_1_20_u6539_8fdb_7684_5206_6790_5e08_5171_540c_8986,2026,3.1.20,改进的分析师共同覆盖间接关联动量,图谱网络,动量溢出,动量溢出,动量因子,factors2026.md,11514,11556,1d,1d,T_close,analyst,"ADJCF2RET_i = \frac{\sum_{j=1}^{N} m_{ij} \times Ret_j}{\sum_{j=1}^{N} m_{ij}}
+
+m_{ij} = \frac{\sum_{k=1}^{N} \log(n_{ik} + 1) \times \log(n_{kj} + 1)}{\log(num_i + 1)}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_3_2_1_u4ea7_4e1a_94fe_5730_4f4d_4f18_52bf_56e0_5b50,2026,3.2.1,产业链地位优势因子,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11558,11576,1d,1d,T_close,supply_chain,"wgt_{(B,j),(A,i),t} = \frac{(prdIncome_{B,j,t} + prdIncome_{A,i,t}) \times 1j \to i}{\sum_i prdIncome_{A,i,t} + \sum_j prdIncome_{B,j,t}}
+
+wgt_{A,B,t} = \frac{\sum_i prdIncome_{A,i,t} \times 1i \to j, i \in A + \sum_j prdIncome_{B,j,t} \times 1i \to j, j \in B}{\sum_i prdIncome_{A,i,t} + \sum_j prdIncome_{B,j,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_2_u7a7a_95f4_7f51_7edc_76f8_5bf9_4e2d_5fc3_5ea6,2026,3.2.2,空间网络相对中心度,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11576,11613,1d,1d,T_close,network,"\bar{p}*{i,t} = \frac{1}{N - 1} \sum*{j=1, j \ne i}^{N-1} \text{cov}(r_{i,t}, r_{j,t})
+
+\bar{d}*{i,t} = \sqrt{2 * (1 - \bar{p}*{i,t})}
+
+SCC_{i,t} = \frac{1}{\bar{d}_{i,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,,,{},0
+calendar2026_3_2_3_u4f9b_5e94_5546_884c_4e1a_96c6_4e2d_5ea6,2026,3.2.3,供应商行业集中度,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11613,11649,1d,1d,T_close,supply_chain,"SH_i = \sum_{i=1}^{I} w_{ji} H_j
+
+H_j = \sum_{i=1}^{I} s_{ij}^2",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_4_u5ba2_6237_884c_4e1a_96c6_4e2d_5ea6,2026,3.2.4,客户行业集中度,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11649,11685,1d,1d,T_close,supply_chain,"CH_i = \sum_{i=1}^{I} w_{ij} H_j
+
+H_j = \sum_{i=1}^{I} s_{ij}^2",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_5_u5ba2_6237_8282_70b9_5ea6,2026,3.2.5,客户节点度,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11685,11729,1d,1d,T_close,supply_chain,"d_i^{(in)} = \sum_{j(\ne i)} w_{ij}^{in}
+
+w_{ij}^{in} = I_{[i \in N(j)]}
+
+w_{ij}^{in} = \frac{sales_{ij}}{TotalProcurement_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_6_u4f9b_5e94_5546_8282_70b9_5ea6,2026,3.2.6,供应商节点度,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11729,11765,1d,1d,T_close,supply_chain,d_{(out)}^i = \sum_{j(\neq i)} u_{ij}^{out},,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_7_u4f9b_5e94_94fe_8282_70b9_5ea6,2026,3.2.7,供应链节点度,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11765,11803,1d,1d,T_close,supply_chain,"d_i = d_i^{(in)} + d_i^{(out)}
+
+d_i^{(out)} = \sum_{j(\ne i)} w_{ij}^{out} \quad ; \quad d_i^{(in)} = \sum_{j(\ne i)} w_{ij}^{in}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_8_u65f6_95f4_7f51_7edc_76f8_5bf9_4e2d_5fc3_5ea6,2026,3.2.8,时间网络相对中心度,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11803,11840,1d,1d,T_close,network,"z_{i,t} = \frac{r_{i,t} - \bar{r}*{m,t}}{\sigma*{m,t}}
+
+\bar{z}*{i,t} = \sqrt{\frac{1}{\Delta t} \sum*{\tau=1}^{\Delta t} z_{i,t-\tau}^2}
+
+TCC_{i,t} = \frac{1}{\bar{z}_{i,t}^2}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,,,{},0
+calendar2026_3_2_9_u80a1_7968_7f51_7edc_4e2d_5fc3_5ea6,2026,3.2.9,股票网络中心度,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11840,11872,1d,1d,T_close,network,"CC_{i,t} = SCC_{i,t} * 0.5 + TCC_{i,t} * 0.5",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,,,{},0
+calendar2026_3_2_10_u65b0_95fb_7f51_7edc_8282_70b9_5ea6,2026,3.2.10,新闻网络节点度,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11872,11906,1d,1d,T_close,news,"l_{ij,T} \overset{\text{def}}{=} \bigcup_{m_d \in D_T} \left(i,j)_{m_d} \mid j \text{ in } m_d \text{ title}, i \text{ in } m_d \text{ headline}, i \neq j \right W_T
+
+\overset{\text{def}}{=} [\omega_{ij,T}]*{n \times n} = \left[ \frac{l*{ij,T}}{\sum_{j=1}^{n} l_{ij,T}} \right]_{n \times n}
+
+\mathcal{A}*{i,t}(\omega*{ij,t-l:t}) =  j : \omega_{ij,t-l:t} \neq 0 +  j : \omega_{ji,t-l:t} \neq 0, j = 1,2,\cdots,n,",,blocked_data,精确实现依赖当前数据审计未发现的数据域: news,,,,,{},0
+calendar2026_3_2_11_u5ba2_6237_63a5_8fd1_4e2d_5fc3_6027,2026,3.2.11,客户接近中心性,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11906,11933,1d,1d,T_close,supply_chain,c_i = \frac{1}{N-1} \sum_{j:(\neq i)} \frac{1}{D_{ij}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_12_katz_bonacich,2026,3.2.12,客户 Katz-Bonacich 中心性,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11933,11967,1d,1d,T_close,supply_chain,k_i = \lambda \sum_{j(\ne i)} x_{ij} k_j + \beta,,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_13_u4f9b_7ed9_7aef_4e2d_5fc3_6027_53d8_5316,2026,3.2.13,供给端中心性变化,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,11967,12011,1d,1d,T_close,supply_chain,"C(u) = \frac{n - 1}{N - 1} * \frac{n - 1}{\sum_{v=1}^{n-1} D(u,v)}
+
+C^{st}(u) = \frac{C(u) - C_{min}}{C_{max} - C_{min}}
+
+D(u,v) = e^{-s(u,v)}
+
+s(u,v) = \frac{sales_{u,v}}{TotalProcurement_u}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_14_u5ba2_6237_7aef_4e2d_5fc3_6027_53d8_5316,2026,3.2.14,客户端中心性变化,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,12011,12053,1d,1d,T_close,supply_chain,"C(u) = \frac{n - 1}{N - 1} * \frac{n - 1}{\sum_{v=1}^{n-1} D(u, v)}
+
+C^{st}(u) = \frac{C(u) - C_{min}}{C_{max} - C_{min}}
+
+D(u, v) = e^{-s(u,v)} s(u, v) = \frac{sales_{u,v}}{TotalSales_u}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_15_u74f6_9888_516c_53f8,2026,3.2.15,瓶颈公司,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,12053,12081,1d,1d,T_close,supply_chain,"CB(i) = \sum_{\substack{s \neq t \neq i  s,t \in V}} \frac{\sigma_{st}(i)}{\sigma_{st}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_16_u5ba2_6237_91cd_8981_6027,2026,3.2.16,客户重要性,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,12081,12119,1d,1d,T_close,supply_chain,p(i) = \frac{q}{V} + (1 - q) \sum_{j \in \mathcal{V}: j \to i} \frac{p(j)}{k_j^{out}},,blocked_data,精确实现依赖当前数据审计未发现的数据域: supply_chain,,,,,{},0
+calendar2026_3_2_17_u57fa_4e8e_8df3_8dc3_5e45_5ea6_5173_8054_7684,2026,3.2.17,基于跳跃幅度关联的点度中心性,图谱网络,网络结构,网络结构,图谱网络,factors2026.md,12119,12154,1m,1d,T_close,network,"JS = N \frac{\hat{V}*{(0,1)}}{\sqrt{\hat{\Omega}*{SWV}}} \left(1 - \frac{RV_N}{SwV_N} \right) \sim N(0,1)
+
+Corr_{i,j} = \frac{cojumpsize_{i,j}}{jumpsize_i}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: network,,,,,{},0
+calendar2026_3_2_18_u5206_6790_5e08_5171_540c_8986_76d6_95f4_63a5,2026,3.2.18,分析师共同覆盖间接关联动量,图谱网络,网络结构,网络结构,动量因子,factors2026.md,12154,12194,1d,1d,T_close,analyst,"CF2RET_i = \frac{\sum_{j=1}^{N} m_{ij} \times Ret_j}{\sum_{j=1}^{N} m_{ij}}
+
+m_{ij} = \sum_{k=1}^{N} \log(n_{ik} + 1) \times \log(n_{kj} + 1)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: analyst,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_4_1_1_u76f8_4f3c_53cd_8f6c,2026,4.1.1,相似反转,量价因子改进,通用,通用,量价因子改进,factors2026.md,12198,12246,unknown,1d,T_close,,"Correlation_{i,T} = \rho_{Sequence_{i,t}, Temp\ History_{i,T}}
+
+Sequence_{i,t} = [Close_{i,t-RW+1}, Close_{i,t-RW+2}, \ldots, Close_{i,t}]
+
+Temp\ History_{i,T} = [Close_{i,T}, Close_{i,T+1}, \ldots, Close_{i,T+RW-1}]
+
+\tau \mid abs(Correlation_{i,\tau}) \geq Threshold
+
+SimilarReverse_{i,t} = -\sum_{k=1}^{n} \omega_{i,k} * ER_{i,\tau_k}
+
+ER_{i,\tau} = \prod_{k=\tau+RW}^{\tau+RW+Holding\ Time-1} (1 + ER_{i,k}) - 1, \quad 1 \leq Holding\ Time \leq RW
+
+\omega_{i,k} = \frac{e^{-\lambda k}}{\sum_{k=1}^{n} e^{-\lambda k}}, \quad \lambda = \frac{\ln(2)}{H}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_4_1_2_u7b79_7801_6536_76ca,2026,4.1.2,筹码收益,量价因子改进,通用,通用,量价因子改进,factors2026.md,12246,12284,unknown,1d,T_close,,"RsdAmt_{T-k}^T = Amt_{T-k} \cdot \prod_{T-k+1}^{T} (1 - Turnover_t), \quad k \in (0, 250]
+
+holdingret = \frac{\sum_t Price_t^{avg} \times RsdAmt_t^T}{\sum_t RsdAmt_t^T}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_4_1_3_u7279_5f02_8d28_6362_624b_6ce2_52a8_7387,2026,4.1.3,特异质换手波动率,量价因子改进,通用,通用,波动率因子,factors2026.md,12284,12328,1d,1d,T_close,factor_returns,"turnover_{i,t} = \alpha_{i,t} + \beta_{1t}TMKT_t + \beta_{2t}TSMB_t + \beta_{3t}THML_t + \beta_{4t}TMOM1m_t + \varepsilon_{i,t}
+
+Ivolturnover_{i,t} = std(\varepsilon_t)
+
+Ivolturnover_{i,t} = std(\varepsilon_t)",,blocked_data,精确实现依赖当前数据审计未发现的数据域: factor_returns,,,alpha101/158/191/360:concept_overlap,concept_overlap,{},0
+calendar2026_4_1_4_u7b79_7801_6536_76ca_8c03_6574,2026,4.1.4,筹码收益调整,量价因子改进,通用,通用,量价因子改进,factors2026.md,12328,12372,unknown,1d,T_close,,"RsdAmt_{T-k}^T = Amt_{T-k} \cdot \prod_{t=T-k+1}^{T} (1 - Turnover_t), \quad k \in (0, 250]
+
+holdingret = \frac{\sum_t Price_t^{avg} \times RsdAmt_t^T}{\sum_t RsdAmt_t^T}
+
+holdingretadj = holdingret \times \text{sign}(mktholdingret)",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_4_1_5_u57fa_4e8e_6536_76ca_89c4_6a21_7684_4fe1_606f,2026,4.1.5,基于收益规模的信息离散度,量价因子改进,通用,通用,规模因子,factors2026.md,12372,12404,1d,1d,T_close,close,ID_{MAG} = -\frac{1}{N} sgn(PRET) \times \sum_{i=1}^{N} sgn(Return_i) \times w_i,"-sign(PRET)*mean(sign(return_i)*quintile_weight(abs(return_i)),T-252:T-21)",exact,,daily_magnitude_information_dispersion,,,,{},252
+calendar2026_4_1_6_u7b79_7801_6536_76ca_589e_5f3a,2026,4.1.6,筹码收益增强,量价因子改进,通用,通用,量价因子改进,factors2026.md,12404,12446,unknown,1d,T_close,,"RsdAmt_{T-k}^T = Amt_{T-k} \cdot \prod_{t=T-k+1}^{T} (1 - Turnover_t), \quad k \in (0, 250]
+
+holdingret = \frac{\sum_t Price_t^{avg} \times RsdAmt_t^T}{\sum_t RsdAmt_t^T}
+
+holdingretadj = holdingret \times \text{sign}(mktholdingret)
+
+(1 - ret20) * ret20 + (1 - ret20) * holdingretadj",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_4_1_7_u76f8_4f3c_4f4e_6ce2,2026,4.1.7,相似低波,量价因子改进,通用,通用,量价因子改进,factors2026.md,12446,12494,unknown,1d,T_close,,"Correlation_{i,T} = \rho_{Sequence_{i,t}, TempHistory_{i,T}}
+
+Sequence_{i,t} = [Close_{i,t-RW+1}, Close_{i,t-RW+2}, \ldots, Close_{i,t}]
+
+TempHistory_{i,T} = [Close_{i,T}, Close_{i,T+1}, \ldots, Close_{i,T+RW-1}]
+
+\tau \mid abs(Correlation_{i,\tau}) \geq Threshold
+
+SimilarLowVolatility_{i,t} = \frac{1}{std(ER_{i,\tau})}
+
+ER_{i,\tau} = \prod_{k=\tau+RW}^{\tau+RW+Holding\ Time-1} (1 + ER_{i,k}) - 1, \quad 1 \leq Holding\ Time \leq RW
+
+\omega_{i,k} = \frac{e^{-\lambda k}}{\sum_{k=1}^{n} e^{-\lambda k}}, \quad \lambda = \frac{\ln(2)}{H}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,research_report_factors:concept_overlap,concept_overlap,{},0
+calendar2026_4_1_8_u65e9_76d8_4e3b_52a8_51c0_6d41_5165_7387_7a33,2026,4.1.8,早盘主动净流入率稳定性,量价因子改进,通用,通用,量价因子改进,factors2026.md,12494,12527,1d,1d,T_close,tick_trade,"\frac{\text{mean}\left(\text{当月每日早盘主动净流入率}*{i,t}\right)}{\text{std}\left(\text{当月每日早盘主动净流入率}*{i,t} + \delta_{i,t}\right)}
+
+\frac{\text{开盘10:00前净主动买入额}*{i,t}}{\text{10:00前总成交额}_{i,t}}",,blocked_data,精确实现依赖当前数据审计未发现的数据域: tick_trade,,,,,{},0
+calendar2026_4_1_9_u4e0a_4e0b_5f71_7ebf_6536_76d8_4ef7_7684_6807,2026,4.1.9,上下影线/收盘价的标准差,量价因子改进,通用,通用,量价因子改进,factors2026.md,12527,12551,1d,1d,T_close,open|high|low|close,\text{std}\left( \frac{\text{每日K线的上影线长度} + \text{每日K线的下影线长度}}{\text{每日收盘价}} \right),"ts_std((high-rq_max(open,close)+rq_min(open,close)-low)/(close+1e-12),20)",exact,,legacy_expression,,,,{},20
+calendar2026_4_1_10_u52a0_6743_76c8_5229_9891_7387,2026,4.1.10,加权盈利频率,量价因子改进,通用,通用,量价因子改进,factors2026.md,12551,12589,unknown,1d,T_close,,"f_{i,t}^w = \frac{\sum_{j=1}^{M_{i,t}} w_j * \mathbf{1}*{r*{i,j} > u}}{M_{i,t}}
+
+w_{decay_j} = 0.5^{\frac{t-j}{\lambda}}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_4_1_11_k,2026,4.1.11,K 线形态,量价因子改进,通用,通用,量价因子改进,factors2026.md,12589,12638,unknown,1d,T_close,,"wr_p = \frac{W(r_p > 0)}{N(r_p)}
+
+r_p = \frac{\text{close}*{p+20} - 1}{\text{open}*{p+1}}
+
+KP_{i,T} = \sum_{t=T-40}^{T} w_t * wr_{i,t}
+
+wr_{i,t} = wr_p(\text{pattern}_{i,t} = \text{pattern}_p \mid p \in 1,2,3,\ldots,768)
+
+w_t = 0.5^{\frac{T-t}{\lambda}}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_4_1_12_u8d8b_52bf_8d44_91d1_76f8_5bf9_5747_4ef7_56e0,2026,4.1.12,趋势资金相对均价因子,量价因子改进,通用,通用,量价因子改进,factors2026.md,12638,12666,1m,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation|first_industry_code,\frac{\text{趋势资金的成交量加权平均价格}}{\text{所有分钟的成交量加权平均价格}} - 1,"neutralize(mean(VWAP(trend)/VWAP(all)-1,20),cap,industry)",proxy,代理实现：量价计算为原式，行业中性化因当前lab仅有申万一级而替代中信一级,intraday_trend_fund_metric,,,,{'metric': 'relative_vwap'},25
+calendar2026_4_1_13_u8d8b_52bf_6e05_6670_5ea6,2026,4.1.13,趋势清晰度,量价因子改进,通用,通用,量价因子改进,factors2026.md,12666,12700,1d,1d,T_close,close,"TC_{i,T} = R^2
+
+P_{i,t} = \beta_{i,0} + \beta_{i,1} * T + \varepsilon_t","R**2(close~time,T-240:T-20)",exact,,daily_trend_clarity,,,,{'metric': 'clarity'},240
+calendar2026_4_1_14_u51c0_652f_6491_6210_4ea4_91cf_56e0_5b50,2026,4.1.14,净支撑成交量因子,量价因子改进,通用,通用,量价因子改进,factors2026.md,12700,12730,1m,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation|first_industry_code,\text{净支撑成交量} = \frac{\text{支撑成交量} - \text{阻力成交量}}{\text{当日流通股本}},"neutralize(mean((support_volume-resistance_volume)/float_shares,20),cap,industry)",proxy,代理实现：量价计算为原式，行业中性化因当前lab仅有申万一级而替代中信一级,intraday_trend_fund_metric,,,,{'metric': 'net_support'},20
+calendar2026_4_1_15_u8d8b_52bf_6e05_6670_5ea6_52a8_91cf,2026,4.1.15,趋势清晰度动量,量价因子改进,通用,通用,动量因子,factors2026.md,12730,12774,1d,1d,T_close,close,"TM_{i,T} = -\left| MOM'*{i,T} - TC'*{i,T} \right|
+
+TC_{i,T} = R^2
+
+R_{i,t} = \beta_{i,0} + \beta_{i,1} * T + \varepsilon_t
+
+Mom_{i,t} = \sum_{t=T-20}^{T-240} r_{i,t}",-abs(z(momentum(T-240:T-20))-z(trend_clarity)),exact,,daily_trend_clarity,,alpha101/158/191/360:concept_overlap,concept_overlap,{'metric': 'momentum'},240
+calendar2026_4_1_16_u8d8b_52bf_8d44_91d1_51c0_652f_6491_91cf_56e0,2026,4.1.16,趋势资金净支撑量因子,量价因子改进,通用,通用,量价因子改进,factors2026.md,12774,12802,1m,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation|first_industry_code,\frac{\text{趋势资金支撑成交量} - \text{趋势资金阻力成交量}}{\text{当日流通股本}},"neutralize(mean((trend_support-trend_resistance)/float_shares,20),cap,industry)",proxy,代理实现：量价计算为原式，行业中性化因当前lab仅有申万一级而替代中信一级,intraday_trend_fund_metric,,,,{'metric': 'trend_net_support'},25
+calendar2026_4_1_17_u6781_7aef_8ddf_968f_884c_4e3a_6bd4_503c_56e0,2026,4.1.17,极端跟随行为_比值因子,量价因子改进,通用,通用,量价因子改进,factors2026.md,12802,12828,1m,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation|first_industry_code,"① 每个交易日 t，回看过去 k 个交易日 t-k、t-(k-1)、……、t-1，计算过去 k 日分钟成交量的 m% 分位数，定义为成交量阈值，k=5，m=90；将交易日 t 的每分钟成交量与上述阈值进行对比，若某一分钟的成交量大于上述阈值，则该分钟的交易被定义为趋势资金的交易；
+② 对于趋势资金的每一分钟，取随后 n 分钟里成交额最大的一分钟，将其视为跟随趋势资金的极端行为，记录这一分钟的成交额，n=5；","neutralize(mean(mean(follower_amount/trend_amount),20),cap,industry)",proxy,代理实现：当前lab以申万一级替代中信一级；且日历第4步的‘相关系数’与第3步比值定义冲突，按比值因子语义取每日比值均值后20日均值,intraday_trend_fund_metric,,,,{'metric': 'follower_ratio'},25
+calendar2026_4_1_18_u52a0_6743_4e0a_5f15_7ebf_9891_7387,2026,4.1.18,加权上引线频率,量价因子改进,通用,通用,量价因子改进,factors2026.md,12828,12870,unknown,1d,T_close,,"\text{加权上影线频率}*{i,t} = \frac{\sum*{j=1}^{M_{i,t}} w_j * \mathbf{1}*{\text{上影线 } i,j > u}}{M*{i,t}}
+
+\text{上影线} = \frac{\text{最高价} - \max(\text{开盘价}, \text{收盘价})}{\text{前收盘价}}
+
+w_{decay_j} = 0.5^{\frac{t-j}{\lambda}}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0
+calendar2026_4_1_19_u6781_7aef_8ddf_968f_884c_4e3a_76f8_5173_6027,2026,4.1.19,极端跟随行为_相关性因子,量价因子改进,通用,通用,量价因子改进,factors2026.md,12870,12901,1m,1d,T_close,close|volume|turnover|a_share_market_val_in_circulation|first_industry_code,"k=5，m=90；将交易日 t 的每分钟成交量与上述阈值进行对比，
+将其视为跟随趋势资金的极端行为，记录这一分钟的成交额，n=5；","neutralize(mean(corr(trend_amount,follower_amount),20),cap,industry)",proxy,代理实现：量价相关性计算为原式，行业中性化因当前lab仅有申万一级而替代中信一级,intraday_trend_fund_metric,,,,{'metric': 'follower_corr'},25
+calendar2026_4_1_20_u52a0_6743_4e0b_5f15_7ebf_9891_7387,2026,4.1.20,加权下引线频率,量价因子改进,通用,通用,量价因子改进,factors2026.md,12901,12942,unknown,1d,T_close,,"\text{加权下影线频率}*{i,t} = \frac{\sum*{j=1}^{M_{i,t}} w_j * \mathbf{1}*{\text{下影线 } i,j > u}}{M*{i,t}}
+
+\text{下影线} = \frac{\min(\text{开盘价}, \text{收盘价}) - \text{最低价}}{\text{前收盘价}}
+
+w_{decay_j} = 0.5^{\frac{t-j}{\lambda}}",,blocked_formula,源定义缺少唯一执行所需的窗口、阈值或标量输出，未擅自补默认值,,,,,{},0

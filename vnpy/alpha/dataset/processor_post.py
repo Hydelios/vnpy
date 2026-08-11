@@ -123,21 +123,43 @@ def _neutralize_by_industry_and_size(
     if cap_log:
         size = size.log1p()
 
-    base = (
-        base.with_columns(size.cast(pl.Float64).alias("_size"))
-        .with_columns(pl.col("_size").mean().over(["datetime", "_industry"]).alias("_size_mean"))
-        .with_columns((pl.col("_size") - pl.col("_size_mean")).alias("_size_resid"))
-        .with_columns((pl.col("_size_resid").pow(2)).sum().over("datetime").alias("_size_ss"))
-    )
+    base = base.with_columns(size.cast(pl.Float64).alias("_size"))
 
     results: list[pl.DataFrame] = []
     for name in names:
         adjusted = (
             base.with_columns(pl.col(name).cast(pl.Float64, strict=False).alias("_y"))
-            .with_columns(pl.col("_y").mean().over(["datetime", "_industry"]).alias("_y_mean"))
-            .with_columns((pl.col("_y") - pl.col("_y_mean")).alias("_y_resid"))
             .with_columns(
-                (pl.col("_size_resid") * pl.col("_y_resid"))
+                (pl.col("_y").is_finite() & pl.col("_size").is_finite()).alias("_fit_valid")
+            )
+            .with_columns(
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_size"))
+                .otherwise(None)
+                .mean()
+                .over(["datetime", "_industry"])
+                .alias("_size_mean"),
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_y"))
+                .otherwise(None)
+                .mean()
+                .over(["datetime", "_industry"])
+                .alias("_y_mean"),
+            )
+            .with_columns(
+                (pl.col("_size") - pl.col("_size_mean")).alias("_size_resid"),
+                (pl.col("_y") - pl.col("_y_mean")).alias("_y_resid"),
+            )
+            .with_columns(
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_size_resid").pow(2))
+                .otherwise(0.0)
+                .sum()
+                .over("datetime")
+                .alias("_size_ss"),
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_size_resid") * pl.col("_y_resid"))
+                .otherwise(0.0)
                 .sum()
                 .over("datetime")
                 .alias("_size_y_cov")
@@ -149,7 +171,10 @@ def _neutralize_by_industry_and_size(
                 .alias("_beta_size")
             )
             .with_columns(
-                (pl.col("_y_resid") - pl.col("_beta_size") * pl.col("_size_resid")).alias(name)
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_y_resid") - pl.col("_beta_size") * pl.col("_size_resid"))
+                .otherwise(None)
+                .alias(name)
             )
             .select(["datetime", "vt_symbol", name])
         )
@@ -192,18 +217,9 @@ def _neutralize_by_industry_and_size_wls(
     if cap_log:
         size = size.log1p()
 
-    base = (
-        base.with_columns(
-            size.cast(pl.Float64).alias("_size"),
-            _weight_expr(weight_col).alias("_w"),
-        )
-        .with_columns(
-            _weighted_mean_expr("_size", "_w", ["datetime", "_industry"], "_size_wmean"),
-        )
-        .with_columns((pl.col("_size") - pl.col("_size_wmean")).alias("_size_resid"))
-        .with_columns(
-            _weighted_sum_product_expr(["_size_resid", "_size_resid"], "_w", "datetime", "_size_ss")
-        )
+    base = base.with_columns(
+        size.cast(pl.Float64).alias("_size"),
+        _weight_expr(weight_col).alias("_w"),
     )
 
     results: list[pl.DataFrame] = []
@@ -211,11 +227,44 @@ def _neutralize_by_industry_and_size_wls(
         adjusted = (
             base.with_columns(pl.col(name).cast(pl.Float64, strict=False).alias("_y"))
             .with_columns(
-                _weighted_mean_expr("_y", "_w", ["datetime", "_industry"], "_y_wmean")
+                (
+                    pl.col("_y").is_finite()
+                    & pl.col("_size").is_finite()
+                    & pl.col("_w").is_finite()
+                    & (pl.col("_w") > 0)
+                ).alias("_fit_valid")
             )
-            .with_columns((pl.col("_y") - pl.col("_y_wmean")).alias("_y_resid"))
             .with_columns(
-                _weighted_sum_product_expr(["_size_resid", "_y_resid"], "_w", "datetime", "_size_y_cov")
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_w"))
+                .otherwise(0.0)
+                .alias("_fit_w")
+            )
+            .with_columns(
+                _weighted_mean_expr(
+                    "_size", "_fit_w", ["datetime", "_industry"], "_size_wmean"
+                ),
+                _weighted_mean_expr(
+                    "_y", "_fit_w", ["datetime", "_industry"], "_y_wmean"
+                ),
+            )
+            .with_columns(
+                (pl.col("_size") - pl.col("_size_wmean")).alias("_size_resid"),
+                (pl.col("_y") - pl.col("_y_wmean")).alias("_y_resid"),
+            )
+            .with_columns(
+                _weighted_sum_product_expr(
+                    ["_size_resid", "_size_resid"],
+                    "_fit_w",
+                    "datetime",
+                    "_size_ss",
+                ),
+                _weighted_sum_product_expr(
+                    ["_size_resid", "_y_resid"],
+                    "_fit_w",
+                    "datetime",
+                    "_size_y_cov",
+                ),
             )
             .with_columns(
                 pl.when(pl.col("_size_ss").abs() > 1e-12)
@@ -224,7 +273,10 @@ def _neutralize_by_industry_and_size_wls(
                 .alias("_beta_size")
             )
             .with_columns(
-                (pl.col("_y_resid") - pl.col("_beta_size") * pl.col("_size_resid")).alias(name)
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_y_resid") - pl.col("_beta_size") * pl.col("_size_resid"))
+                .otherwise(None)
+                .alias(name)
             )
             .select(["datetime", "vt_symbol", name])
         )
@@ -267,50 +319,84 @@ def _neutralize_by_industry_size_and_vol(
     if cap_log:
         size = size.log1p()
 
-    base = (
-        base.with_columns(
-            size.cast(pl.Float64).alias("_size"),
-            pl.col(vol_col).cast(pl.Float64, strict=False).alias("_vol"),
-        )
-        .with_columns(
-            pl.col("_size").mean().over(["datetime", "_industry"]).alias("_size_mean"),
-            pl.col("_vol").mean().over(["datetime", "_industry"]).alias("_vol_mean"),
-        )
-        .with_columns(
-            (pl.col("_size") - pl.col("_size_mean")).alias("_size_resid"),
-            (pl.col("_vol") - pl.col("_vol_mean")).alias("_vol_resid"),
-        )
-        .with_columns(
-            (pl.col("_size_resid").pow(2)).sum().over("datetime").alias("_s_size_size"),
-            (pl.col("_vol_resid").pow(2)).sum().over("datetime").alias("_s_vol_vol"),
-            (pl.col("_size_resid") * pl.col("_vol_resid"))
-            .sum()
-            .over("datetime")
-            .alias("_s_size_vol"),
-        )
-        .with_columns(
-            (
-                pl.col("_s_size_size") * pl.col("_s_vol_vol")
-                - pl.col("_s_size_vol").pow(2)
-            ).alias("_det")
-        )
+    base = base.with_columns(
+        size.cast(pl.Float64).alias("_size"),
+        pl.col(vol_col).cast(pl.Float64, strict=False).alias("_vol"),
     )
 
     results: list[pl.DataFrame] = []
     for name in names:
         adjusted = (
             base.with_columns(pl.col(name).cast(pl.Float64, strict=False).alias("_y"))
-            .with_columns(pl.col("_y").mean().over(["datetime", "_industry"]).alias("_y_mean"))
-            .with_columns((pl.col("_y") - pl.col("_y_mean")).alias("_y_resid"))
             .with_columns(
-                (pl.col("_size_resid") * pl.col("_y_resid"))
+                (
+                    pl.col("_y").is_finite()
+                    & pl.col("_size").is_finite()
+                    & pl.col("_vol").is_finite()
+                ).alias("_fit_valid")
+            )
+            .with_columns(
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_size"))
+                .otherwise(None)
+                .mean()
+                .over(["datetime", "_industry"])
+                .alias("_size_mean"),
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_vol"))
+                .otherwise(None)
+                .mean()
+                .over(["datetime", "_industry"])
+                .alias("_vol_mean"),
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_y"))
+                .otherwise(None)
+                .mean()
+                .over(["datetime", "_industry"])
+                .alias("_y_mean"),
+            )
+            .with_columns(
+                (pl.col("_size") - pl.col("_size_mean")).alias("_size_resid"),
+                (pl.col("_vol") - pl.col("_vol_mean")).alias("_vol_resid"),
+                (pl.col("_y") - pl.col("_y_mean")).alias("_y_resid"),
+            )
+            .with_columns(
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_size_resid").pow(2))
+                .otherwise(0.0)
+                .sum()
+                .over("datetime")
+                .alias("_s_size_size"),
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_vol_resid").pow(2))
+                .otherwise(0.0)
+                .sum()
+                .over("datetime")
+                .alias("_s_vol_vol"),
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_size_resid") * pl.col("_vol_resid"))
+                .otherwise(0.0)
+                .sum()
+                .over("datetime")
+                .alias("_s_size_vol"),
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_size_resid") * pl.col("_y_resid"))
+                .otherwise(0.0)
                 .sum()
                 .over("datetime")
                 .alias("_s_size_y"),
-                (pl.col("_vol_resid") * pl.col("_y_resid"))
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_vol_resid") * pl.col("_y_resid"))
+                .otherwise(0.0)
                 .sum()
                 .over("datetime")
                 .alias("_s_vol_y"),
+            )
+            .with_columns(
+                (
+                    pl.col("_s_size_size") * pl.col("_s_vol_vol")
+                    - pl.col("_s_size_vol").pow(2)
+                ).alias("_det")
             )
             .with_columns(
                 pl.when(pl.col("_det").abs() > 1e-12)
@@ -335,11 +421,14 @@ def _neutralize_by_industry_size_and_vol(
                 .alias("_beta_vol"),
             )
             .with_columns(
-                (
+                pl.when(pl.col("_fit_valid"))
+                .then(
                     pl.col("_y_resid")
                     - pl.col("_beta_size") * pl.col("_size_resid")
                     - pl.col("_beta_vol") * pl.col("_vol_resid")
-                ).alias(name)
+                )
+                .otherwise(None)
+                .alias(name)
             )
             .select(["datetime", "vt_symbol", name])
         )
@@ -384,31 +473,10 @@ def _neutralize_by_industry_size_and_vol_wls(
     if cap_log:
         size = size.log1p()
 
-    base = (
-        base.with_columns(
-            size.cast(pl.Float64).alias("_size"),
-            pl.col(vol_col).cast(pl.Float64, strict=False).alias("_vol"),
-            _weight_expr(weight_col).alias("_w"),
-        )
-        .with_columns(
-            _weighted_mean_expr("_size", "_w", ["datetime", "_industry"], "_size_wmean"),
-            _weighted_mean_expr("_vol", "_w", ["datetime", "_industry"], "_vol_wmean"),
-        )
-        .with_columns(
-            (pl.col("_size") - pl.col("_size_wmean")).alias("_size_resid"),
-            (pl.col("_vol") - pl.col("_vol_wmean")).alias("_vol_resid"),
-        )
-        .with_columns(
-            _weighted_sum_product_expr(["_size_resid", "_size_resid"], "_w", "datetime", "_s_size_size"),
-            _weighted_sum_product_expr(["_vol_resid", "_vol_resid"], "_w", "datetime", "_s_vol_vol"),
-            _weighted_sum_product_expr(["_size_resid", "_vol_resid"], "_w", "datetime", "_s_size_vol"),
-        )
-        .with_columns(
-            (
-                pl.col("_s_size_size") * pl.col("_s_vol_vol")
-                - pl.col("_s_size_vol").pow(2)
-            ).alias("_det")
-        )
+    base = base.with_columns(
+        size.cast(pl.Float64).alias("_size"),
+        pl.col(vol_col).cast(pl.Float64, strict=False).alias("_vol"),
+        _weight_expr(weight_col).alias("_w"),
     )
 
     results: list[pl.DataFrame] = []
@@ -416,12 +484,73 @@ def _neutralize_by_industry_size_and_vol_wls(
         adjusted = (
             base.with_columns(pl.col(name).cast(pl.Float64, strict=False).alias("_y"))
             .with_columns(
-                _weighted_mean_expr("_y", "_w", ["datetime", "_industry"], "_y_wmean")
+                (
+                    pl.col("_y").is_finite()
+                    & pl.col("_size").is_finite()
+                    & pl.col("_vol").is_finite()
+                    & pl.col("_w").is_finite()
+                    & (pl.col("_w") > 0)
+                ).alias("_fit_valid")
             )
-            .with_columns((pl.col("_y") - pl.col("_y_wmean")).alias("_y_resid"))
             .with_columns(
-                _weighted_sum_product_expr(["_size_resid", "_y_resid"], "_w", "datetime", "_s_size_y"),
-                _weighted_sum_product_expr(["_vol_resid", "_y_resid"], "_w", "datetime", "_s_vol_y"),
+                pl.when(pl.col("_fit_valid"))
+                .then(pl.col("_w"))
+                .otherwise(0.0)
+                .alias("_fit_w")
+            )
+            .with_columns(
+                _weighted_mean_expr(
+                    "_size", "_fit_w", ["datetime", "_industry"], "_size_wmean"
+                ),
+                _weighted_mean_expr(
+                    "_vol", "_fit_w", ["datetime", "_industry"], "_vol_wmean"
+                ),
+                _weighted_mean_expr(
+                    "_y", "_fit_w", ["datetime", "_industry"], "_y_wmean"
+                ),
+            )
+            .with_columns(
+                (pl.col("_size") - pl.col("_size_wmean")).alias("_size_resid"),
+                (pl.col("_vol") - pl.col("_vol_wmean")).alias("_vol_resid"),
+                (pl.col("_y") - pl.col("_y_wmean")).alias("_y_resid"),
+            )
+            .with_columns(
+                _weighted_sum_product_expr(
+                    ["_size_resid", "_size_resid"],
+                    "_fit_w",
+                    "datetime",
+                    "_s_size_size",
+                ),
+                _weighted_sum_product_expr(
+                    ["_vol_resid", "_vol_resid"],
+                    "_fit_w",
+                    "datetime",
+                    "_s_vol_vol",
+                ),
+                _weighted_sum_product_expr(
+                    ["_size_resid", "_vol_resid"],
+                    "_fit_w",
+                    "datetime",
+                    "_s_size_vol",
+                ),
+                _weighted_sum_product_expr(
+                    ["_size_resid", "_y_resid"],
+                    "_fit_w",
+                    "datetime",
+                    "_s_size_y",
+                ),
+                _weighted_sum_product_expr(
+                    ["_vol_resid", "_y_resid"],
+                    "_fit_w",
+                    "datetime",
+                    "_s_vol_y",
+                ),
+            )
+            .with_columns(
+                (
+                    pl.col("_s_size_size") * pl.col("_s_vol_vol")
+                    - pl.col("_s_size_vol").pow(2)
+                ).alias("_det")
             )
             .with_columns(
                 pl.when(pl.col("_det").abs() > 1e-12)
@@ -446,11 +575,14 @@ def _neutralize_by_industry_size_and_vol_wls(
                 .alias("_beta_vol"),
             )
             .with_columns(
-                (
+                pl.when(pl.col("_fit_valid"))
+                .then(
                     pl.col("_y_resid")
                     - pl.col("_beta_size") * pl.col("_size_resid")
                     - pl.col("_beta_vol") * pl.col("_vol_resid")
-                ).alias(name)
+                )
+                .otherwise(None)
+                .alias(name)
             )
             .select(["datetime", "vt_symbol", name])
         )
@@ -487,6 +619,9 @@ def neutralize_columns(
     Use mode="industry_cap" or "industry_cap_vol" for one-shot fixed-effect
     regressions that neutralize industry plus continuous exposures together.
     Pass weight_col with those two modes to run weighted least squares.
+    Each target regression uses only rows where that target and all required
+    exposures are finite, so labels with different horizons keep independent
+    fitting samples.
     """
     if result_df is None or result_df.is_empty():
         return result_df

@@ -102,6 +102,8 @@ class BarData(BaseData):
     high_price: float = 0
     low_price: float = 0
     close_price: float = 0
+    limit_up: float = 0
+    limit_down: float = 0
 
     def __post_init__(self) -> None:
         """"""
